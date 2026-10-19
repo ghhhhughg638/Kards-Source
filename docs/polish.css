@@ -240,3 +240,47 @@ html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
 @media (max-width: 800px) {
   .lang-select { max-width: 88px; padding: 4px 4px; font-size: 13px; }
 }
+
+/* My Blueprint panel: graphs, functions, macros, variables */
+.bp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 4px;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  color: #9aa7a0;
+  text-transform: uppercase;
+}
+.bp-actions { display: flex; gap: 4px; }
+.bp-row { display: flex; align-items: center; gap: 2px; padding-right: 6px; }
+.bp-row .graph-link { flex: 1; min-width: 0; }
+.bp-row .tiny-button { flex-shrink: 0; min-width: 24px; height: 24px; font-size: 12px; }
+.bp-sub .graph-link { padding-left: 28px; opacity: 0.9; }
+.bp-tag {
+  margin-left: 6px;
+  padding: 0 5px;
+  font: normal 9px var(--mono);
+  color: #e9b872;
+  border: 1px solid #6a5328;
+  border-radius: 8px;
+}
+.var-dot { width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; display: inline-block; }
+.var-type { margin-left: auto; font: 10px var(--mono); color: #8d9a93; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Dialog parts */
+.param-list { display: grid; gap: 6px; margin-bottom: 6px; }
+.param-row { display: flex; align-items: center; gap: 6px; }
+.param-row .param-name { flex: 1 1 120px; min-width: 0; }
+.param-row .param-type { flex: 1 1 130px; min-width: 0; }
+.param-array { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; white-space: nowrap; color: #b4c0b9; }
+.check-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 12px; }
+.new-menu { display: grid; gap: 8px; margin-bottom: 10px; }
+.new-menu .new-item { text-align: left; padding: 10px 12px; font-size: 13px; }
+#ovr-sig { white-space: pre-wrap; margin: 8px 0; }
+@media (max-width: 800px) {
+  .bp-row .tiny-button { min-width: 32px; height: 32px; }
+  .param-row { flex-wrap: wrap; }
+}
+
+.bp-head .zh + .en { margin-left: 6px; opacity: 0.7; }

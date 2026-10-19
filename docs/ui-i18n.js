@@ -149,8 +149,8 @@ const EXACT = {
     "Click a node to edit parameters and comments. Double-click a tab to rename or delete an event graph.",
   "管理当前事件图": "Manage current event graph",
   "文件格式": "File format",
-  "包含卡牌信息、多个事件图、节点定义、参数和连线。导入后可继续编辑。":
-    "Contains card info, event graphs, node definitions, parameters and wires. You can keep editing after importing.",
+  "包含资源信息、变量、函数、宏、EventGraph、节点定义、参数和连线。导入后可继续编辑。":
+    "Contains asset info, variables, functions, macros, the EventGraph, node definitions, parameters and wires. You can keep editing after importing.",
   "未命名卡牌": "Untitled card",
   "点击切换 true / false": "Click to toggle true / false",
   // toasts
@@ -195,11 +195,82 @@ const EXACT = {
     "Drag from one pin to another, or click two pins in turn. Only an output and an input of the same type can be connected. Click a wire and press Delete to disconnect it.",
   "修改会自动保存在当前浏览器。使用「导出蓝图」获得文件；更换设备或清除浏览器数据前请先导出。支持 macOS 的 ⌘ 快捷键。":
     "Changes are saved automatically in this browser. Use “Export blueprint” to get a file; export before switching devices or clearing browser data. macOS ⌘ shortcuts are supported.",
+
+  // blueprint structure (functions, macros, variables, custom events)
+  "新建": "New",
+  "编辑函数": "Edit function",
+  "编辑宏": "Edit macro",
+  "新建函数": "New function",
+  "新建宏": "New macro",
+  "新建变量": "New variable",
+  "重载父类函数": "Override parent function",
+  "编辑变量": "Edit variable",
+  "编辑自定义事件": "Edit custom event",
+  "添加自定义事件": "Add custom event",
+  "说明": "Description",
+  "可以用中文写说明": "Write a description (any language)",
+  "访问": "Access",
+  "分类": "Category",
+  "纯函数（没有执行引脚）": "Pure function (no exec pins)",
+  "输入参数": "Inputs",
+  "输出参数": "Outputs",
+  "参数": "Parameters",
+  "创建": "Create",
+  "创建重载": "Create override",
+  "没有可以重载的父类函数了。": "There are no parent functions left to override.",
+  "实例可编辑": "Instance editable",
+  "生成时公开": "Expose on spawn",
+  "资源": "Asset",
+  "资源名称": "Asset name",
+  "父类": "Parent class",
+  "包路径": "Package path",
+  "图表": "Graph",
+  "函数": "Function",
+  "宏": "Macro",
+  "蓝图": "Blueprint",
+  "编辑": "Edit",
+  "编辑函数签名": "Edit function signature",
+  "编辑宏签名": "Edit macro signature",
+  "转到函数": "Go to function",
+  "转到宏": "Go to macro",
+  "转到事件": "Go to event",
+  "获取": "Get",
+  "设置": "Set",
+  "当前图表不能使用此节点": "This node cannot be used in the current graph",
+  "新建函数 / 宏 / 变量": "New function / macro / variable",
+  "请输入名称": "Enter a name",
+  "名称只能包含英文字母、数字和下划线，不能以数字开头，最长 64 位（不支持中文）":
+    "Names may only contain English letters, digits and underscores, cannot start with a digit, and are at most 64 characters (Chinese is not supported)",
+  "名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。":
+    "Names may only contain English letters, digits and underscores, and cannot start with a digit (Chinese is not supported).",
+  "EventGraph 是唯一的事件图，不能再新建。更多逻辑请写在函数、宏或自定义事件里。":
+    "EventGraph is the only event graph and cannot be created again. Put more logic in functions, macros or custom events.",
+  "EventGraph 是蓝图唯一的事件图，不能新建、重命名或删除。":
+    "EventGraph is the blueprint's only event graph; it cannot be created, renamed or deleted.",
+  "事件（如“从手牌打出”）和自定义事件都放在这里；更多逻辑请新建函数或宏。":
+    "Events (such as “On Played From Hand”) and custom events live here; create a function or macro for more logic.",
+  "EventGraph 是蓝图唯一的事件图，不能新建、重命名或删除。点击节点可编辑参数和注释。":
+    "EventGraph is the blueprint's only event graph; it cannot be created, renamed or deleted. Click a node to edit its parameters and comments.",
+  "Function · 函数": "Function",
+  "Macro · 宏": "Macro",
+  "Event Graph · 卡牌事件图": "Event Graph",
+  "资源信息不完整": "Asset info is incomplete",
+  "变量列表无效": "Invalid variable list",
+  "变量定义无效或名称重复": "Invalid variable definition or duplicate name",
+  "蓝图必须有且仅有一个 EventGraph，并且排在第一位":
+    "A blueprint must have exactly one EventGraph, placed first",
+  "函数参数无效": "Invalid function parameters",
+  "函数参数名无效或重复": "Invalid or duplicate parameter name",
+  "事件图之外只能有函数或宏": "Besides the EventGraph there can only be functions or macros",
+  "函数或宏的名称无效或重复": "Invalid or duplicate function/macro name",
+  "函数定义无效": "Invalid function definition",
+  "自定义事件名称无效或重复": "Invalid or duplicate custom event name",
+  "自定义事件只能放在 EventGraph 中": "Custom events can only be placed in the EventGraph",
   // model errors
   "请连接两个不同的节点": "Connect two different nodes",
   "请将输出端口连接到输入端口": "Connect an output pin to an input pin",
-  "无法识别文件。请导入版本 1 的 .kardsbp.json 蓝图文件。":
-    "File not recognised. Import a version 1 .kardsbp.json blueprint file.",
+  "无法识别文件。请导入版本 2 的 .kardsbp.json 蓝图文件（旧版本文件不兼容）。":
+    "File not recognised. Import a version 2 .kardsbp.json blueprint file (older files are not supported).",
   "项目名称或事件图列表无效": "Invalid project name or event graph list",
   "卡牌信息不完整": "Card info is incomplete",
   "事件图结构无效或超出大小限制": "Invalid event graph structure or size limit exceeded",
@@ -229,6 +300,12 @@ const ZH_EXACT = {
   DEFAULTS: "默认参数",
   NATIVE: "原生",
   "Event Graph · 卡牌事件图": "事件图 · 卡牌事件图",
+  "Function · 函数": "函数",
+  "Macro · 宏": "宏",
+  ASSET: "资源",
+  BLUEPRINT: "蓝图",
+  FUNCTION: "函数",
+  MACRO: "宏",
 };
 const ZH_FACTIONS = {
   GERMANY: "德国", BRITAIN: "英国", JAPAN: "日本", SOVIET: "苏联", AMERICA: "美国",
@@ -240,14 +317,21 @@ const ZH_PATTERNS = [
   [/^(\d+) SELECTED$/, "已选 $1 个"],
 ];
 
+const PARAM_LABELS = { 输入参数: "Inputs", 输出参数: "Outputs", 参数: "Parameters" };
 const PATTERNS = [
+  [/^(输入参数|输出参数|参数)：(.+)$/s, (m) => `${PARAM_LABELS[m[1]]}: ${translateText(m[2], "en")}`],
+  [/^资源名称无效：(.+)$/s, (m) => `Invalid asset name: ${translateText(m[1], "en")}`],
+  [/^“(.+)”是保留名称，请换一个$/, "“$1” is a reserved name — choose another"],
+  [/^名称“(.+)”已被使用$/, "The name “$1” is already in use"],
+  [/^删除“(.*)”？调用它的节点也会被一并删除，可使用撤销恢复。$/, "Delete “$1”? Nodes that call it are deleted too; you can undo this."],
+  [/^删除“(.*)”？使用它的获取\/设置节点也会被一并删除，可使用撤销恢复。$/, "Delete “$1”? Get/Set nodes that use it are deleted too; you can undo this."],
   [/^(\d+) 个节点 · (\d+) 条连接 · (\d+) 个动作节点没有执行输入$/, "$1 nodes · $2 wires · $3 action nodes have no exec input"],
   [/^(\d+) 个节点 · (\d+) 条连接$/, "$1 nodes · $2 wires"],
   [/^(\d+) 个节点 · KARDS \+ Unreal Blueprint$/, "$1 nodes · KARDS + Unreal Blueprint"],
   [/^(\d+) 函数 · (\d+) 类 · (\d+) UE 节点$/, "$1 functions · $2 classes · $3 UE nodes"],
   [/^(\d+) 个操作 \/ Actions$/, "$1 Actions"],
   [/^已选中 (\d+) 个节点$/, "$1 node(s) selected"],
-  [/^已导入 (.+) · (\d+) 个事件图$/, "Imported $1 · $2 event graph(s)"],
+  [/^已导入 (.+) · (\d+) 个图表$/, "Imported $1 · $2 graph(s)"],
   [/^刷新失败：(.+)。请检查网络后重试。$/, "Refresh failed: $1. Check your network and try again."],
   [/^尚未接入执行流：(.+)。可以保留它们作为设计草稿。$/, "Not connected to an execution flow yet: $1. You can keep them as design drafts."],
   [/^(.*)。请刷新页面，或检查 catalog\.json 是否和站点一起发布。$/, "$1. Reload the page, or check that catalog.json is published with the site."],
@@ -266,7 +350,7 @@ const PATTERNS = [
 const HAS_CJK = /[一-鿿]/;
 const BILINGUAL = /^(.*?[一-鿿][^/]*?) \/ ([A-Za-z].*)$/;
 // Leading/trailing decoration that is kept as-is around a translated phrase.
-const FRAME = /^([^一-鿿A-Za-z0-9]*)(.*?)([\s↗…]*)$/s;
+const FRAME = /^([\s↶↷⟳＋+↗▥⌕⌘·•✓☰]*)(.*?)([\s↗…]*)$/s;
 
 const squash = (s) => s.replace(/\s+/g, " ").trim();
 
@@ -313,12 +397,13 @@ export function translateText(text, mode) {
     const m = BILINGUAL.exec(body);
     return m ? keep(m[1]) : text;
   }
-  const joined = translateParts(body);
-  if (joined !== null) return keep(joined);
   const exact = EXACT[core] ?? EXACT[body];
+  const joined = exact === undefined ? translateParts(body) : null;
+  if (joined !== null) return keep(joined);
   if (exact !== undefined) return EXACT[core] !== undefined ? lead + exact + trail : keep(exact);
   for (const [re, out] of PATTERNS) {
-    if (re.test(body)) return keep(body.replace(re, out));
+    const m = re.exec(body);
+    if (m) return keep(typeof out === "function" ? out(m) : body.replace(re, out));
   }
   const m = BILINGUAL.exec(body);
   return m ? keep(m[2]) : text;
