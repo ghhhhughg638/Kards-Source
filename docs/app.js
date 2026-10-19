@@ -1175,6 +1175,19 @@ function nodeBody(n) {
       `<div class="pin-pair">${ins[i] ? pinMarkup(n, ins[i]) : '<div class="pin-row"></div>'}${outs[i] ? pinMarkup(n, outs[i]) : '<div class="pin-row output"></div>'}</div>`,
   ).join("");
 }
+// Visual size class: simple data nodes (Get Self, Get Card ID, literals) stay small, while
+// busy nodes (Change Attack and friends) get larger ports and rows that are easier to wire.
+function nodeTier(d) {
+  const ins = d.pins.filter((p) => p.direction === "in").length,
+    outs = d.pins.filter((p) => p.direction === "out").length,
+    data = d.pins.filter((p) => p.type !== "exec" && p.id !== "target").length,
+    hasExec = d.pins.some((p) => p.type === "exec"),
+    rows = Math.max(ins, outs);
+  if (rows >= 6 || d.pins.length >= 9) return "lg";
+  if (!hasExec && data <= 2) return "xs";
+  if ((!hasExec && data <= 4) || (hasExec && rows <= 2)) return "sm";
+  return "md";
+}
 // Nodes size themselves to their content, so redraw wires whenever one changes size.
 let relayoutFrame = 0;
 const nodeObserver = new ResizeObserver(() => {
@@ -1188,7 +1201,7 @@ function renderNodes() {
   $("nodes").innerHTML = graph()
     .nodes.map(
       (n) =>
-        `<article class="node ue-${nodeKind(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
+        `<article class="node ue-${nodeKind(n.definition)} tier-${nodeTier(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
     )
     .join("");
   nodeObserver.disconnect();

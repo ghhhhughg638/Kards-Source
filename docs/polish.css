@@ -305,3 +305,30 @@ html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
   .bp-row .tiny-button { min-width: 30px; height: 30px; }
   .param-row .param-name, .param-row .param-type { flex-basis: 100%; }
 }
+
+/* Size tiers (see nodeTier in app.js): everything scales from --s so ports stay proportional. */
+.node { --s: 1; }
+.node.tier-xs { --s: 0.8; min-width: 0; }
+.node.tier-sm { --s: 0.92; min-width: 0; }
+.node.tier-lg { --s: 1.18; min-width: 220px; }
+.node .node-head { padding: calc(5px * var(--s)) calc(12px * var(--s)) calc(5px * var(--s)) calc(10px * var(--s)); }
+.node .node-heading { font-size: calc(12px * var(--s)); gap: calc(7px * var(--s)); }
+.node .node-heading > span { font-size: calc(15px * var(--s)); width: calc(15px * var(--s)); }
+.node .node-subtitle { font-size: calc(9px * var(--s)); margin-left: calc(22px * var(--s)); }
+.node .node-body { padding: calc(3px * var(--s)) 0 calc(4px * var(--s)); column-gap: calc(22px * var(--s)); }
+.node .pin-pair .pin-row { min-height: calc(22px * var(--s)); padding: 1px calc(9px * var(--s)); gap: calc(5px * var(--s)); }
+.node .pin-cn { font-size: calc(11px * var(--s)); }
+.node .pin-en { font-size: calc(9px * var(--s)); }
+.node .pin { width: calc(10px * var(--s)); height: calc(10px * var(--s)); }
+.node .pin.exec { width: calc(12px * var(--s)); height: calc(12px * var(--s)); }
+.node .pin-value { font-size: calc(10px * var(--s)); line-height: calc(16px * var(--s)); }
+/* simple data nodes: a single slim header row, no English subtitle line */
+.node.tier-xs .node-subtitle { display: none; }
+.node.tier-xs .node-head { padding-top: 4px; padding-bottom: 4px; }
+/* busy nodes: roomier rows and a bigger target area around every port */
+.node.tier-lg .pin-pair .pin-row { min-height: calc(26px * 1); }
+.node.tier-lg .pin::after { inset: -6px; content: ""; position: absolute; }
+@media (pointer: coarse) {
+  .node.tier-lg .pin::after { inset: -11px; }
+  .node.tier-xs .pin::after, .node.tier-sm .pin::after { inset: -10px; }
+}
