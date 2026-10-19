@@ -11,6 +11,7 @@
     <title>KARDS · Blueprint Studio</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./polish.css" />
   </head>
   <body>
     <div class="app">
@@ -55,7 +56,8 @@
         </div>
       </nav>
       <main class="workspace">
-        <aside class="left-panel">
+        <div id="drawer-backdrop" class="drawer-backdrop"></div>
+        <aside class="left-panel" id="left-panel">
           <section class="graph-section">
             <div class="section-heading">
               <h2>我的蓝图 <small>My Blueprint</small></h2>
@@ -100,7 +102,8 @@
               ><strong id="graph-breadcrumb">事件图</strong>
             </div>
             <div class="canvas-tools">
-              <button id="add-node" title="添加节点 (Tab)">＋ 添加节点</button
+              <button id="toggle-library" title="节点库与蓝图列表">☰ 节点库</button
+              ><button id="add-node" title="添加节点 (Tab)">＋ 添加节点</button
               ><button id="fit" class="icon-button" title="适应画布 (F)">
                 ⛶</button
               ><button
