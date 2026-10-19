@@ -332,6 +332,7 @@ function render() {
   setTypeHierarchy(project.types);
   $("project-name").value = project.name;
   renderWorkspace();
+  $("toggle-library").innerHTML = `☰ <span class="toggle-name">${esc(project.name)}</span>`;
   $("project-label").textContent = project.card.title;
   $("card-breadcrumb").textContent = project.card.title;
   $("graph-breadcrumb").textContent = graph().name;

@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.7.1",
+    "date": "2026-10-19",
+    "title": { "zh": "手机端工作区入口", "en": "Workspace entry on phones" },
+    "items": [
+      { "zh": "手机上画布左上方的按钮现在显示当前卡牌名，点它打开左侧的工作区、我的蓝图和节点库", "en": "On phones the button at the top left of the canvas now shows the current card name; tap it to open the workspace, blueprint and palette" }
+    ]
+  },
+  {
     "version": "2.7.0",
     "date": "2026-10-19",
     "title": { "zh": "更新提醒", "en": "Update reminder" },
