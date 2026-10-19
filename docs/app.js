@@ -1251,60 +1251,197 @@ function freeSpotNearCenter() {
       }
   return base;
 }
-// Tidy the graph: columns by flow depth (left to right), stacked by measured node size.
+// Tidy the graph the way a person would draw it: execution flows left to right, pure value
+// nodes sit just left of the node that uses them and line up with the pin they feed, a node's
+// branches (True / False, Then 0 / Then 1 …) follow the pin order, unrelated graphs get their
+// own band, and nodes with no wires are parked in a tidy grid below.
 function arrangeNodes() {
   const g = graph();
   if (!g.nodes.length) return;
-  const size = (n) => {
-    const el = document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`);
-    return { w: el?.offsetWidth || 240, h: el?.offsetHeight || 120 };
-  };
-  mutate(() => {
-    const ids = new Set(g.nodes.map((n) => n.id)),
-      depth = new Map(g.nodes.map((n) => [n.id, 0]));
-    const edges = g.edges.filter(
-      (e) => ids.has(e.from.node) && ids.has(e.to.node) && e.from.node !== e.to.node,
-    );
-    // Longest-path layering; the pass limit keeps cycles from looping forever.
-    for (let pass = 0; pass < g.nodes.length; pass++) {
+  const zoom = g.view.zoom || 1,
+    GAP = 30,
+    M = new Map();
+  for (const n of g.nodes) {
+    const el = document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`),
+      box = el?.getBoundingClientRect(),
+      pinY = {};
+    if (el)
+      for (const pe of el.querySelectorAll(".pin")) {
+        const r = pe.getBoundingClientRect();
+        pinY[pe.dataset.pin] = (r.top + r.height / 2 - box.top) / zoom;
+      }
+    M.set(n.id, {
+      w: el?.offsetWidth || 240,
+      h: el?.offsetHeight || 120,
+      pinY,
+      pure: !n.definition.pins.some((p) => p.type === "exec"),
+    });
+  }
+  const pinOffset = (id, pin) => M.get(id).pinY[pin] ?? 24;
+  const edges = g.edges.filter(
+    (e) => M.has(e.from.node) && M.has(e.to.node) && e.from.node !== e.to.node,
+  );
+  // Connected components (wires in either direction).
+  const parent = new Map(g.nodes.map((n) => [n.id, n.id])),
+    find = (a) => (parent.get(a) === a ? a : (parent.set(a, find(parent.get(a))), parent.get(a)));
+  for (const e of edges) parent.set(find(e.from.node), find(e.to.node));
+  const wired = new Set(edges.flatMap((e) => [e.from.node, e.to.node])),
+    groups = new Map();
+  for (const n of g.nodes) {
+    if (!wired.has(n.id)) continue;
+    const k = find(n.id);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(n);
+  }
+  const pos = new Map();
+  let bandTop = 0,
+    maxRight = 0;
+  const comps = [...groups.values()].sort(
+    (a, b) => Math.min(...a.map((n) => n.y)) - Math.min(...b.map((n) => n.y)),
+  );
+  for (const comp of comps) {
+    const ids = new Set(comp.map((n) => n.id)),
+      ce = edges.filter((e) => ids.has(e.from.node)),
+      outs = (id) => ce.filter((e) => e.from.node === id),
+      // A pure node that feeds something is laid out in a "gutter" in front of its consumer.
+      gutter = new Set(
+        comp.filter((n) => M.get(n.id).pure && outs(n.id).length).map((n) => n.id),
+      );
+    if (gutter.size === comp.length) gutter.clear();
+    const body = comp.filter((n) => !gutter.has(n.id)),
+      flow = ce.filter((e) => !gutter.has(e.from.node) && !gutter.has(e.to.node)),
+      col = new Map(body.map((n) => [n.id, 0]));
+    for (let pass = 0; pass < body.length; pass++) {
       let changed = false;
-      for (const e of edges) {
-        const d = depth.get(e.from.node) + 1;
-        if (d > depth.get(e.to.node) && d <= g.nodes.length) {
-          depth.set(e.to.node, d);
+      for (const e of flow) {
+        const d = col.get(e.from.node) + 1;
+        if (d > col.get(e.to.node) && d <= body.length) {
+          col.set(e.to.node, d);
           changed = true;
         }
       }
       if (!changed) break;
     }
-    const columns = new Map();
-    for (const n of g.nodes) {
-      const d = depth.get(n.id);
-      if (!columns.has(d)) columns.set(d, []);
-      columns.get(d).push(n);
+    const level = new Map(),
+      gcol = new Map();
+    for (const id of gutter) {
+      level.set(id, 1);
+      gcol.set(id, Infinity);
     }
-    const order = new Map(); // average row of already placed upstream nodes keeps wires short
+    for (let pass = 0; pass <= gutter.size + 1; pass++) {
+      let changed = false;
+      for (const id of gutter)
+        for (const e of outs(id)) {
+          const c = e.to.node,
+            cc = gutter.has(c) ? gcol.get(c) : col.get(c),
+            cl = gutter.has(c) ? level.get(c) + 1 : 1;
+          if (cc < gcol.get(id)) (gcol.set(id, cc), (changed = true));
+          if (cl > level.get(id) && cl <= gutter.size + 1) (level.set(id, cl), (changed = true));
+        }
+      if (!changed) break;
+    }
+    for (const id of gutter) if (!Number.isFinite(gcol.get(id))) gcol.set(id, 0);
+    const maxCol = Math.max(0, ...col.values()),
+      slots = new Map(), // "col:level" -> gutter nodes
+      width = (list) => Math.max(0, ...list.map((n) => M.get(n.id).w));
+    for (const id of gutter) {
+      const k = `${gcol.get(id)}:${level.get(id)}`;
+      if (!slots.has(k)) slots.set(k, []);
+      slots.get(k).push(byIdNode(id));
+    }
+    function byIdNode(id) {
+      return g.nodes.find((n) => n.id === id);
+    }
+    // x positions: for every column its gutter levels (farthest first), then the column itself.
+    const colX = new Map(),
+      slotX = new Map();
     let x = 0;
-    for (const d of [...columns.keys()].sort((a, b) => a - b)) {
-      const col = columns.get(d),
-        rank = (n) => {
-          const up = edges
-            .filter((e) => e.to.node === n.id && order.has(e.from.node))
-            .map((e) => order.get(e.from.node));
-          return up.length ? up.reduce((a, b) => a + b, 0) / up.length : Infinity;
-        };
-      col.sort((a, b) => rank(a) - rank(b) || a.y - b.y || a.x - b.x);
-      let y = 0,
-        width = 0;
-      for (const n of col) {
-        const { w, h } = size(n);
-        n.x = Math.round(x / 10) * 10;
-        n.y = Math.round(y / 10) * 10;
-        order.set(n.id, n.y);
-        y += h + 40;
-        width = Math.max(width, w);
+    for (let d = 0; d <= maxCol; d++) {
+      const top = Math.max(0, ...[...gutter].filter((id) => gcol.get(id) === d).map((id) => level.get(id)));
+      for (let k = top; k >= 1; k--) {
+        slotX.set(`${d}:${k}`, x);
+        x += width(slots.get(`${d}:${k}`) || []) + 70;
       }
-      x += width + 90;
+      colX.set(d, x);
+      x += width(body.filter((n) => col.get(n.id) === d)) + 100;
+    }
+    const local = new Map(),
+      place = (list, desired) => {
+        // keep the given order, push down only as far as needed to avoid overlap
+        let bottom = -Infinity;
+        for (const n of list) {
+          const want = desired(n),
+            y = bottom === -Infinity ? (Number.isFinite(want) ? want : 0) : Math.max(want, bottom + GAP);
+          local.set(n.id, { x: local.get(n.id)?.x ?? 0, y });
+          bottom = y + M.get(n.id).h;
+        }
+      };
+    for (let d = 0; d <= maxCol; d++) {
+      const column = body.filter((n) => col.get(n.id) === d),
+        want = new Map();
+      for (const n of column) {
+        const ups = flow
+          .filter((e) => e.to.node === n.id && col.get(e.from.node) < d && local.has(e.from.node))
+          .map((e) => local.get(e.from.node).y + pinOffset(e.from.node, e.from.pin) - pinOffset(n.id, e.to.pin));
+        want.set(n.id, ups.length ? ups.reduce((a, b) => a + b, 0) / ups.length : null);
+      }
+      const placed = column.filter((n) => want.get(n.id) !== null).sort((a, b) => want.get(a.id) - want.get(b.id)),
+        roots = column.filter((n) => want.get(n.id) === null).sort((a, b) => a.y - b.y || a.x - b.x),
+        ordered = [...placed, ...roots];
+      for (const n of column) local.set(n.id, { x: colX.get(d), y: 0 });
+      place(ordered, (n) => want.get(n.id) ?? -Infinity);
+      // pure value nodes feeding this column, nearest level first
+      for (let k = 1; ; k++) {
+        const list = slots.get(`${d}:${k}`);
+        if (!list) {
+          if (k > gutter.size + 1) break;
+          continue;
+        }
+        const wantG = new Map();
+        for (const n of list) {
+          const downs = outs(n.id)
+            .filter((e) => local.has(e.to.node))
+            .map((e) => local.get(e.to.node).y + pinOffset(e.to.node, e.to.pin) - pinOffset(n.id, e.from.pin));
+          wantG.set(n.id, downs.length ? downs.reduce((a, b) => a + b, 0) / downs.length : 0);
+        }
+        for (const n of list) local.set(n.id, { x: slotX.get(`${d}:${k}`), y: 0 });
+        place([...list].sort((a, b) => wantG.get(a.id) - wantG.get(b.id)), (n) => wantG.get(n.id));
+      }
+    }
+    // Gutter nodes of later levels may feed gutter nodes placed in the same pass: settle once more.
+    const top = Math.min(...[...local.values()].map((p) => p.y)),
+      bottom = Math.max(...comp.map((n) => local.get(n.id).y + M.get(n.id).h));
+    for (const n of comp) {
+      const p = local.get(n.id);
+      pos.set(n.id, { x: p.x, y: p.y - top + bandTop });
+      maxRight = Math.max(maxRight, p.x + M.get(n.id).w);
+    }
+    bandTop += bottom - top + 110;
+  }
+  // Nodes without any wire: a grid below, left to right then down.
+  const loose = g.nodes
+    .filter((n) => !wired.has(n.id))
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+  const rowWidth = Math.max(1200, maxRight);
+  let gx = 0,
+    gy = bandTop,
+    rowH = 0;
+  for (const n of loose) {
+    const { w, h } = M.get(n.id);
+    if (gx > 0 && gx + w > rowWidth) {
+      gx = 0;
+      gy += rowH + GAP;
+      rowH = 0;
+    }
+    pos.set(n.id, { x: gx, y: gy });
+    gx += w + 40;
+    rowH = Math.max(rowH, h);
+  }
+  mutate(() => {
+    for (const n of g.nodes) {
+      const p = pos.get(n.id);
+      n.x = Math.round(p.x / 10) * 10;
+      n.y = Math.round(p.y / 10) * 10;
     }
   });
   fit();

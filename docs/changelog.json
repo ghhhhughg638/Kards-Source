@@ -1,5 +1,27 @@
 [
   {
+    "version": "2.8.2",
+    "date": "2026-10-19",
+    "title": {
+      "zh": "整理更符合阅读习惯",
+      "en": "Arrange now follows how people read a blueprint"
+    },
+    "items": [
+      {
+        "zh": "执行流从左到右;分支(True/False、Then 0/1)按引脚顺序从上到下排列,并与来源引脚对齐",
+        "en": "Execution flows left to right; branches (True/False, Then 0/1) stack in pin order, aligned with their source pin"
+      },
+      {
+        "zh": "纯数据节点(如变量、查询)放在使用它的节点左侧,并对齐对应输入引脚",
+        "en": "Pure value nodes sit just left of the node that uses them, lined up with the input pin"
+      },
+      {
+        "zh": "互不相连的逻辑各占一条横带;没有连线的节点整齐排成网格放在最下方",
+        "en": "Unconnected graphs get their own band; nodes without wires are parked in a tidy grid below"
+      }
+    ]
+  },
+  {
     "version": "2.8.1",
     "date": "2026-10-19",
     "title": {
