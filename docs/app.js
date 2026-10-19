@@ -1736,7 +1736,7 @@ function zoomAt(factor, cx, cy) {
     r = $("viewport").getBoundingClientRect();
   cx ??= r.width / 2;
   cy ??= r.height / 2;
-  const z = Math.max(0.2, Math.min(2, v.zoom * factor));
+  const z = Math.max(0.05, Math.min(2, v.zoom * factor));
   v.x = cx - ((cx - v.x) * z) / v.zoom;
   v.y = cy - ((cy - v.y) * z) / v.zoom;
   v.zoom = z;
@@ -1779,7 +1779,7 @@ function fit() {
     b = bounds(),
     r = $("viewport").getBoundingClientRect(),
     z = Math.max(
-      0.2,
+      0.05,
       Math.min(
         1.15,
         (r.width - (narrow ? 24 : 70)) / b.w,
@@ -2420,7 +2420,7 @@ $("new-project").onclick = newProject;
   ]) {
     const section = document.querySelector(selector),
       title = section.querySelector(".section-heading h2");
-    section.classList.toggle("folded", !!folded[id]);
+    section.classList.toggle("folded", id in folded ? !!folded[id] : id === "blueprint" && window.innerWidth > 800);
     title.setAttribute("role", "button");
     title.tabIndex = 0;
     const toggle = () => {
