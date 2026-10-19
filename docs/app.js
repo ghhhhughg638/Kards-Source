@@ -1,6 +1,7 @@
 import { setUiLanguage, tr } from "./ui-i18n.js";
 import { createWorkspace } from "./workspace.js";
 import { makeZip, readZip } from "./zip.js";
+import { entriesSince, isOutdated, isStamped } from "./update.js";
 import {
   FORMAT,
   VERSION,
@@ -2488,26 +2489,37 @@ $("zoom-in").onclick = () => zoomAt(1.15);
 $("zoom-out").onclick = () => zoomAt(1 / 1.15);
 $("zoom-label").onclick = () => zoomAt(1 / graph().view.zoom);
 // Re-download every site file from the server (bypassing the HTTP cache), then reload.
+// Every file the page loads; Refresh / Update re-download all of them from the server.
+const SITE_FILES = [
+  "./",
+  "./style.css",
+  "./polish.css",
+  "./app.js",
+  "./model.js",
+  "./blueprint.js",
+  "./ue-nodes.js",
+  "./i18n.js",
+  "./ui-i18n.js",
+  "./workspace.js",
+  "./zip.js",
+  "./update.js",
+  "./catalog.json",
+  "./changelog.json",
+  "./version.json",
+];
+// Stamped with the commit and version by the Pages workflow; local copies keep the placeholders.
+const BUILD = { sha: "__BUILD_SHA__", version: "__BUILD_VERSION__" };
 async function forceRefresh() {
   const button = $("force-refresh");
   button.disabled = true;
   button.textContent = "⟳ …";
   try {
     persist();
-    const files = [
-      "./",
-      "./style.css",
-      "./polish.css",
-      "./app.js",
-      "./model.js",
-      "./ue-nodes.js",
-      "./i18n.js",
-      "./catalog.json",
-    ];
+    const files = SITE_FILES;
     await Promise.all(
       files.map((f) =>
         fetch(f, { cache: "reload" }).then((r) => {
-          if (!r.ok) throw new Error(`${f} ${r.status}`);
+          if (!r.ok && f !== "./version.json") throw new Error(`${f} ${r.status}`);
         }),
       ),
     );
@@ -2659,6 +2671,59 @@ window.addEventListener("resize", () => {
 window.addEventListener("beforeunload", () => {
   if (project) persist();
 });
+// ---- update check: ask before replacing the page with a newer deployed version
+let updateAsked = false;
+async function checkForUpdate() {
+  if (updateAsked || !isStamped(BUILD)) return;
+  try {
+    const stamp = `t=${Date.now()}`;
+    const fetchJson = async (file) => {
+      const controller = new AbortController(),
+        timer = setTimeout(() => controller.abort(), 8000);
+      try {
+        const response = await fetch(`./${file}?${stamp}`, { cache: "no-store", signal: controller.signal });
+        if (!response.ok) throw new Error(String(response.status));
+        return await response.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+    const latest = await fetchJson("version.json");
+    if (!isOutdated(BUILD, latest)) return;
+    let log = [];
+    try {
+      log = await fetchJson("changelog.json");
+    } catch {
+      /* the dialog still works without the notes */
+    }
+    updateAsked = true;
+    showUpdateDialog(latest, entriesSince(log, BUILD.version));
+  } catch {
+    /* offline or blocked: never bother the user about it */
+  }
+}
+function showUpdateDialog(latest, entries) {
+  const line = (item) =>
+    `<li><span class="zh">${esc(item.zh)}</span><span class="en">${esc(item.en || item.zh)}</span></li>`;
+  const notes = entries.length
+    ? entries
+        .map(
+          (e) =>
+            `<section class="update-entry"><h3>v${esc(e.version)} · <span class="zh">${esc(e.title?.zh || "")}</span><span class="en">${esc(e.title?.en || e.title?.zh || "")}</span> <small>${esc(e.date || "")}</small></h3><ul>${(e.items || []).map(line).join("")}</ul></section>`,
+        )
+        .join("")
+    : "<p>这个版本包含功能改进和问题修复。</p>";
+  openModal(
+    "发现新版本",
+    `<p class="update-versions">当前 v${esc(BUILD.version)} → 最新 v${esc(latest.version || "?")}</p><div class="update-notes">${notes}</div><p class="detail-description">更新会重新下载页面文件并刷新；你的卡牌保存在浏览器里，不会丢失。</p><div class="update-actions"><button id="update-later" class="secondary-button">暂不更新</button><button id="update-now" class="primary-button">立即更新</button></div>`,
+  );
+  $("update-later").onclick = () => $("modal").close();
+  $("update-now").onclick = () => {
+    $("update-now").disabled = true;
+    $("update-now").textContent = "…";
+    forceRefresh();
+  };
+}
 async function boot() {
   try {
     const response = await fetch("./catalog.json");
@@ -2699,6 +2764,7 @@ async function boot() {
     render();
     if (!restored) requestAnimationFrame(fit);
     persist();
+    setTimeout(checkForUpdate, 1500);
   } catch (e) {
     $("source-status").textContent = "节点库载入失败";
     openModal(
