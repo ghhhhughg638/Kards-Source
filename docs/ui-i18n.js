@@ -334,6 +334,8 @@ const ZH_PATTERNS = [
 
 const PARAM_LABELS = { 输入参数: "Inputs", 输出参数: "Outputs", 参数: "Parameters", 局部变量: "Local variables" };
 const PATTERNS = [
+  [/^⚠ (\d+) 个节点的 Target 没有连接，而且它们不属于 (.+)，不能默认使用 Self：(.+)。$/s, "⚠ $1 node(s) have an unconnected Target and do not belong to $2, so they cannot default to Self: $3."],
+  [/^这个函数属于 (.+)，不是本蓝图（(.+)）的成员，Target 必须连接$/, "This function belongs to $1, not to this blueprint ($2); its Target must be connected"],
   [/^宏不能引用自身，嵌套也不能超过 (\d+) 层$/, "A macro cannot reference itself, and nesting cannot exceed $1 levels"],
   [/^删除“(.*)”？使用它的调用、绑定节点也会被一并删除，可使用撤销恢复。$/, "Delete “$1”? Call and bind nodes that use it are deleted too; you can undo this."],
   [/^(输入参数|输出参数|参数|局部变量)：(.+)$/s, (m) => `${PARAM_LABELS[m[1]]}: ${translateText(m[2], "en")}`],

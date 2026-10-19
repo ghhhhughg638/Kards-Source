@@ -374,6 +374,9 @@ const usedNames = ({ graph: g, variable: v, dispatcher: d, events = true } = {})
     : []),
   ...parentMembers(),
 ];
+// The blueprint's own type, used to decide which object pins may default to Self.
+const selfType = () => `${project.asset.parentClass}*`;
+const pinDefault = (p) => defaultValue(p.type, enums, selfType());
 const classMap = () => ({ ...classes, ...project.types });
 // Names already used by the parent class; a blueprint may not redefine them.
 const parentMembers = () =>
@@ -1152,7 +1155,7 @@ function pinMarkup(n, p) {
       (e.from.node === n.id && e.from.pin === p.id) ||
       (e.to.node === n.id && e.to.pin === p.id),
   );
-  const val = n.values[p.id] ?? defaultValue(p.type, enums);
+  const val = n.values[p.id] ?? pinDefault(p);
   const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
     raw = pinEnglish(p);
@@ -1164,7 +1167,7 @@ function pinMarkup(n, p) {
     !(p.id === "target" && val === "Self") &&
     (p.direction === "in" ||
       (n.definition.category === "variables" && n.definition.kind === "variable"));
-  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? (typeof val === "boolean" ? `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>` : `<span class="pin-value">${esc(val)}</span>`) : ""}${p.direction === "out" ? button : ""}</div>`;
+  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? (typeof val === "boolean" ? `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>` : `<span class="pin-value${p.id === "target" && val === "None" ? " pin-need" : ""}"${p.id === "target" && val === "None" ? ` title="${esc(`这个函数属于 ${n.definition.class}，不是本蓝图（${project.asset.parentClass}）的成员，Target 必须连接`)}"` : ""}>${esc(val)}</span>`) : ""}${p.direction === "out" ? button : ""}</div>`;
 }
 function nodeBody(n) {
   const ins = n.definition.pins.filter((p) => p.direction === "in"),
@@ -1268,7 +1271,7 @@ function renderInspector() {
     body += inputs.length
       ? inputs
           .map((p) => {
-            const val = n.values[p.id] ?? defaultValue(p.type, enums),
+            const val = n.values[p.id] ?? pinDefault(p),
               isConnected = graph().edges.some(
                 (e) => e.to.node === n.id && e.to.pin === p.id,
               );
@@ -1870,7 +1873,7 @@ function exportSVG() {
       const pos = pinPosition({ node: n.id, pin: p.id }),
         out = p.direction === "out";
       if (!pos) continue;
-      const val = n.values[p.id] ?? defaultValue(p.type, enums);
+      const val = n.values[p.id] ?? pinDefault(p);
       const hasValue =
         p.type !== "exec" &&
         !graph().edges.some((e) => e.to.node === n.id && e.to.pin === p.id) &&
@@ -1935,6 +1938,19 @@ function validate() {
   try {
     validateProject(clone(project));
     const g = graph(),
+      needsTarget = g.nodes.filter((n) => {
+        const p = n.definition.pins.find(
+          (x) => x.id === "target" && x.direction === "in",
+        );
+        if (!p || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id))
+          return false;
+        const value = n.values[p.id] ?? pinDefault(p);
+        return (
+          value === "None" ||
+          value === "" ||
+          (value === "Self" && pinDefault(p) !== "Self")
+        );
+      }),
       unconnected = g.nodes.filter((n) =>
         n.definition.pins.some(
           (p) =>
@@ -1945,7 +1961,7 @@ function validate() {
       );
     openModal(
       "蓝图检查",
-      `<div class="validation-item">✓ 文件结构、端口类型和连接引用有效。</div><div class="validation-item">${g.nodes.length} 个节点 · ${g.edges.length} 条连接 · ${unconnected.length} 个动作节点没有执行输入</div>${unconnected.length ? `<p>尚未接入执行流：${unconnected.map((n) => esc(nodeHeading(n))).join(langMode === "en" ? ", " : "、")}。可以保留它们作为设计草稿。</p>` : ""}<p>检查范围为蓝图文档结构。此编辑器不运行蓝图，也不验证游戏运行结果。</p>`,
+      `<div class="validation-item">✓ 文件结构、端口类型和连接引用有效。</div><div class="validation-item">${g.nodes.length} 个节点 · ${g.edges.length} 条连接 · ${unconnected.length} 个动作节点没有执行输入</div>${unconnected.length ? `<p>尚未接入执行流：${unconnected.map((n) => esc(nodeHeading(n))).join(langMode === "en" ? ", " : "、")}。可以保留它们作为设计草稿。</p>` : ""}${needsTarget.length ? `<div class="validation-item warn">⚠ ${needsTarget.length} 个节点的 Target 没有连接，而且它们不属于 ${esc(project.asset.parentClass)}，不能默认使用 Self：${needsTarget.map((n) => esc(nodeHeading(n))).join(langMode === "en" ? ", " : "、")}。</div>` : ""}<p>检查范围为蓝图文档结构。此编辑器不运行蓝图，也不验证游戏运行结果。</p>`,
     );
   } catch (e) {
     toast(e.message, true);

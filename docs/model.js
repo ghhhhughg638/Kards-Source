@@ -115,9 +115,13 @@ export function pinKind(type) {
   if (/^E[A-Z]/.test(type) || type.startsWith("Enum")) return "enum";
   return "object";
 }
-export function defaultValue(type, enums = {}) {
+// `selfType` (e.g. "UBaseCardObject*") is the blueprint's own class: an object input defaults
+// to "Self" only when this blueprint is that type; otherwise it must be wired (default "None").
+export function defaultValue(type, enums = {}, selfType = null) {
   if (enums[type]) return enums[type][0] || "";
   const k = pinKind(type);
+  if (k === "object" && selfType)
+    return type.endsWith("*") && compatible(selfType, type) ? "Self" : "None";
   return k === "bool"
     ? false
     : k === "int" || k === "float"

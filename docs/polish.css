@@ -332,3 +332,7 @@ html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
   .node.tier-lg .pin::after { inset: -11px; }
   .node.tier-xs .pin::after, .node.tier-sm .pin::after { inset: -10px; }
 }
+
+/* A Target that cannot default to Self and still needs a wire */
+.pin-value.pin-need { color: #ffd08a; border-color: #8a5a1c; background: #3a2a12; }
+.validation-item.warn { color: #ffd08a; }

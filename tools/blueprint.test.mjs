@@ -293,3 +293,18 @@ test("export lists dispatchers and local variables", () => {
   assert.equal(out.stats.localVariables, 1);
   validateProject(JSON.parse(JSON.stringify(out)));
 });
+
+test("object inputs default to Self only when this blueprint is that type", async () => {
+  const { defaultValue } = await import("../docs/model.js");
+  const self = "UBaseCardObject*";
+  assert.equal(defaultValue("UBaseCardObject*", {}, self), "Self");
+  assert.equal(defaultValue("UObject*", {}, self), "Self");
+  assert.equal(defaultValue("UPrimaryDataAsset*", {}, self), "Self");
+  // ChangeAttack belongs to ACardFunctionsStub, which this card blueprint is not
+  assert.equal(defaultValue("ACardFunctionsStub*", {}, self), "None");
+  assert.equal(defaultValue("UWebSocketSubsystem*", {}, self), "None");
+  assert.equal(defaultValue("FGameplayTag", {}, self), "None");
+  assert.equal(defaultValue("int32", {}, self), 0);
+  // without a blueprint context the old behaviour is kept
+  assert.equal(defaultValue("ACardFunctionsStub*"), "Self");
+});
