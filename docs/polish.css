@@ -404,3 +404,25 @@ html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
   .brand { width: auto; }
   .brand > span:last-child { display: none; }
 }
+
+/* The header rows must never be wider than the page. Android "font boosting" and large system
+   font sizes can otherwise inflate some rows so they stick out past the blueprint area. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; max-width: 100%; overflow-x: hidden; }
+body { max-width: 100vw; overflow-x: hidden; }
+.app { width: 100%; max-width: 100vw; overflow: hidden; }
+.topbar, .menubar, .tabs, .canvas-toolbar, .graph-footer, .statusbar { max-width: 100%; min-width: 0; }
+.topbar, .menubar { overflow-x: auto; scrollbar-width: none; }
+.topbar::-webkit-scrollbar, .menubar::-webkit-scrollbar { display: none; }
+.menubar > div { min-width: 0; flex-wrap: nowrap; }
+.menubar button { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 520px) {
+  .menubar { padding: 0 6px; }
+  .menubar button { padding: 5px 6px; }
+  .menubar .separator { margin: 0 4px; }
+  .menubar kbd { display: none; }
+}
+/* Phones: one language per menu button in the bilingual view, so the row never outgrows the screen */
+@media (max-width: 520px) {
+  html:not([data-lang="en"]) .menubar .en,
+  html:not([data-lang="en"]) .canvas-tools .en { display: none; }
+}
