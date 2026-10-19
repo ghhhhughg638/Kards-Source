@@ -42,6 +42,11 @@ body {
   margin-right: 4px;
 }
 .drawer-backdrop { display: none; }
+.selection-bar { display: none; }
+/* Bigger invisible hit area around ports so they can be tapped */
+@media (pointer: coarse) {
+  .pin::after { content: ""; position: absolute; inset: -9px; }
+}
 
 @media (max-width: 800px) {
   .workspace { position: relative; }
@@ -93,4 +98,38 @@ body {
   .minimap-wrap, .canvas-watermark { display: none; }
   .canvas-hint { display: none; }
   .canvas-bottom { justify-content: flex-end; }
+
+  /* Reclaim vertical space */
+  .brand-sub, .canvas-title { display: none; }
+  .topbar { padding-top: env(safe-area-inset-top); }
+  .statusbar, .graph-footer { padding-bottom: env(safe-area-inset-bottom); }
+  input, select, textarea { font-size: 16px; } /* stops iOS zooming on focus */
+  .dialog, dialog { max-width: 94vw; }
+
+  /* Floating actions for the selection (no keyboard on phones) */
+  .selection-bar:not([hidden]) {
+    display: flex;
+    gap: 8px;
+    position: absolute;
+    left: 50%;
+    bottom: 64px;
+    transform: translateX(-50%);
+    z-index: 6;
+    padding: 6px;
+    background: #1c2421f2;
+    border: 1px solid #3f4e43;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px #0008;
+  }
+  .selection-bar button {
+    min-height: 40px;
+    min-width: 64px;
+    padding: 0 14px;
+    font-size: 14px;
+    border-radius: 6px;
+    background: #2b3430;
+    color: #e4ece7;
+  }
+  .selection-bar button.danger { color: #ff9a9a; background: #3a2527; }
+  .canvas-bottom { bottom: 12px; }
 }

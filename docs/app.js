@@ -587,6 +587,11 @@ function renderNodes() {
     .join("");
 }
 function updateSelectionStatus() {
+  const bar = $("selection-bar");
+  if (bar) {
+    bar.hidden = !(selection.size || selectedEdge);
+    $("bar-duplicate").hidden = !selection.size;
+  }
   $("selection-status").textContent = pending
     ? "选择一个兼容端口完成连线 · Esc 取消"
     : selectedEdge
@@ -795,11 +800,16 @@ function fit() {
     updateView();
     return;
   }
-  const b = bounds(),
+  const narrow = window.innerWidth <= 800,
+    b = bounds(),
     r = $("viewport").getBoundingClientRect(),
     z = Math.max(
       0.2,
-      Math.min(1.15, (r.width - 70) / b.w, (r.height - 145) / b.h),
+      Math.min(
+        1.15,
+        (r.width - (narrow ? 24 : 70)) / b.w,
+        (r.height - (narrow ? 80 : 145)) / b.h,
+      ),
     );
   graph().view = {
     x: (r.width - b.w * z) / 2 - b.x * z,
@@ -929,6 +939,33 @@ viewport.addEventListener(
   },
   true,
 );
+// Long-press on empty canvas opens the node picker (touch devices have no right-click).
+let pressTimer = 0;
+const cancelPress = () => clearTimeout(pressTimer);
+viewport.addEventListener("pointerdown", (e) => {
+  cancelPress();
+  if (
+    e.pointerType !== "touch" ||
+    touches.size !== 1 ||
+    e.target.closest(".node,.pin,[data-edge],.canvas-bottom,.minimap-wrap,.empty-state,.selection-bar")
+  )
+    return;
+  const { clientX, clientY } = e;
+  pressTimer = setTimeout(() => {
+    if (touches.size !== 1) return;
+    drag = null;
+    viewport.classList.remove("panning");
+    picker(worldPoint({ clientX, clientY }), pending);
+  }, 550);
+});
+viewport.addEventListener("pointermove", (e) => {
+  if (e.pointerType === "touch" && pressTimer && drag?.type === "pan") {
+    if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) > 8)
+      cancelPress();
+  }
+});
+window.addEventListener("pointerup", cancelPress, true);
+window.addEventListener("pointercancel", cancelPress, true);
 const endTouch = (e) => {
   if (!touches.delete(e.pointerId)) return;
   if (touches.size < 2) pinch = null;
@@ -937,7 +974,8 @@ window.addEventListener("pointerup", endTouch, true);
 window.addEventListener("pointercancel", endTouch, true);
 viewport.addEventListener("pointerdown", (e) => {
   if (e.button === 2) return;
-  if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state")) return;
+  if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state,.selection-bar"))
+    return;
   const pin = e.target.closest(".pin");
   if (pin && e.button === 0) {
     e.preventDefault();
@@ -1268,7 +1306,8 @@ $("help").onclick = help;
 $("validate").onclick = validate;
 $("toggle-inspector").onclick = () => {
   const panel = $("inspector");
-  if (window.innerWidth <= 1000) panel.classList.toggle("mobile-open");
+  if (window.innerWidth <= 1000)
+    setInspectorOpen(!panel.classList.contains("mobile-open"));
   else panel.hidden = !panel.hidden;
   requestAnimationFrame(() => {
     drawEdges();
@@ -1278,10 +1317,21 @@ $("toggle-inspector").onclick = () => {
 function setDrawer(open) {
   $("left-panel").classList.toggle("open", open);
   $("drawer-backdrop").classList.toggle("open", open);
+  if (open) $("inspector").classList.remove("mobile-open");
 }
+function setInspectorOpen(open) {
+  $("inspector").classList.toggle("mobile-open", open);
+  $("drawer-backdrop").classList.toggle("open", open);
+}
+$("bar-details").onclick = () => setInspectorOpen(true);
+$("bar-duplicate").onclick = duplicate;
+$("bar-delete").onclick = deleteSelection;
 $("toggle-library").onclick = () =>
   setDrawer(!$("left-panel").classList.contains("open"));
-$("drawer-backdrop").onclick = () => setDrawer(false);
+$("drawer-backdrop").onclick = () => {
+  setDrawer(false);
+  setInspectorOpen(false);
+};
 $("graph-list").addEventListener("click", () => {
   if (window.innerWidth <= 800) setDrawer(false);
 });

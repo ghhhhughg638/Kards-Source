@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#121719" />
     <meta
       name="description"
@@ -147,6 +147,11 @@
             <div class="minimap-wrap">
               <span class="minimap-label">NAVIGATOR</span
               ><svg id="minimap" aria-label="画布导航"></svg>
+            </div>
+            <div id="selection-bar" class="selection-bar" hidden>
+              <button id="bar-details" type="button">详情</button>
+              <button id="bar-duplicate" type="button">复制</button>
+              <button id="bar-delete" type="button" class="danger">删除</button>
             </div>
             <div id="empty-state" class="empty-state" hidden>
               <span>⌘</span>
