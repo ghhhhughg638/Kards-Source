@@ -188,3 +188,40 @@ body {
 }
 .pin-row .pin-label { max-width: 220px; }
 .pin-value { max-width: 130px; }
+
+/* Compact density: one-line header, no kind row (it moves to the header tooltip),
+   single-line pin labels and shorter rows. */
+.node-kind-label { display: none; }
+.node-head {
+  padding: 5px 12px 5px 10px;
+  border-bottom-width: 1px;
+}
+.node-heading { gap: 7px; font-size: 12px; line-height: 1.35; }
+.node-heading > span { font-size: 15px; width: 15px; }
+.node-subtitle {
+  margin: 0 0 0 22px;
+  font-size: 9px;
+  line-height: 1.25;
+  opacity: 0.8;
+}
+.node-body { padding: 3px 0 4px; column-gap: 22px; }
+.pin-pair .pin-row {
+  min-height: 22px;
+  padding: 1px 9px;
+  gap: 5px;
+}
+.pin-row .pin-label {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 260px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.pin-row.output .pin-label { flex-direction: row-reverse; }
+.pin-cn { font-size: 11px; }
+.pin-en { font-size: 9px; }
+.pin { align-self: center; }
+.pin-value { padding: 0 5px; font-size: 10px; line-height: 16px; }
+.pin-toggle { padding: 0 7px; line-height: 15px; }
+.node { min-width: 150px; }
