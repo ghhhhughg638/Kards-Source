@@ -390,3 +390,17 @@ html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
 .more-row .secondary-button { width: auto; margin: 0; padding: 6px 10px; font-size: 12px; }
 .more-row .more-step { width: 92px; flex: none; }
 .more-row .more-count { flex: 1 1 100%; margin: 0 0 2px; }
+
+/* Narrow phones: keep the top bar inside the screen (Export used to run off the edge) */
+@media (max-width: 520px) {
+  .topbar { gap: 8px; padding: 0 8px; }
+  .top-actions { gap: 6px; min-width: 0; margin-left: auto; flex-shrink: 1; }
+  .top-actions .primary-button { padding: 0 10px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
+  html:not([data-lang="en"]) #export .en { display: none; }
+  .lang-select { max-width: 98px; padding: 4px 6px; }
+  .project-heading { min-width: 0; flex: 0 1 auto; }
+}
+@media (max-width: 360px) {
+  .brand { width: auto; }
+  .brand > span:last-child { display: none; }
+}
