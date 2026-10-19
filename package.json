@@ -1,0 +1,15 @@
+{
+  "name": "kards-blueprint-studio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tools/model.test.mjs",
+    "lint": "eslint docs/*.js tools/*.mjs",
+    "catalog": "python3 tools/generate-node-catalog.py"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0"
+  }
+}

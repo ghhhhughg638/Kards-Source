@@ -1,0 +1,8 @@
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+.vs/
+node_modules/
+__pycache__/
+*.pyc

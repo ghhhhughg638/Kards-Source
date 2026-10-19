@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generate the static, provenance-preserving KARDS node catalog from UHT headers."""
-import json, re
+import json, re, sys
 from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 
@@ -50,7 +50,9 @@ for path in sorted(root.glob('*/Public/*.h')):
         enclosing=[c for c in class_matches if c.start()<m.start()]
         if not enclosing: continue
         cls=enclosing[-1][1]
-        end=balanced_end(text, text.index('(',m.start()))
+        try: end=balanced_end(text, text.index('(',m.start()))
+        except ValueError:
+            print(f'warning: skipping unbalanced UFUNCTION in {path.relative_to(root)}', file=sys.stderr); continue
         flags=text[m.start():end+1]
         semi=text.find(';',end)
         if semi < 0: continue
@@ -84,7 +86,10 @@ for path in sorted(root.glob('*/Public/*.h')):
     for m in re.finditer(r'\bUPROPERTY\s*\(',text):
         enclosing=[c for c in class_matches if c.start()<m.start()]
         if not enclosing: continue
-        cls=enclosing[-1][1]; end=balanced_end(text,text.index('(',m.start()))
+        cls=enclosing[-1][1]
+        try: end=balanced_end(text,text.index('(',m.start()))
+        except ValueError:
+            print(f'warning: skipping unbalanced UPROPERTY in {path.relative_to(root)}', file=sys.stderr); continue
         flags=text[m.start():end+1]
         if not any(f in flags for f in ['BlueprintReadWrite','BlueprintReadOnly','BlueprintAssignable']): continue
         semi=text.find(';',end)

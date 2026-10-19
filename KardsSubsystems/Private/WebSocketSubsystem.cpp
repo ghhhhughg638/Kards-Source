@@ -27,6 +27,7 @@ void UWebSocketSubsystem::OpenWebSocket(const FString& URL, const FString& Token
 {
     (void)URL;
     (void)Token;
+    UE_LOG(LogTemp, Warning, TEXT("UWebSocketSubsystem::OpenWebSocket is a stub and does nothing"));
 }
 
 bool UWebSocketSubsystem::IsConnected() const

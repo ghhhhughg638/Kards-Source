@@ -30,6 +30,7 @@ void AKardsSession::Connect(const ECredentialTypeEnum credential_type, FString U
 	(void)Password;
 	(void)bRememberMe;
 	(void)bAllowAccountCreation;
+	UE_LOG(LogTemp, Warning, TEXT("AKardsSession::Connect is a stub and does nothing"));
 }
 
 void AKardsSession::GetUnrealEditorMultipleUsersUsername(FString users)

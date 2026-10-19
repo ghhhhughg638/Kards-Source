@@ -1,0 +1,25 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+      - run: npm run lint
+      - name: Catalog is up to date
+        run: |
+          python3 tools/generate-node-catalog.py
+          git diff --exit-code docs/catalog.json

@@ -1,0 +1,96 @@
+/* Usability polish: loaded after style.css. Legibility, focus, touch and small-screen layout. */
+body {
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Legibility: lift the smallest text and its contrast */
+.brand-sub { font-size: 8px; }
+.category { font-size: 11px; padding: 5px 8px; color: #b4b4b4; }
+.library-node small { font-size: 11px; color: #b0b0b0; }
+.lib-owner { font-size: 9px; color: #999; }
+.canvas-hint { font-size: 11px; color: #a9b8ae; }
+.canvas-hint kbd { font-size: 10px; }
+.graph-footer, .statusbar { font-size: 11px; }
+.minimap-label { color: #aaa; font-size: 9px; }
+
+/* Focus and motion */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* Navigator: smaller and out of the way, so it hides fewer nodes */
+.minimap-wrap {
+  width: 130px;
+  height: 86px;
+  right: 14px;
+  bottom: 56px;
+  opacity: 0.72;
+  transition: opacity 0.15s;
+}
+.minimap-wrap:hover { opacity: 1; }
+
+#toggle-library { display: none; }
+.canvas-tools > #add-node, .canvas-tools > #toggle-library {
+  font-size: 11px;
+  background: #383838;
+  color: #ddd;
+  padding: 6px 10px;
+  border: 1px solid #535353;
+  border-radius: 2px;
+  margin-right: 4px;
+}
+.drawer-backdrop { display: none; }
+
+@media (max-width: 800px) {
+  .workspace { position: relative; }
+  #toggle-library { display: inline-flex; align-items: center; gap: 4px; }
+
+  /* Node library becomes an off-canvas drawer; the canvas gets the full width */
+  .left-panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(86vw, 330px);
+    z-index: 20;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
+    box-shadow: 6px 0 24px #0008;
+  }
+  .left-panel.open {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.2s ease;
+  }
+  .drawer-backdrop.open {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 19;
+    background: #0007;
+  }
+  .inspector.mobile-open { top: 0; bottom: 0; width: min(86vw, 320px); z-index: 20; }
+
+  /* Restore readable sizes that the old 650px rules shrank */
+  .graph-link { font-size: 12px; padding: 10px 12px; }
+  .category { font-size: 11px; padding: 6px 8px; }
+  .library-node strong { font-size: 12px; }
+  .library-node small { font-size: 11px; }
+  .section-heading h2 { font-size: 12px; }
+  .project-label { font-size: 12px; }
+
+  /* Touch targets */
+  .menubar button, .canvas-tools button, .zoom-controls button, .tiny-button { min-height: 36px; min-width: 36px; }
+  .tab { min-width: 130px; font-size: 12px; }
+
+  .breadcrumbs { display: none; }
+  .canvas-toolbar { justify-content: space-between; }
+  .canvas-tools { display: flex; align-items: center; gap: 4px; }
+  .canvas-tools button { white-space: nowrap; }
+  .minimap-wrap, .canvas-watermark { display: none; }
+  .canvas-hint { display: none; }
+  .canvas-bottom { justify-content: flex-end; }
+}

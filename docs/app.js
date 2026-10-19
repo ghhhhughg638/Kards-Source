@@ -14,7 +14,6 @@ import {
   createDemo,
   setTypeHierarchy,
   matchingPin,
-  compatible,
 } from "./model.js";
 import { typeNodes, engineClasses } from "./ue-nodes.js";
 import {
@@ -368,7 +367,10 @@ function bindLibrary(container) {
     };
     b.ondblclick = () => addNode(b.dataset.def);
     b.onclick = () => {
-      $("selection-status").textContent = "双击添加节点，或拖入画布";
+      if (window.innerWidth <= 800) {
+        addNode(b.dataset.def);
+        setDrawer(false);
+      } else $("selection-status").textContent = "双击添加节点，或拖入画布";
     };
   });
 }
@@ -1222,6 +1224,16 @@ $("toggle-inspector").onclick = () => {
     drawMinimap();
   });
 };
+function setDrawer(open) {
+  $("left-panel").classList.toggle("open", open);
+  $("drawer-backdrop").classList.toggle("open", open);
+}
+$("toggle-library").onclick = () =>
+  setDrawer(!$("left-panel").classList.contains("open"));
+$("drawer-backdrop").onclick = () => setDrawer(false);
+$("graph-list").addEventListener("click", () => {
+  if (window.innerWidth <= 800) setDrawer(false);
+});
 $("project-name").onchange = (e) => {
   const name = e.target.value.trim().slice(0, 200);
   if (name) mutate(() => (project.name = name));
