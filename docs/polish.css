@@ -305,3 +305,88 @@ html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
   .bp-row .tiny-button { min-width: 30px; height: 30px; }
   .param-row .param-name, .param-row .param-type { flex-basis: 100%; }
 }
+
+/* Size tiers (see nodeTier in app.js): everything scales from --s so ports stay proportional. */
+.node { --s: 1; }
+.node.tier-xs { --s: 0.8; min-width: 0; }
+.node.tier-sm { --s: 0.92; min-width: 0; }
+.node.tier-lg { --s: 1.18; min-width: 220px; }
+.node .node-head { padding: calc(5px * var(--s)) calc(12px * var(--s)) calc(5px * var(--s)) calc(10px * var(--s)); }
+.node .node-heading { font-size: calc(12px * var(--s)); gap: calc(7px * var(--s)); }
+.node .node-heading > span { font-size: calc(15px * var(--s)); width: calc(15px * var(--s)); }
+.node .node-subtitle { font-size: calc(9px * var(--s)); margin-left: calc(22px * var(--s)); }
+.node .node-body { padding: calc(3px * var(--s)) 0 calc(4px * var(--s)); column-gap: calc(22px * var(--s)); }
+.node .pin-pair .pin-row { min-height: calc(22px * var(--s)); padding: 1px calc(9px * var(--s)); gap: calc(5px * var(--s)); }
+.node .pin-cn { font-size: calc(11px * var(--s)); }
+.node .pin-en { font-size: calc(9px * var(--s)); }
+.node .pin { width: calc(10px * var(--s)); height: calc(10px * var(--s)); }
+.node .pin.exec { width: calc(12px * var(--s)); height: calc(12px * var(--s)); }
+.node .pin-value { font-size: calc(10px * var(--s)); line-height: calc(16px * var(--s)); }
+/* simple data nodes: a single slim header row, no English subtitle line */
+.node.tier-xs .node-subtitle { display: none; }
+.node.tier-xs .node-head { padding-top: 4px; padding-bottom: 4px; }
+/* busy nodes: roomier rows and a bigger target area around every port */
+.node.tier-lg .pin-pair .pin-row { min-height: calc(26px * 1); }
+.node.tier-lg .pin::after { inset: -6px; content: ""; position: absolute; }
+@media (pointer: coarse) {
+  .node.tier-lg .pin::after { inset: -11px; }
+  .node.tier-xs .pin::after, .node.tier-sm .pin::after { inset: -10px; }
+}
+
+/* A Target that cannot default to Self and still needs a wire */
+.pin-value.pin-need { color: #ffd08a; border-color: #8a5a1c; background: #3a2a12; }
+.validation-item.warn { color: #ffd08a; }
+
+/* Inline value editors on nodes */
+.node .pin-input {
+  font: calc(10px * var(--s)) var(--mono);
+  height: calc(18px * var(--s));
+  min-width: 0;
+  padding: 0 calc(4px * var(--s));
+  color: #d4e4da;
+  background: #121a15;
+  border: 1px solid #36483a;
+  border-radius: 3px;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+.node .pin-input:focus { outline: none; border-color: var(--accent); }
+.node .pin-number { width: calc(56px * var(--s)); }
+.node .pin-text { width: calc(86px * var(--s)); }
+.node select.pin-input { max-width: calc(130px * var(--s)); }
+.node .pin-value.pin-need { cursor: help; }
+
+/* No blue tap/selection overlays when pressing or holding on nodes, ports and labels */
+.app, .app * { -webkit-tap-highlight-color: transparent; }
+.node, .node * , .viewport {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.node .pin-input { -webkit-user-select: text; user-select: text; }
+.node .pin:focus, .node .pin:focus-visible, .node button:focus, .node button:focus-visible { outline: none; }
+.node .pin:active { box-shadow: none; }
+@media (pointer: coarse) {
+  .node .pin:hover { box-shadow: none; background: inherit !important; }
+  .node .pin.pending { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pin-color) 35%, transparent); }
+}
+.viewport ::selection { background: transparent; }
+.node .pin-input::selection, textarea::selection, input::selection { background: #3b5f8a; }
+
+/* "Show more" footer in the node library and picker */
+.more-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px 14px;
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(transparent, var(--panel) 28%);
+}
+.more-count { font: 11px var(--mono); color: #9aa7a0; margin-right: auto; }
+.more-step { width: auto; padding: 4px 6px; font-size: 12px; }
+.more-row .secondary-button { width: auto; margin: 0; padding: 6px 10px; font-size: 12px; }
+.more-row .more-step { width: 92px; flex: none; }
+.more-row .more-count { flex: 1 1 100%; margin: 0 0 2px; }

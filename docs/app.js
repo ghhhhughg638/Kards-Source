@@ -13,6 +13,7 @@ import {
   validateProject,
   setTypeHierarchy,
   matchingPin,
+  compatible,
 } from "./model.js";
 import { typeNodes, engineClasses } from "./ue-nodes.js";
 import {
@@ -374,6 +375,9 @@ const usedNames = ({ graph: g, variable: v, dispatcher: d, events = true } = {})
     : []),
   ...parentMembers(),
 ];
+// The blueprint's own type, used to decide which object pins may default to Self.
+const selfType = () => `${project.asset.parentClass}*`;
+const pinDefault = (p) => defaultValue(p.type, enums, selfType());
 const classMap = () => ({ ...classes, ...project.types });
 // Names already used by the parent class; a blueprint may not redefine them.
 const parentMembers = () =>
@@ -910,6 +914,37 @@ function filterCatalog(q, cat = "all") {
     (a, b) => Number(!!LABELS[b.name]) - Number(!!LABELS[a.name]),
   );
 }
+// "Show more" footer shared by the node library and the node picker. The step is chosen
+// in a drop-down (50 … 1000, or all) and clicking keeps expanding until everything is shown.
+let moreStep = "100";
+const MORE_STEPS = ["50", "100", "200", "500", "1000", "all"];
+const moreAmount = (shown, total) =>
+  moreStep === "all"
+    ? total - shown
+    : Math.min(Number(moreStep), total - shown);
+function moreMarkup(shown, total) {
+  return `<div class="more-row" data-shown="${shown}" data-total="${total}"><span class="more-count">${shown} / ${total}</span><select class="more-step" aria-label="每次显示的数量">${MORE_STEPS.map((v) => `<option value="${v}" ${v === moreStep ? "selected" : ""}>${v === "all" ? "全部" : v}</option>`).join("")}</select><button type="button" class="secondary-button more-btn">${bi2("显示更多", "Show more")} (+<span class="more-n">${moreAmount(shown, total)}</span>)</button><button type="button" class="secondary-button more-all">${bi2("展开全部", "Show all")}</button></div>`;
+}
+// `grow(amount)` receives how many extra rows to show; Infinity expands everything.
+function bindMore(container, grow) {
+  const row = container.querySelector(".more-row");
+  if (!row) return;
+  const shown = Number(row.dataset.shown),
+    total = Number(row.dataset.total);
+  row.querySelector(".more-step").onchange = (e) => {
+    moreStep = e.target.value;
+    row.querySelector(".more-n").textContent = moreAmount(shown, total);
+  };
+  row.querySelector(".more-btn").onclick = () => grow(moreAmount(shown, total));
+  row.querySelector(".more-all").onclick = () => grow(Infinity);
+}
+// Re-render a scrolling list without jumping back to the top.
+function keepScroll(el, render) {
+  const top = el.scrollTop;
+  render();
+  el.scrollTop = top;
+}
+let libraryLimit = 120;
 function renderLibrary() {
   const results = filterCatalog($("node-search").value, category);
   $("category-list").innerHTML = Object.entries(CAT)
@@ -924,16 +959,21 @@ function renderLibrary() {
       (b) =>
         (b.onclick = () => {
           category = b.dataset.category;
+          libraryLimit = 120;
           renderLibrary();
         }),
     );
   $("library-label").innerHTML = `${CAT[category]} · ${results.length}`;
   $("node-list").innerHTML = results.length
-    ? results.slice(0, 120).map(libraryItem).join("") +
-      (results.length > 120
-        ? '<div class="no-results">仅显示前 120 项，输入关键词继续查找</div>'
+    ? results.slice(0, libraryLimit).map(libraryItem).join("") +
+      (results.length > libraryLimit
+        ? moreMarkup(libraryLimit, results.length)
         : "")
     : '<div class="no-results">没有匹配的节点</div>';
+  bindMore($("node-list"), (amount) => {
+    libraryLimit = Math.min(results.length, libraryLimit + amount);
+    keepScroll($("node-list"), renderLibrary);
+  });
   bindLibrary($("node-list"));
 }
 function bindLibrary(container) {
@@ -1040,7 +1080,9 @@ function picker(point, sourceEndpoint = null) {
       ? "选择节点后自动连接此引脚 / Automatically connect compatible pins"
       : `${fullCatalog().length} 个节点 · KARDS + Unreal Blueprint`,
   );
-  const update = () => {
+  let limit = 100;
+  const update = (keepLimit = false) => {
+    if (keepLimit !== true) limit = 100;
     let matches = filterCatalog($("picker-search").value);
     if (sourcePin && $("context-sensitive").checked)
       matches = matches.filter((d) => matchingPin(d, sourcePin));
@@ -1069,8 +1111,13 @@ function picker(point, sourceEndpoint = null) {
     }
     $("picker-count").textContent = `${matches.length} 个操作 / Actions`;
     $("picker-results").innerHTML =
-      matches.slice(0, 100).map(libraryItem).join("") ||
+      (matches.slice(0, limit).map(libraryItem).join("") +
+        (matches.length > limit ? moreMarkup(limit, matches.length) : "")) ||
       '<div class="no-results">无兼容操作 / No compatible actions</div>';
+    bindMore($("picker-results"), (amount) => {
+      limit = Math.min(matches.length, limit + amount);
+      keepScroll($("picker-results"), () => update(true));
+    });
     $("picker-results")
       .querySelectorAll("[data-def]")
       .forEach((b) => {
@@ -1082,9 +1129,9 @@ function picker(point, sourceEndpoint = null) {
         };
       });
   };
-  $("picker-search").oninput = update;
-  $("context-sensitive").onchange = update;
-  if ($("context-scope")) $("context-scope").onchange = update;
+  $("picker-search").oninput = () => update();
+  $("context-sensitive").onchange = () => update();
+  if ($("context-scope")) $("context-scope").onchange = () => update();
   $("picker-search").onkeydown = (e) => {
     if (e.key === "Enter") $("picker-results").querySelector("button")?.click();
   };
@@ -1146,13 +1193,49 @@ function customNode() {
     $("modal").close();
   };
 }
-function pinMarkup(n, p) {
-  const connected = graph().edges.some(
+// Editable default value shown on the node itself: switch (bool), list (enum / Self-None),
+// number box (int / float) or text box.
+function valueControl(n, p, val) {
+  const attrs = `data-input="${esc(p.id)}" data-input-node="${esc(n.id)}"`;
+  const kind = pinKind(p.type);
+  if (typeof val === "boolean")
+    return `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>`;
+  if (p.id === "target" && val === "None")
+    return `<span class="pin-value pin-need" title="${esc(`这个函数属于 ${n.definition.class}，不是本蓝图（${project.asset.parentClass}）的成员，Target 必须连接`)}">None</span>`;
+  const list = enums[p.type];
+  if (list)
+    return `<select class="pin-input" ${attrs}>${[...new Set([...list, String(val)])].map((v) => `<option ${String(v) === String(val) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>`;
+  if (kind === "object" && p.type.endsWith("*") && pinDefault(p) === "Self")
+    return `<select class="pin-input" ${attrs}>${["Self", "None"].map((v) => `<option ${v === String(val) ? "selected" : ""}>${v}</option>`).join("")}</select>`;
+  if (kind === "int" || kind === "float")
+    return `<input class="pin-input pin-number" type="number" step="${kind === "int" ? 1 : "any"}" value="${esc(val)}" ${attrs}>`;
+  if (kind === "object" || kind === "array")
+    return `<span class="pin-value">${esc(val)}</span>`;
+  return `<input class="pin-input pin-text" type="text" value="${esc(val)}" ${attrs}>`;
+}
+const pinConnected = (n, p) =>
+  graph().edges.some(
     (e) =>
       (e.from.node === n.id && e.from.pin === p.id) ||
       (e.to.node === n.id && e.to.pin === p.id),
   );
-  const val = n.values[p.id] ?? defaultValue(p.type, enums);
+// Like Unreal: a Target that would just be Self stays hidden until something is wired to it.
+// While a wire is being dragged from a compatible object pin it appears so it can be dropped on.
+function targetHidden(n, p) {
+  if (p.id !== "target" || p.direction !== "in" || pinConnected(n, p)) return false;
+  if ((n.values.target ?? pinDefault(p)) !== "Self") return false;
+  if (pending) {
+    const from = graph()
+      .nodes.find((x) => x.id === pending.node)
+      ?.definition.pins.find((x) => x.id === pending.pin);
+    if (from && from.direction === "out" && compatible(from.type, p.type))
+      return false;
+  }
+  return true;
+}
+function pinMarkup(n, p) {
+  const connected = pinConnected(n, p);
+  const val = n.values[p.id] ?? pinDefault(p);
   const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
     raw = pinEnglish(p);
@@ -1164,10 +1247,12 @@ function pinMarkup(n, p) {
     !(p.id === "target" && val === "Self") &&
     (p.direction === "in" ||
       (n.definition.category === "variables" && n.definition.kind === "variable"));
-  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? (typeof val === "boolean" ? `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>` : `<span class="pin-value">${esc(val)}</span>`) : ""}${p.direction === "out" ? button : ""}</div>`;
+  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? valueControl(n, p, val) : ""}${p.direction === "out" ? button : ""}</div>`;
 }
 function nodeBody(n) {
-  const ins = n.definition.pins.filter((p) => p.direction === "in"),
+  const ins = n.definition.pins.filter(
+      (p) => p.direction === "in" && !targetHidden(n, p),
+    ),
     outs = n.definition.pins.filter((p) => p.direction === "out");
   return Array.from(
     { length: Math.max(ins.length, outs.length) },
@@ -1175,6 +1260,31 @@ function nodeBody(n) {
       `<div class="pin-pair">${ins[i] ? pinMarkup(n, ins[i]) : '<div class="pin-row"></div>'}${outs[i] ? pinMarkup(n, outs[i]) : '<div class="pin-row output"></div>'}</div>`,
   ).join("");
 }
+// Visual size class: simple data nodes (Get Self, Get Card ID, literals) stay small, while
+// busy nodes (Change Attack and friends) get larger ports and rows that are easier to wire.
+function nodeTier(d) {
+  const ins = d.pins.filter((p) => p.direction === "in").length,
+    outs = d.pins.filter((p) => p.direction === "out").length,
+    data = d.pins.filter((p) => p.type !== "exec" && p.id !== "target").length,
+    hasExec = d.pins.some((p) => p.type === "exec"),
+    rows = Math.max(ins, outs);
+  if (rows >= 6 || d.pins.length >= 9) return "lg";
+  if (!hasExec && data <= 2) return "xs";
+  if ((!hasExec && data <= 4) || (hasExec && rows <= 2)) return "sm";
+  return "md";
+}
+$("nodes").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-input]");
+  if (!el) return;
+  const n = graph().nodes.find((x) => x.id === el.dataset.inputNode),
+    p = n?.definition.pins.find((x) => x.id === el.dataset.input);
+  if (!p) return;
+  const kind = pinKind(p.type);
+  const val =
+    kind === "int" || kind === "float" ? Number(el.value) : el.value;
+  if (typeof val === "number" && !Number.isFinite(val)) return renderNodes();
+  mutate(() => (n.values[p.id] = kind === "int" ? Math.trunc(val) : val));
+});
 // Nodes size themselves to their content, so redraw wires whenever one changes size.
 let relayoutFrame = 0;
 const nodeObserver = new ResizeObserver(() => {
@@ -1188,7 +1298,7 @@ function renderNodes() {
   $("nodes").innerHTML = graph()
     .nodes.map(
       (n) =>
-        `<article class="node ue-${nodeKind(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
+        `<article class="node ue-${nodeKind(n.definition)} tier-${nodeTier(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
     )
     .join("");
   nodeObserver.disconnect();
@@ -1255,7 +1365,7 @@ function renderInspector() {
     body += inputs.length
       ? inputs
           .map((p) => {
-            const val = n.values[p.id] ?? defaultValue(p.type, enums),
+            const val = n.values[p.id] ?? pinDefault(p),
               isConnected = graph().edges.some(
                 (e) => e.to.node === n.id && e.to.pin === p.id,
               );
@@ -1617,6 +1727,7 @@ viewport.addEventListener("pointerdown", (e) => {
   if (e.button === 2) return;
   if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state,.selection-bar"))
     return;
+  if (e.target.closest(".pin-input")) return;
   const toggle = e.target.closest("[data-toggle]");
   if (toggle && e.button === 0) {
     e.preventDefault();
@@ -1857,7 +1968,7 @@ function exportSVG() {
       const pos = pinPosition({ node: n.id, pin: p.id }),
         out = p.direction === "out";
       if (!pos) continue;
-      const val = n.values[p.id] ?? defaultValue(p.type, enums);
+      const val = n.values[p.id] ?? pinDefault(p);
       const hasValue =
         p.type !== "exec" &&
         !graph().edges.some((e) => e.to.node === n.id && e.to.pin === p.id) &&
@@ -1922,6 +2033,19 @@ function validate() {
   try {
     validateProject(clone(project));
     const g = graph(),
+      needsTarget = g.nodes.filter((n) => {
+        const p = n.definition.pins.find(
+          (x) => x.id === "target" && x.direction === "in",
+        );
+        if (!p || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id))
+          return false;
+        const value = n.values[p.id] ?? pinDefault(p);
+        return (
+          value === "None" ||
+          value === "" ||
+          (value === "Self" && pinDefault(p) !== "Self")
+        );
+      }),
       unconnected = g.nodes.filter((n) =>
         n.definition.pins.some(
           (p) =>
@@ -1932,7 +2056,7 @@ function validate() {
       );
     openModal(
       "蓝图检查",
-      `<div class="validation-item">✓ 文件结构、端口类型和连接引用有效。</div><div class="validation-item">${g.nodes.length} 个节点 · ${g.edges.length} 条连接 · ${unconnected.length} 个动作节点没有执行输入</div>${unconnected.length ? `<p>尚未接入执行流：${unconnected.map((n) => esc(nodeHeading(n))).join(langMode === "en" ? ", " : "、")}。可以保留它们作为设计草稿。</p>` : ""}<p>检查范围为蓝图文档结构。此编辑器不运行蓝图，也不验证游戏运行结果。</p>`,
+      `<div class="validation-item">✓ 文件结构、端口类型和连接引用有效。</div><div class="validation-item">${g.nodes.length} 个节点 · ${g.edges.length} 条连接 · ${unconnected.length} 个动作节点没有执行输入</div>${unconnected.length ? `<p>尚未接入执行流：${unconnected.map((n) => esc(nodeHeading(n))).join(langMode === "en" ? ", " : "、")}。可以保留它们作为设计草稿。</p>` : ""}${needsTarget.length ? `<div class="validation-item warn">⚠ ${needsTarget.length} 个节点的 Target 没有连接，而且它们不属于 ${esc(project.asset.parentClass)}，不能默认使用 Self：${needsTarget.map((n) => esc(nodeHeading(n))).join(langMode === "en" ? ", " : "、")}。</div>` : ""}<p>检查范围为蓝图文档结构。此编辑器不运行蓝图，也不验证游戏运行结果。</p>`,
     );
   } catch (e) {
     toast(e.message, true);
@@ -1944,7 +2068,10 @@ function help() {
     `<div class="help-grid"><span>添加节点</span><kbd>Tab / 右键</kbd><span>平移画布</span><kbd>拖动空白 / 空格 + 拖动</kbd><span>缩放画布</span><kbd>滚轮 / ＋ −</kbd><span>适应所有节点</span><kbd>F</kbd><span>多选节点</span><kbd>Shift + 单击</kbd><span>全选 / 复制 / 删除</span><kbd>Ctrl A / Ctrl D / Delete</kbd><span>撤销 / 重做</span><kbd>Ctrl Z / Ctrl Shift Z</kbd><span>保存到本地 / 导出文件</span><kbd>Ctrl S / Ctrl Shift S</kbd><span>取消连线 / 取消选择</span><kbd>Esc</kbd></div><p>从一个端口拖向另一个端口，或依次点击两个端口。只有类型相同的输出与输入可以连接。点击连线后按 Delete 可断开。</p><p>修改会自动保存在当前浏览器。使用「导出蓝图」获得文件；更换设备或清除浏览器数据前请先导出。支持 macOS 的 ⌘ 快捷键。</p><div class="format-note">format: "${FORMAT}"\nversion: ${VERSION}\ngraphs: [{ nodes, edges, view }]</div>`,
   );
 }
-$("node-search").oninput = renderLibrary;
+$("node-search").oninput = () => {
+  libraryLimit = 120;
+  renderLibrary();
+};
 $("add-node").onclick = () => picker();
 $("empty-add").onclick = () => picker();
 $("add-graph").onclick = newItemMenu;
