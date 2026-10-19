@@ -426,3 +426,95 @@ body { max-width: 100vw; overflow-x: hidden; }
   html:not([data-lang="en"]) .menubar .en,
   html:not([data-lang="en"]) .canvas-tools .en { display: none; }
 }
+
+/* Export: one button with a format switch, and the current format shown underneath */
+.export-split { position: relative; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.export-buttons { display: flex; }
+.export-buttons #export { border-radius: 4px 0 0 4px; }
+.export-buttons .export-caret {
+  border-radius: 0 4px 4px 0;
+  border-left: 1px solid #00000055;
+  padding: 0 9px;
+  min-width: 0;
+  font-size: 13px;
+}
+.export-label { font: 10px/1 var(--mono); color: #9fb2a6; white-space: nowrap; }
+.export-menu {
+  position: fixed;
+  z-index: 40;
+  width: 250px;
+  padding: 6px;
+  background: #1c2421;
+  border: 1px solid #3f4e43;
+  border-radius: 8px;
+  box-shadow: 0 10px 28px #000a;
+}
+.export-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  text-align: left;
+  font-size: 13px;
+  color: #dbe5df;
+  border-radius: 6px;
+}
+.export-item:hover, .export-item.active { background: #2a3630; }
+.export-check { width: 14px; color: var(--accent); flex: none; }
+.export-name { flex: 1; }
+.export-name .zh + .en { margin-left: 6px; opacity: 0.7; }
+.export-ext { font: 11px var(--mono); color: #8fa196; }
+.export-scale { display: flex; align-items: center; gap: 6px; padding: 8px 10px 4px; font-size: 12px; color: #aab8af; }
+.export-scale > span { margin-right: auto; }
+.export-scale-btn { padding: 5px 12px; border: 1px solid #3f4e43; border-radius: 5px; color: #dbe5df; }
+.export-scale-btn.active { background: #2f5f8a; border-color: #4f86b8; }
+@media (max-width: 520px) {
+  .export-buttons .export-caret { padding: 0 7px; }
+  .export-label { font-size: 9px; }
+  .export-menu { width: min(250px, calc(100vw - 16px)); }
+}
+.export-buttons .primary-button { height: 34px; padding-top: 0; padding-bottom: 0; display: inline-flex; align-items: center; }
+.export-buttons .export-caret { height: 34px; }
+@media (max-width: 520px) { .export-buttons .primary-button, .export-buttons .export-caret { height: 30px; } }
+
+/* Workspace: the list of cards */
+.workspace-section { border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.workspace-list { max-height: 168px; overflow-y: auto; padding: 0 6px 8px; }
+.ws-row { display: flex; align-items: center; gap: 2px; border-radius: 4px; }
+.ws-row:hover { background: #ffffff0a; }
+.ws-row.active { background: #2f4c68; }
+.ws-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 8px; text-align: left; }
+.ws-icon { color: #9fb2a6; flex: none; }
+.ws-text { display: flex; flex-direction: column; min-width: 0; }
+.ws-text strong { font: 600 12px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e1e9e3; }
+.ws-text small { font-size: 10px; color: #8fa196; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-actions { display: flex; flex: none; opacity: 0; transition: opacity 0.12s; }
+.ws-row:hover .ws-actions, .ws-row.active .ws-actions, .ws-row:focus-within .ws-actions { opacity: 1; }
+.ws-actions .tiny-button { min-width: 24px; height: 24px; font-size: 12px; }
+@media (pointer: coarse) { .ws-actions { opacity: 1; } }
+@media (max-width: 800px) { .ws-actions .tiny-button { min-width: 30px; height: 30px; } .workspace-list { max-height: 150px; } }
+
+/* PNG: custom scale next to the presets */
+.export-scale { flex-wrap: wrap; }
+.export-scale-custom { display: inline-flex; align-items: center; gap: 3px; }
+.export-scale-input { width: 58px; padding: 4px 6px; font-size: 12px; }
+
+/* The left panel now stacks Workspace + My Blueprint + Palette: cap the first two and let the
+   whole panel scroll, so the palette always keeps a usable height. */
+.left-panel { overflow-y: auto; overflow-x: hidden; }
+.workspace-list { max-height: min(150px, 20vh); }
+.graph-list { max-height: min(300px, 32vh); overflow-y: auto; }
+.library-section { flex: 1 0 300px; }
+.library-section .node-list { min-height: 180px; }
+@media (max-width: 800px) {
+  .workspace-list { max-height: min(150px, 22vh); }
+  .graph-list { max-height: min(260px, 30vh); }
+}
+
+.workspace-section .section-heading h2, .graph-section .section-heading h2 { cursor: pointer; user-select: none; }
+.workspace-section .section-heading h2::before, .graph-section .section-heading h2::before { content: "▾"; display: inline-block; width: 14px; color: #8fa196; }
+.workspace-section.folded .section-heading h2::before, .graph-section.folded .section-heading h2::before { content: "▸"; }
+.workspace-section.folded .workspace-list,
+.graph-section.folded #graph-list,
+.graph-section.folded .project-label { display: none; }

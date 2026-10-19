@@ -1,4 +1,6 @@
 import { setUiLanguage, tr } from "./ui-i18n.js";
+import { createWorkspace } from "./workspace.js";
+import { makeZip, readZip } from "./zip.js";
 import {
   FORMAT,
   VERSION,
@@ -67,8 +69,7 @@ try {
 document.documentElement.dataset.lang = langMode;
 const bi = (zh, en) =>
   `<span class="zh">${zh}</span> <span class="en">${en}</span>`;
-const STORAGE = "kards-blueprint-studio.v1",
-  CAT = {
+const CAT = {
     all: bi("全部", "All"),
     events: bi("事件", "Events"),
     combat: bi("战斗", "Combat"),
@@ -253,13 +254,31 @@ function toast(message, error = false) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => ($("toast").hidden = true), 4200);
 }
+// Every card lives in the browser's storage; a throwaway in-memory store is the fallback
+// when storage is blocked (private windows, some embedded browsers).
+const workspace = createWorkspace(
+  (() => {
+    try {
+      localStorage.getItem("kards-blueprint-studio.probe");
+      return localStorage;
+    } catch {
+      const memory = new Map();
+      return {
+        getItem: (k) => (memory.has(k) ? memory.get(k) : null),
+        setItem: (k, v) => memory.set(k, String(v)),
+        removeItem: (k) => memory.delete(k),
+      };
+    }
+  })(),
+);
 function persist() {
   try {
-    localStorage.setItem(STORAGE, JSON.stringify(project));
+    workspace.save(project);
     $("save-state").textContent = "本地已保存";
   } catch {
     $("save-state").textContent = "存储空间不足，请导出";
   }
+  renderWorkspace();
 }
 function scheduleSave() {
   $("save-state").textContent = "正在保存…";
@@ -311,6 +330,7 @@ function render() {
   project.types = { ...classes, ...project.types };
   setTypeHierarchy(project.types);
   $("project-name").value = project.name;
+  renderWorkspace();
   $("project-label").textContent = project.card.title;
   $("card-breadcrumb").textContent = project.card.title;
   $("graph-breadcrumb").textContent = graph().name;
@@ -355,6 +375,221 @@ function switchGraph(id) {
   render();
   persist();
 }
+// ---------------------------------------------------------------- workspace (several cards)
+function renderWorkspace() {
+  const list = $("workspace-list");
+  if (!list) return;
+  list.innerHTML = workspace
+    .list()
+    .map(
+      (c) =>
+        `<div class="ws-row ${c.id === project?.id ? "active" : ""}"><button class="ws-open" data-card="${esc(c.id)}" title="${esc(c.name)}"><span class="ws-icon">▣</span><span class="ws-text"><strong>${esc(c.name)}</strong><small>${esc(c.title)}${c.faction ? ` · ${esc(FACTIONS[c.faction] || c.faction)}` : ""}</small></span></button><span class="ws-actions"><button class="tiny-button" data-ws="rename" data-card="${esc(c.id)}" title="重命名卡牌">✎</button><button class="tiny-button" data-ws="duplicate" data-card="${esc(c.id)}" title="复制卡牌">⧉</button><button class="tiny-button" data-ws="delete" data-card="${esc(c.id)}" title="删除卡牌">×</button></span></div>`,
+    )
+    .join("");
+  list.querySelectorAll(".ws-open").forEach(
+    (b) =>
+      (b.onclick = () => {
+        openCard(b.dataset.card);
+        if (window.innerWidth <= 800) setDrawer(false);
+      }),
+  );
+  list.querySelectorAll("[data-ws]").forEach(
+    (b) =>
+      (b.onclick = () =>
+        ({ rename: renameCard, duplicate: duplicateCard, delete: deleteCard })[
+          b.dataset.ws
+        ](b.dataset.card)),
+  );
+  list.querySelector(".ws-row.active")?.scrollIntoView({ block: "nearest" });
+}
+// Makes `next` the card on screen (the previous one is saved first).
+function loadProject(next, { fitView = true } = {}) {
+  project = next;
+  project.types = { ...classes, ...project.types };
+  history = [];
+  future = [];
+  selection.clear();
+  selectedEdge = null;
+  pending = null;
+  setTypeHierarchy(project.types);
+  render();
+  persist();
+  if (fitView) requestAnimationFrame(fit);
+}
+function openCard(id) {
+  if (project?.id === id) return;
+  let next;
+  try {
+    const raw = workspace.read(id);
+    if (!raw) throw new Error("找不到这张卡牌的数据");
+    setTypeHierarchy({ ...classes, ...raw.types });
+    next = validateProject(raw);
+  } catch (error) {
+    setTypeHierarchy(project.types);
+    return toast(`无法打开这张卡牌：${error.message}`, true);
+  }
+  if (project) persist();
+  loadProject(next);
+}
+// Gives an incoming card its own id and a free asset name before it joins the workspace.
+function adoptCard(p) {
+  if (workspace.has(p.id)) p.id = uid();
+  p.name = workspace.uniqueName(p.name, p.id);
+  return p;
+}
+function addCard(p) {
+  adoptCard(p);
+  if (project) persist();
+  loadProject(p);
+}
+function readCard(id) {
+  if (id === project?.id) {
+    persist();
+    return clone(project);
+  }
+  const raw = workspace.read(id);
+  setTypeHierarchy({ ...classes, ...raw?.types });
+  try {
+    return validateProject(raw);
+  } finally {
+    setTypeHierarchy(project.types);
+  }
+}
+function renameCard(id) {
+  const meta = workspace.meta(id);
+  openModal(
+    "重命名卡牌",
+    `<div class="field"><label class="detail-label" for="rc-name">资源名称</label><input id="rc-name" maxlength="64" value="${esc(meta.name)}"><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><div class="field"><label class="detail-label" for="rc-title">卡牌标题</label><input id="rc-title" maxlength="100" value="${esc(meta.title)}"></div><div class="modal-actions"><button id="rc-save" class="primary-button">保存</button></div>`,
+  );
+  $("rc-save").onclick = () => {
+    const name = $("rc-name").value.trim(),
+      title = $("rc-title").value.trim() || meta.title,
+      error = checkName(name) || (workspace.nameTaken(name, id) ? "资源名称已被工作区里的另一张卡牌使用" : null);
+    if (error) return toast(error, true);
+    if (id === project.id) mutate(() => {
+      project.name = name;
+      project.card.title = title;
+    });
+    else {
+      try {
+        const other = readCard(id);
+        other.name = name;
+        other.card.title = title;
+        workspace.save(other, { activate: false });
+      } catch (e) {
+        return toast(e.message, true);
+      }
+      renderWorkspace();
+    }
+    $("modal").close();
+  };
+}
+function duplicateCard(id) {
+  try {
+    const copy = readCard(id);
+    copy.id = uid();
+    copy.name = workspace.uniqueName(`${copy.name}_Copy`.slice(0, 64));
+    addCard(copy);
+    toast(`已复制为 ${copy.name}`);
+  } catch (e) {
+    toast(e.message, true);
+  }
+}
+function deleteCard(id) {
+  const meta = workspace.meta(id);
+  if (!confirm(tr(`删除卡牌“${meta.name}”？这不能撤销，建议先导出。`))) return;
+  const wasActive = id === project.id;
+  workspace.remove(id);
+  if (wasActive) {
+    const nextId = workspace.active();
+    if (nextId) {
+      const raw = workspace.read(nextId);
+      try {
+        setTypeHierarchy({ ...classes, ...raw?.types });
+        project = null;
+        loadProject(validateProject(raw));
+      } catch (e) {
+        toast(e.message, true);
+      }
+    } else {
+      project = null;
+      const blank = makeProject();
+      blank.name = workspace.uniqueName(blank.name);
+      loadProject(blank);
+    }
+  } else renderWorkspace();
+}
+// Imports .kardsbp.json files and .zip bundles; every card is added to the workspace.
+async function importFiles(files) {
+  const cards = [],
+    problems = [];
+  const take = (text, label) => {
+    try {
+      const parsed = JSON.parse(text);
+      setTypeHierarchy({ ...classes, ...parsed.types });
+      cards.push(validateProject(parsed));
+    } catch (error) {
+      problems.push(
+        `${label}：${error instanceof SyntaxError ? "JSON 格式错误，无法导入" : error.message}`,
+      );
+    }
+  };
+  for (const file of files) {
+    if (file.size > 32 * 1024 * 1024) {
+      problems.push(`${file.name}：文件超过 32 MB 限制`);
+      continue;
+    }
+    try {
+      if (/\.zip$/i.test(file.name))
+        for (const entry of await readZip(await file.arrayBuffer()))
+          if (/\.json$/i.test(entry.name)) take(entry.text, entry.name);
+          else continue;
+      else take(await file.text(), file.name);
+    } catch (error) {
+      problems.push(`${file.name}：${error.message}`);
+    }
+  }
+  if (project) setTypeHierarchy(project.types);
+  if (cards.length) {
+    if (project) persist();
+    for (const c of cards) {
+      adoptCard(c);
+      workspace.save(c, { activate: false });
+    }
+    loadProject(cards[cards.length - 1]);
+    toast(
+      cards.length === 1
+        ? `已导入 ${cards[0].name} · ${cards[0].graphs.length} 个图表`
+        : `已导入 ${cards.length} 张卡牌`,
+    );
+  }
+  if (problems.length) toast(problems.join("；"), true);
+}
+async function exportAllZip() {
+  persist();
+  try {
+    const entries = workspace.ids().map((id) => {
+      const p = readCard(id);
+      return {
+        name: `${p.name}.kardsbp.json`,
+        data: JSON.stringify(
+          buildExport(p, { classes: { ...classes, ...p.types }, enums, repository }),
+          null,
+          2,
+        ),
+      };
+    });
+    const day = new Date().toISOString().slice(0, 10);
+    download(
+      `kards-workspace-${day}.zip`,
+      new Blob([makeZip(entries)], { type: "application/zip" }),
+    );
+    toast(`已导出 ${entries.length} 张卡牌（ZIP）`);
+  } catch (error) {
+    toast(`导出失败：${error.message}`, true);
+  }
+}
+
 // ---------------------------------------------------------------- blueprint structure UI
 const GRAPH_ICON = { event: "⌘", function: "ƒ", macro: "⧉" };
 const GRAPH_SUBTITLE = {
@@ -1398,7 +1633,11 @@ function renderInspector() {
           let val = input.type === "number" ? Number(input.value) : input.value;
           if (typeof val === "number" && !Number.isFinite(val)) return;
           if (key === "asset.name") {
-            const error = checkName(val.trim());
+            const error =
+              checkName(val.trim()) ||
+              (workspace.nameTaken(val.trim(), project.id)
+                ? "资源名称已被工作区里的另一张卡牌使用"
+                : null);
             if (error) {
               toast(error, true);
               return renderInspector();
@@ -1912,7 +2151,9 @@ $("minimap").onclick = (e) => {
   scheduleSave();
 };
 function download(filename, text, type) {
-  const url = URL.createObjectURL(new Blob([text], { type })),
+  const url = URL.createObjectURL(
+      text instanceof Blob ? text : new Blob([text], { type }),
+    ),
     a = document.createElement("a");
   a.href = url;
   a.download = filename;
@@ -1943,8 +2184,9 @@ const pinEnglish = (p) =>
   p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
 const kindEnglish = (n) =>
   `${(kindLabels[nodeKind(n.definition)] || "FUNCTION").split(" · ")[0]} · ${(n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "")}`;
-function exportSVG() {
-  if (!graph().nodes.length) return toast("请先添加节点");
+// Draws the active graph as a standalone SVG; also the source for the PNG export.
+function buildGraphSVG() {
+  if (!graph().nodes.length) return null;
   const b = bounds();
   const header = 60;
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x} ${b.y - header} ${b.w} ${b.h + header}" width="${b.w}" height="${b.h + header}"><rect x="${b.x}" y="${b.y - header}" width="${b.w}" height="${b.h + header}" fill="#252525"/><text x="${b.x + 20}" y="${b.y - 25}" fill="#d4d4d4" font-family="sans-serif" font-size="16">${esc(project.card.title)} · ${esc(graph().name)}</text><g fill="none" stroke-width="2.3">`;
@@ -1979,55 +2221,140 @@ function exportSVG() {
     svg += "</g>";
   }
   svg += "</svg>";
-  download(
-    (graph().name || "graph").replace(/[\\/:*?"<>|]/g, "_") + ".svg",
-    svg,
-    "image/svg+xml",
-  );
+  return { svg, width: b.w, height: b.h + header };
+}
+const graphFileName = () =>
+  (graph().name || "graph").replace(/[\\/:*?"<>|]/g, "_");
+function exportSVG() {
+  const built = buildGraphSVG();
+  if (!built) return toast("请先添加节点");
+  download(`${graphFileName()}.svg`, built.svg, "image/svg+xml");
   toast("已导出可独立打开的 SVG 图像");
 }
-function newProject() {
-  openModal(
-    "新建蓝图项目",
-    `<div class="field"><label class="detail-label" for="new-name">资源名称</label><input id="new-name" value="BP_NewCard" maxlength="64"><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><p>当前项目会保留在撤销记录中。建议先导出文件，方便以后继续编辑。</p><div class="modal-actions"><button id="save-first" class="secondary-button">导出当前项目</button><button id="create-project" class="primary-button">创建项目</button></div>`,
+async function exportPNG() {
+  const built = buildGraphSVG();
+  if (!built) return toast("请先添加节点");
+  const url = URL.createObjectURL(
+    new Blob([built.svg], { type: "image/svg+xml" }),
   );
-  $("save-first").onclick = exportProject;
+  try {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error("svg"));
+      img.src = url;
+    });
+    // Browsers cap canvas size (phones are the tightest), so shrink the scale for big graphs.
+    const scale = Math.min(
+      pngScale,
+      8192 / built.width,
+      8192 / built.height,
+      Math.sqrt(16e6 / (built.width * built.height)),
+    );
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(built.width * scale));
+    canvas.height = Math.max(1, Math.round(built.height * scale));
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#252525";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("png");
+    download(`${graphFileName()}.png`, blob);
+    toast(
+      scale < pngScale - 0.01
+        ? `已导出 PNG 图片（图较大，倍率降为 ${scale.toFixed(1)}×）`
+        : "已导出 PNG 图片",
+    );
+  } catch {
+    toast("PNG 导出失败，请改用 SVG 导出", true);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// ---- one Export button with a switchable format (blueprint file / SVG / PNG)
+const EXPORT_KEY = "kards-blueprint-studio.export";
+const EXPORT_FORMATS = {
+  json: { zh: "蓝图文件", en: "Blueprint file", ext: ".kardsbp.json" },
+  svg: { zh: "SVG 矢量图", en: "SVG vector", ext: "SVG" },
+  png: { zh: "PNG 图片", en: "PNG image", ext: "PNG" },
+  zip: { zh: "工作区全部 (ZIP)", en: "All cards (ZIP)", ext: ".zip" },
+};
+const EXPORT_FILE_EXT = { json: ".kardsbp.json", svg: ".svg", png: ".png", zip: ".zip" };
+let exportFormat = "json",
+  pngScale = 2;
+try {
+  const saved = JSON.parse(localStorage.getItem(EXPORT_KEY) || "{}");
+  if (EXPORT_FORMATS[saved.format]) exportFormat = saved.format;
+  if (Number.isFinite(saved.scale) && saved.scale >= 0.5 && saved.scale <= 8)
+    pngScale = saved.scale;
+} catch {
+  /* storage unavailable: defaults */
+}
+function saveExportChoice() {
+  try {
+    localStorage.setItem(
+      EXPORT_KEY,
+      JSON.stringify({ format: exportFormat, scale: pngScale }),
+    );
+  } catch {
+    /* the choice just lasts for this visit */
+  }
+}
+function renderExportControl() {
+  const f = EXPORT_FORMATS[exportFormat];
+  $("export-label").textContent =
+    exportFormat === "png" ? `PNG · ${pngScale}×` : f.ext;
+  $("export-menu").innerHTML =
+    Object.entries(EXPORT_FORMATS)
+      .map(
+        ([key, v]) =>
+          `<button type="button" role="menuitemradio" aria-checked="${key === exportFormat}" class="export-item ${key === exportFormat ? "active" : ""}" data-format="${key}"><span class="export-check">${key === exportFormat ? "✓" : ""}</span><span class="export-name">${bi2(v.zh, v.en)}</span><span class="export-ext">${EXPORT_FILE_EXT[key]}</span></button>`,
+      )
+      .join("") +
+    (exportFormat === "png"
+      ? `<div class="export-scale" role="group" aria-label="PNG 倍率"><span>${bi2("倍率", "Scale")}</span>${[1, 2, 3, 4].map((n) => `<button type="button" class="export-scale-btn ${n === pngScale ? "active" : ""}" data-scale="${n}">${n}×</button>`).join("")}<label class="export-scale-custom" title="自定义倍率 0.5–8"><input type="number" class="export-scale-input" min="0.5" max="8" step="0.5" value="${pngScale}" aria-label="自定义倍率"><span>×</span></label></div>`
+      : "");
+}
+function setExportMenu(open) {
+  const menu = $("export-menu");
+  if (open) {
+    // position: fixed, so the top bar's own scrolling never clips the menu
+    const r = $("export-format").getBoundingClientRect();
+    menu.style.top = `${Math.round(r.bottom + 22)}px`;
+    menu.style.right = `${Math.max(8, Math.round(innerWidth - r.right))}px`;
+  }
+  menu.hidden = !open;
+  $("export-format").setAttribute("aria-expanded", String(open));
+}
+function exportCurrent() {
+  ({ json: exportProject, svg: exportSVG, png: exportPNG, zip: exportAllZip })[
+    exportFormat
+  ]();
+}
+function newProject() {
+  let n = 1,
+    suggestion = "BP_NewCard";
+  while (workspace.nameTaken(suggestion)) suggestion = `BP_NewCard_${++n}`;
+  openModal(
+    "新建卡牌",
+    `<div class="field"><label class="detail-label" for="new-name">资源名称</label><input id="new-name" value="${esc(suggestion)}" maxlength="64"><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><p>新卡牌会加入左侧的工作区，当前这张卡牌会自动保存。</p><div class="modal-actions"><button id="create-project" class="primary-button">创建卡牌</button></div>`,
+  );
   $("create-project").onclick = () => {
     const name = $("new-name").value.trim(),
-      error = checkName(name);
+      error = checkName(name) || (workspace.nameTaken(name) ? "资源名称已被工作区里的另一张卡牌使用" : null);
     if (error) return toast(error, true);
-    mutate(() => {
-      project = makeProject();
-      project.name = name;
-      selection.clear();
-      selectedEdge = null;
-    });
+    const p = makeProject();
+    p.name = name;
+    addCard(p);
     $("modal").close();
   };
 }
 $("file-input").onchange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  try {
-    if (file.size > 12 * 1024 * 1024) throw new Error("文件超过 12 MB 限制");
-    const parsed = JSON.parse(await file.text());
-    setTypeHierarchy({ ...classes, ...parsed.types });
-    const imported = validateProject(parsed);
-    mutate(() => {
-      project = imported;
-      selection.clear();
-      selectedEdge = null;
-    });
-    toast(`已导入 ${project.name} · ${project.graphs.length} 个图表`);
-  } catch (error) {
-    setTypeHierarchy({ ...classes, ...project.types });
-    toast(
-      error instanceof SyntaxError ? "JSON 格式错误，无法导入" : error.message,
-      true,
-    );
-  } finally {
-    e.target.value = "";
-  }
+  const files = [...e.target.files];
+  e.target.value = "";
+  if (files.length) await importFiles(files);
 };
 function validate() {
   try {
@@ -2076,13 +2403,84 @@ $("add-node").onclick = () => picker();
 $("empty-add").onclick = () => picker();
 $("add-graph").onclick = newItemMenu;
 $("new-project").onclick = newProject;
+// The Workspace and My Blueprint sections fold away by clicking their titles.
+{
+  const KEY = "kards-blueprint-studio.collapsed";
+  let folded = {};
+  try {
+    folded = JSON.parse(localStorage.getItem(KEY) || "{}") || {};
+  } catch {
+    /* keep everything open */
+  }
+  for (const [selector, id] of [
+    [".workspace-section", "workspace"],
+    [".graph-section", "blueprint"],
+  ]) {
+    const section = document.querySelector(selector),
+      title = section.querySelector(".section-heading h2");
+    section.classList.toggle("folded", !!folded[id]);
+    title.setAttribute("role", "button");
+    title.tabIndex = 0;
+    const toggle = () => {
+      section.classList.toggle("folded");
+      folded[id] = section.classList.contains("folded");
+      try {
+        localStorage.setItem(KEY, JSON.stringify(folded));
+      } catch {
+        /* the fold state just lasts for this visit */
+      }
+    };
+    title.onclick = toggle;
+    title.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggle();
+      }
+    };
+  }
+}
 $("import").onclick = () => $("file-input").click();
+$("ws-import").onclick = () => $("file-input").click();
+$("ws-new").onclick = newProject;
 $("save").onclick = () => {
   persist();
   toast("项目已保存到当前浏览器");
 };
-$("export").onclick = exportProject;
-$("export-svg").onclick = exportSVG;
+$("export").onclick = exportCurrent;
+$("export-format").onclick = (e) => {
+  e.stopPropagation();
+  setExportMenu($("export-menu").hidden);
+};
+$("export-menu").onchange = (e) => {
+  const input = e.target.closest(".export-scale-input");
+  if (!input) return;
+  const value = Math.round(Number(input.value) * 10) / 10;
+  pngScale = Number.isFinite(value) ? Math.min(8, Math.max(0.5, value)) : pngScale;
+  saveExportChoice();
+  renderExportControl();
+};
+$("export-menu").onclick = (e) => {
+  e.stopPropagation();
+  const item = e.target.closest("[data-format]"),
+    scale = e.target.closest("[data-scale]");
+  if (item) {
+    exportFormat = item.dataset.format;
+    saveExportChoice();
+    renderExportControl();
+    // PNG keeps the menu open so its scale can be chosen right away
+    setExportMenu(exportFormat === "png");
+  } else if (scale) {
+    pngScale = Number(scale.dataset.scale);
+    saveExportChoice();
+    renderExportControl();
+  }
+};
+document.addEventListener("click", () => setExportMenu(false));
+window.addEventListener("resize", () => setExportMenu(false));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") setExportMenu(false);
+});
+renderExportControl();
 $("undo").onclick = undo;
 $("redo").onclick = redo;
 $("fit").onclick = fit;
@@ -2159,7 +2557,11 @@ $("graph-list").addEventListener("click", () => {
 });
 $("project-name").onchange = (e) => {
   const name = e.target.value.trim(),
-    error = checkName(name);
+    error =
+      checkName(name) ||
+      (workspace.nameTaken(name, project.id)
+        ? "资源名称已被工作区里的另一张卡牌使用"
+        : null);
   if (error) {
     toast(error, true);
     e.target.value = project.name;
@@ -2275,19 +2677,24 @@ async function boot() {
     $("source-status").textContent =
       `${data.nodes.length} 函数 · ${Object.keys(data.classes || {}).length} 类 · ${builtins.length} UE 节点`;
     let restored = false;
-    try {
-      const saved = localStorage.getItem(STORAGE);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setTypeHierarchy({ ...classes, ...parsed.types });
-        project = validateProject(parsed);
+    workspace.load();
+    const activeId = workspace.active();
+    if (activeId) {
+      try {
+        const raw = workspace.read(activeId);
+        setTypeHierarchy({ ...classes, ...raw?.types });
+        project = validateProject(raw);
         restored = true;
+      } catch {
+        toast("本地草稿无法读取，已新建空白项目。可导入备份文件恢复。", true);
       }
-    } catch {
-      toast("本地草稿无法读取，已新建空白项目。可导入备份文件恢复。", true);
     }
-    project ??= makeProject();
+    if (!project) {
+      project = makeProject();
+      project.name = workspace.uniqueName(project.name);
+    }
     project.types = { ...classes, ...project.types };
+    setTypeHierarchy(project.types);
     renderLibrary();
     render();
     if (!restored) requestAnimationFrame(fit);
