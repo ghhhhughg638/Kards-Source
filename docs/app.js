@@ -71,16 +71,21 @@ const PINCOLORS = {
   string: "#ec3fc4",
   enum: "#0e9f6e",
   float: "#9fdb47",
-  array: "#00a9ef",
   name: "#bf83ef",
   text: "#ec96b4",
   vector: "#e3bd20",
   rotator: "#aaa0eb",
 };
+// Arrays and sets take the color of their element type, as in Unreal.
+function pinColor(type) {
+  const inner = /^T(?:Array|Set)\s*<(.*)>$/.exec(type.trim());
+  if (inner) return pinColor(inner[1]);
+  const kind = pinKind(type);
+  return PINCOLORS[kind === "array" ? "object" : kind];
+}
 const PIN_LEGEND = [
   ["exec", "执行"],
   ["object", "对象"],
-  ["array", "数组"],
   ["bool", "布尔"],
   ["int", "整数"],
   ["float", "浮点"],
@@ -93,8 +98,9 @@ const PIN_LEGEND = [
 ];
 $("pin-legend").innerHTML = PIN_LEGEND.map(
   ([kind, label]) =>
-    `<span class="pin-legend"><i class="${kind === "array" ? "legend-square" : ""}" style="background:${PINCOLORS[kind]}"></i> ${label}</span>`,
-).join("");
+    `<span class="pin-legend"><i style="background:${PINCOLORS[kind]}"></i> ${label}</span>`,
+).join("") +
+  '<span class="pin-legend" title="数组颜色随元素类型变化"><i class="legend-square" style="background:none;border:1.5px solid #9fb3a6"></i> 数组·随元素类型</span>';
 const LABELS = {
   OnPlayedFromHand: "从手牌打出",
   OnStartOfTurn: "回合开始",
@@ -459,7 +465,7 @@ function picker(point, sourceEndpoint = null) {
     sourcePin
       ? "此引脚的可用操作 / Actions for this Pin"
       : "添加节点 / All Actions",
-    `${sourcePin ? `<div class="context-type"><i style="background:${PINCOLORS[pinKind(sourcePin.type)]}"></i><strong>${esc(sourcePin.type)}</strong><span>${esc(translate(sourcePin.name))} · ${esc(sourcePin.name)}</span></div>` : ""}<input id="picker-search" class="modal-search" placeholder="搜索 / Search actions…" aria-label="搜索可添加节点"><div class="context-options"><label><input type="checkbox" id="context-sensitive" checked> 上下文关联 / Context Sensitive</label>${sourcePin ? '<select id="context-scope"><option value="all">所有兼容操作 / All Compatible</option><option value="members">属性和成员 / Members</option><option value="functions">成员函数 / Functions</option><option value="properties">读取/写入属性 / Properties</option><option value="casts">类型转换 / Cast & Convert</option></select>' : ""}</div><div id="picker-count"></div><div id="picker-results" class="picker-results"></div><div class="modal-actions"><button id="custom-node" class="secondary-button">＋ 自定义节点 / Custom Node</button></div>`,
+    `${sourcePin ? `<div class="context-type"><i style="background:${pinColor(sourcePin.type)}"></i><strong>${esc(sourcePin.type)}</strong><span>${esc(translate(sourcePin.name))} · ${esc(sourcePin.name)}</span></div>` : ""}<input id="picker-search" class="modal-search" placeholder="搜索 / Search actions…" aria-label="搜索可添加节点"><div class="context-options"><label><input type="checkbox" id="context-sensitive" checked> 上下文关联 / Context Sensitive</label>${sourcePin ? '<select id="context-scope"><option value="all">所有兼容操作 / All Compatible</option><option value="members">属性和成员 / Members</option><option value="functions">成员函数 / Functions</option><option value="properties">读取/写入属性 / Properties</option><option value="casts">类型转换 / Cast & Convert</option></select>' : ""}</div><div id="picker-count"></div><div id="picker-results" class="picker-results"></div><div class="modal-actions"><button id="custom-node" class="secondary-button">＋ 自定义节点 / Custom Node</button></div>`,
     sourcePin
       ? "选择节点后自动连接此引脚 / Automatically connect compatible pins"
       : `${catalog.length} 个节点 · KARDS + Unreal Blueprint`,
@@ -576,7 +582,7 @@ function pinMarkup(n, p) {
       (e.to.node === n.id && e.to.pin === p.id),
   );
   const val = n.values[p.id] ?? defaultValue(p.type, enums);
-  const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${PINCOLORS[pinKind(p.type)]}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
+  const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
     raw = p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
   const label = `<span class="pin-label"><span class="pin-cn">${esc(cn)}</span><span class="pin-en">${esc(raw)}</span></span>`;
@@ -748,7 +754,7 @@ function drawEdges(pointer) {
     const pin = graph()
       .nodes.find((n) => n.id === e.from.node)
       ?.definition.pins.find((p) => p.id === e.from.pin);
-    html += `<path class="edge ${selectedEdge === e.id ? "selected" : ""}" data-edge="${esc(e.id)}" d="${curve(a, b)}" stroke="${PINCOLORS[pinKind(pin.type)]}"/>`;
+    html += `<path class="edge ${selectedEdge === e.id ? "selected" : ""}" data-edge="${esc(e.id)}" d="${curve(a, b)}" stroke="${pinColor(pin.type)}"/>`;
   }
   if (pending && pointer) {
     const p = pinPosition(pending),
@@ -756,7 +762,7 @@ function drawEdges(pointer) {
         .nodes.find((n) => n.id === pending.node)
         ?.definition.pins.find((p) => p.id === pending.pin);
     if (p)
-      html += `<path class="edge ghost" d="${def.direction === "out" ? curve(p, pointer) : curve(pointer, p)}" stroke="${PINCOLORS[pinKind(def.type)]}"/>`;
+      html += `<path class="edge ghost" d="${def.direction === "out" ? curve(p, pointer) : curve(pointer, p)}" stroke="${pinColor(def.type)}"/>`;
   }
   $("edges").innerHTML = html;
 }
@@ -1211,7 +1217,7 @@ function exportSVG() {
       node = graph().nodes.find((n) => n.id === e.from.node),
       pin = node.definition.pins.find((p) => p.id === e.from.pin);
     if (a && p)
-      svg += `<path d="${curve(a, p)}" stroke="${PINCOLORS[pinKind(pin.type)]}"/>`;
+      svg += `<path d="${curve(a, p)}" stroke="${pinColor(pin.type)}"/>`;
   }
   svg += "</g>";
   for (const n of graph().nodes) {
@@ -1229,7 +1235,7 @@ function exportSVG() {
         p.type !== "exec" &&
         !graph().edges.some((e) => e.to.node === n.id && e.to.pin === p.id) &&
         (p.direction === "in" || n.definition.category === "variables");
-      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="4" fill="#171717" stroke="${PINCOLORS[pinKind(p.type)]}" stroke-width="2"/><text x="${pos.x + (out ? -12 : 12)}" y="${pos.y + 3}" fill="#b1c4b8" font-size="9" text-anchor="${out ? "end" : "start"}">${esc(translate(p.name))} / ${esc(p.name)}${hasValue ? " = " + esc(val) : ""}</text>`;
+      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="4" fill="#171717" stroke="${pinColor(p.type)}" stroke-width="2"/><text x="${pos.x + (out ? -12 : 12)}" y="${pos.y + 3}" fill="#b1c4b8" font-size="9" text-anchor="${out ? "end" : "start"}">${esc(translate(p.name))} / ${esc(p.name)}${hasValue ? " = " + esc(val) : ""}</text>`;
     }
     svg += "</g>";
   }
