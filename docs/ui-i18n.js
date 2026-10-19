@@ -267,6 +267,8 @@ const EXACT = {
   "自定义事件名称无效或重复": "Invalid or duplicate custom event name",
   "自定义事件只能放在 EventGraph 中": "Custom events can only be placed in the EventGraph",
   "局部变量": "Local variables",
+  "全部": "All",
+  "每次显示的数量": "Items to add per click",
   "事件分发器": "Event dispatchers",
   "新建事件分发器": "New event dispatcher",
   "编辑事件分发器": "Edit event dispatcher",

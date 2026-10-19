@@ -373,3 +373,20 @@ html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
 }
 .viewport ::selection { background: transparent; }
 .node .pin-input::selection, textarea::selection, input::selection { background: #3b5f8a; }
+
+/* "Show more" footer in the node library and picker */
+.more-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px 14px;
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(transparent, var(--panel) 28%);
+}
+.more-count { font: 11px var(--mono); color: #9aa7a0; margin-right: auto; }
+.more-step { width: auto; padding: 4px 6px; font-size: 12px; }
+.more-row .secondary-button { width: auto; margin: 0; padding: 6px 10px; font-size: 12px; }
+.more-row .more-step { width: 92px; flex: none; }
+.more-row .more-count { flex: 1 1 100%; margin: 0 0 2px; }

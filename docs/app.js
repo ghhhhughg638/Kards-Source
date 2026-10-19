@@ -914,6 +914,37 @@ function filterCatalog(q, cat = "all") {
     (a, b) => Number(!!LABELS[b.name]) - Number(!!LABELS[a.name]),
   );
 }
+// "Show more" footer shared by the node library and the node picker. The step is chosen
+// in a drop-down (50 … 1000, or all) and clicking keeps expanding until everything is shown.
+let moreStep = "100";
+const MORE_STEPS = ["50", "100", "200", "500", "1000", "all"];
+const moreAmount = (shown, total) =>
+  moreStep === "all"
+    ? total - shown
+    : Math.min(Number(moreStep), total - shown);
+function moreMarkup(shown, total) {
+  return `<div class="more-row" data-shown="${shown}" data-total="${total}"><span class="more-count">${shown} / ${total}</span><select class="more-step" aria-label="每次显示的数量">${MORE_STEPS.map((v) => `<option value="${v}" ${v === moreStep ? "selected" : ""}>${v === "all" ? "全部" : v}</option>`).join("")}</select><button type="button" class="secondary-button more-btn">${bi2("显示更多", "Show more")} (+<span class="more-n">${moreAmount(shown, total)}</span>)</button><button type="button" class="secondary-button more-all">${bi2("展开全部", "Show all")}</button></div>`;
+}
+// `grow(amount)` receives how many extra rows to show; Infinity expands everything.
+function bindMore(container, grow) {
+  const row = container.querySelector(".more-row");
+  if (!row) return;
+  const shown = Number(row.dataset.shown),
+    total = Number(row.dataset.total);
+  row.querySelector(".more-step").onchange = (e) => {
+    moreStep = e.target.value;
+    row.querySelector(".more-n").textContent = moreAmount(shown, total);
+  };
+  row.querySelector(".more-btn").onclick = () => grow(moreAmount(shown, total));
+  row.querySelector(".more-all").onclick = () => grow(Infinity);
+}
+// Re-render a scrolling list without jumping back to the top.
+function keepScroll(el, render) {
+  const top = el.scrollTop;
+  render();
+  el.scrollTop = top;
+}
+let libraryLimit = 120;
 function renderLibrary() {
   const results = filterCatalog($("node-search").value, category);
   $("category-list").innerHTML = Object.entries(CAT)
@@ -928,16 +959,21 @@ function renderLibrary() {
       (b) =>
         (b.onclick = () => {
           category = b.dataset.category;
+          libraryLimit = 120;
           renderLibrary();
         }),
     );
   $("library-label").innerHTML = `${CAT[category]} · ${results.length}`;
   $("node-list").innerHTML = results.length
-    ? results.slice(0, 120).map(libraryItem).join("") +
-      (results.length > 120
-        ? '<div class="no-results">仅显示前 120 项，输入关键词继续查找</div>'
+    ? results.slice(0, libraryLimit).map(libraryItem).join("") +
+      (results.length > libraryLimit
+        ? moreMarkup(libraryLimit, results.length)
         : "")
     : '<div class="no-results">没有匹配的节点</div>';
+  bindMore($("node-list"), (amount) => {
+    libraryLimit = Math.min(results.length, libraryLimit + amount);
+    keepScroll($("node-list"), renderLibrary);
+  });
   bindLibrary($("node-list"));
 }
 function bindLibrary(container) {
@@ -1044,7 +1080,9 @@ function picker(point, sourceEndpoint = null) {
       ? "选择节点后自动连接此引脚 / Automatically connect compatible pins"
       : `${fullCatalog().length} 个节点 · KARDS + Unreal Blueprint`,
   );
-  const update = () => {
+  let limit = 100;
+  const update = (keepLimit = false) => {
+    if (keepLimit !== true) limit = 100;
     let matches = filterCatalog($("picker-search").value);
     if (sourcePin && $("context-sensitive").checked)
       matches = matches.filter((d) => matchingPin(d, sourcePin));
@@ -1073,8 +1111,13 @@ function picker(point, sourceEndpoint = null) {
     }
     $("picker-count").textContent = `${matches.length} 个操作 / Actions`;
     $("picker-results").innerHTML =
-      matches.slice(0, 100).map(libraryItem).join("") ||
+      (matches.slice(0, limit).map(libraryItem).join("") +
+        (matches.length > limit ? moreMarkup(limit, matches.length) : "")) ||
       '<div class="no-results">无兼容操作 / No compatible actions</div>';
+    bindMore($("picker-results"), (amount) => {
+      limit = Math.min(matches.length, limit + amount);
+      keepScroll($("picker-results"), () => update(true));
+    });
     $("picker-results")
       .querySelectorAll("[data-def]")
       .forEach((b) => {
@@ -1086,9 +1129,9 @@ function picker(point, sourceEndpoint = null) {
         };
       });
   };
-  $("picker-search").oninput = update;
-  $("context-sensitive").onchange = update;
-  if ($("context-scope")) $("context-scope").onchange = update;
+  $("picker-search").oninput = () => update();
+  $("context-sensitive").onchange = () => update();
+  if ($("context-scope")) $("context-scope").onchange = () => update();
   $("picker-search").onkeydown = (e) => {
     if (e.key === "Enter") $("picker-results").querySelector("button")?.click();
   };
@@ -2025,7 +2068,10 @@ function help() {
     `<div class="help-grid"><span>添加节点</span><kbd>Tab / 右键</kbd><span>平移画布</span><kbd>拖动空白 / 空格 + 拖动</kbd><span>缩放画布</span><kbd>滚轮 / ＋ −</kbd><span>适应所有节点</span><kbd>F</kbd><span>多选节点</span><kbd>Shift + 单击</kbd><span>全选 / 复制 / 删除</span><kbd>Ctrl A / Ctrl D / Delete</kbd><span>撤销 / 重做</span><kbd>Ctrl Z / Ctrl Shift Z</kbd><span>保存到本地 / 导出文件</span><kbd>Ctrl S / Ctrl Shift S</kbd><span>取消连线 / 取消选择</span><kbd>Esc</kbd></div><p>从一个端口拖向另一个端口，或依次点击两个端口。只有类型相同的输出与输入可以连接。点击连线后按 Delete 可断开。</p><p>修改会自动保存在当前浏览器。使用「导出蓝图」获得文件；更换设备或清除浏览器数据前请先导出。支持 macOS 的 ⌘ 快捷键。</p><div class="format-note">format: "${FORMAT}"\nversion: ${VERSION}\ngraphs: [{ nodes, edges, view }]</div>`,
   );
 }
-$("node-search").oninput = renderLibrary;
+$("node-search").oninput = () => {
+  libraryLimit = 120;
+  renderLibrary();
+};
 $("add-node").onclick = () => picker();
 $("empty-add").onclick = () => picker();
 $("add-graph").onclick = newItemMenu;
