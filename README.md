@@ -2,7 +2,7 @@
 
 专为 KARDS 设计的浏览器蓝图编辑器，视觉布局参考 Unreal Engine 蓝图编辑器。
 
-**GitHub Pages 地址（启用 Pages 后）：https://ghhhhughg638.github.io/Kards-Source/**
+**GitHub Pages 地址：https://ghhhhughg638.github.io/Kards-Source/v1/**（根地址会自动跳转到最新版本 `/v1/`；页面内的「⟳ 刷新」按钮可绕过缓存重新读取最新版本）
 
 - UE 风格的灰色网格、红色 Event、蓝色函数、绿色纯函数、灰色流程、青色 Cast 节点，以及类型对应的引脚颜色。
 - 中文显示名与原始英文并列，例如「事件 · 从手牌打出 / Event OnPlayedFromHand」。
@@ -82,6 +82,6 @@ python tools/generate-node-catalog.py
 node --test tools/model.test.mjs
 ```
 
-`.github/workflows/pages.yml` 在 `main` 的 `docs/` 更新时发布 GitHub Pages。仓库 Settings → Pages 的 Source 使用 **GitHub Actions**。不上传游戏源码到站点产物，仅发布 `docs/`。
+`.github/workflows/pages.yml` 在 `main` 的 `docs/` 更新时发布 GitHub Pages。仓库 Settings → Pages 的 Source 使用 **GitHub Actions**。不上传游戏源码到站点产物，仅发布 `docs/`，并发布在站点的 `/v1/` 路径下，根路径只放一个跳转页。
 
 源代码中的 Unreal 模块和兼容声明继续保留在仓库原目录。节点库生成器提供浏览用途的签名解析，不替代 Unreal Header Tool。
