@@ -10,6 +10,8 @@ const EXACT = {
   "多选模式:点节点选中/取消,拖空白处框选": "Multi-select mode: tap nodes to select/deselect, drag on empty canvas to box-select",
   "已退出多选模式": "Left multi-select mode",
   "取消选择": "Deselect",
+  "整理节点布局并拆开重叠的节点": "Tidy the layout and separate overlapping nodes",
+  "已整理节点布局": "Layout tidied",
   "框选节点 / Box select": "Box select",
   "平移画布 / Pan": "Pan",
   "操作帮助": "Help",

@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.8.1",
+    "date": "2026-10-19",
+    "title": {
+      "zh": "新节点不再叠放、新增整理按钮",
+      "en": "New nodes no longer stack, Arrange button"
+    },
+    "items": [
+      {
+        "zh": "新增节点会自动放在不遮挡其他节点的空位上",
+        "en": "New nodes are placed on a free spot instead of on top of other nodes"
+      },
+      {
+        "zh": "画布工具栏新增「整理」:按连线方向分列排布节点,叠在一起的节点会被拆开(可撤销)",
+        "en": "New Arrange button: lays nodes out in columns by flow direction and separates stacked nodes (undoable)"
+      }
+    ]
+  },
+  {
     "version": "2.8.0",
     "date": "2026-10-19",
     "title": {

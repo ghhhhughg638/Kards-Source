@@ -56,7 +56,7 @@ body {
   font: inherit;
 }
 .pin-toggle:hover { border-color: var(--accent); }
-.canvas-tools > #add-node, .canvas-tools > #toggle-library, .canvas-tools > #multi-toggle {
+.canvas-tools > #add-node, .canvas-tools > #toggle-library, .canvas-tools > #multi-toggle, .canvas-tools > #arrange {
   font-size: 11px;
   background: #383838;
   color: #ddd;
