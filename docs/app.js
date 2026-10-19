@@ -566,7 +566,7 @@ function pinMarkup(n, p) {
     !connected &&
     p.type !== "exec" &&
     (p.direction === "in" || n.definition.category === "variables");
-  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? `<span class="pin-value">${esc(typeof val === "boolean" ? (val ? "true" : "false") : val)}</span>` : ""}${p.direction === "out" ? button : ""}</div>`;
+  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? (typeof val === "boolean" ? `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>` : `<span class="pin-value">${esc(val)}</span>`) : ""}${p.direction === "out" ? button : ""}</div>`;
 }
 function nodeBody(n) {
   const ins = n.definition.pins.filter((p) => p.direction === "in"),
@@ -649,7 +649,7 @@ function renderInspector() {
               );
             const options =
               p.type === "bool" ? ["false", "true"] : enums[p.type];
-            return `<div class="field"><label class="detail-label">${esc(translate(p.name))} / ${esc(p.name)} <span style="opacity:.5">${esc(p.type)}</span>${options ? `<select data-value="${esc(p.id)}" ${isConnected ? "disabled" : ""}>${[...new Set([...options, String(val)])].map((v) => `<option ${String(v) === String(val) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>` : `<input data-value="${esc(p.id)}" value="${esc(val)}" ${["int", "float"].includes(pinKind(p.type)) ? 'type="number" step="any"' : ""} ${isConnected ? "disabled" : ""}>`}${isConnected ? '<span class="detail-description">由连接提供值</span>' : ""}</label></div>`;
+            return `<div class="field"><label class="detail-label">${esc(translate(p.name))} / ${esc(p.name)} <span style="opacity:.5">${esc(p.type)}</span>${options ? `<select data-value="${esc(p.id)}" ${isConnected ? "disabled" : ""}>${[...new Set([...options, String(val)])].map((v) => `<option ${String(v) === String(val) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>` : `<input data-value="${esc(p.id)}" value="${esc(val)}" ${["int", "float"].includes(pinKind(p.type)) ? 'type="number" step="any"' : ""} ${isConnected ? "disabled" : ""}>`}${isConnected ? '<span class="detail-description">由连接提供值 · 请在来源节点上修改</span>' : ""}</label></div>`;
           })
           .join("")
       : '<p class="detail-description">此节点没有可编辑的默认输入。</p>';
@@ -975,6 +975,16 @@ viewport.addEventListener("pointerdown", (e) => {
   if (e.button === 2) return;
   if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state,.selection-bar"))
     return;
+  const toggle = e.target.closest("[data-toggle]");
+  if (toggle && e.button === 0) {
+    e.preventDefault();
+    const n = graph().nodes.find((n) => n.id === toggle.dataset.toggleNode);
+    if (n) {
+      const id = toggle.dataset.toggle;
+      mutate(() => (n.values[id] = !n.values[id]));
+    }
+    return;
+  }
   const pin = e.target.closest(".pin");
   if (pin && e.button === 0) {
     e.preventDefault();

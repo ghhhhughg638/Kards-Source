@@ -32,6 +32,17 @@ body {
 .minimap-wrap:hover { opacity: 1; }
 
 #toggle-library { display: none; }
+/* Boolean values on a node are tappable switches */
+.pin-toggle {
+  cursor: pointer;
+  padding: 2px 8px;
+  border: 1px solid #4a5a50;
+  border-radius: 10px;
+  background: #1e2723;
+  color: #cfe0d5;
+  font: inherit;
+}
+.pin-toggle:hover { border-color: var(--accent); }
 .canvas-tools > #add-node, .canvas-tools > #toggle-library {
   font-size: 11px;
   background: #383838;
