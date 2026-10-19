@@ -69,7 +69,7 @@ const PINCOLORS = {
   int: "#30e7bd",
   bool: "#d41119",
   string: "#ec3fc4",
-  enum: "#03c5b1",
+  enum: "#0e9f6e",
   float: "#9fdb47",
   array: "#00a9ef",
   name: "#bf83ef",
@@ -77,6 +77,24 @@ const PINCOLORS = {
   vector: "#e3bd20",
   rotator: "#aaa0eb",
 };
+const PIN_LEGEND = [
+  ["exec", "执行"],
+  ["object", "对象"],
+  ["array", "数组"],
+  ["bool", "布尔"],
+  ["int", "整数"],
+  ["float", "浮点"],
+  ["string", "字符串"],
+  ["name", "Name"],
+  ["text", "Text"],
+  ["enum", "枚举"],
+  ["vector", "向量"],
+  ["rotator", "旋转"],
+];
+$("pin-legend").innerHTML = PIN_LEGEND.map(
+  ([kind, label]) =>
+    `<span class="pin-legend"><i class="${kind === "array" ? "legend-square" : ""}" style="background:${PINCOLORS[kind]}"></i> ${label}</span>`,
+).join("");
 const LABELS = {
   OnPlayedFromHand: "从手牌打出",
   OnStartOfTurn: "回合开始",
