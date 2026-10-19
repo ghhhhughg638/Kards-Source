@@ -1,3 +1,4 @@
+import { setUiLanguage, tr } from "./ui-i18n.js";
 import {
   FORMAT,
   VERSION,
@@ -345,7 +346,7 @@ function editGraph(id) {
   };
   if ($("delete-graph"))
     $("delete-graph").onclick = () => {
-      if (!confirm(`删除“${g.name}”及其所有节点？可使用撤销恢复。`)) return;
+      if (!confirm(tr(`删除“${g.name}”及其所有节点？可使用撤销恢复。`))) return;
       mutate(() => {
         project.graphs = project.graphs.filter((x) => x !== g);
         if (project.activeGraph === id)
@@ -1336,7 +1337,7 @@ function validate() {
       );
     openModal(
       "蓝图检查",
-      `<div class="validation-item">✓ 文件结构、端口类型和连接引用有效。</div><div class="validation-item">${g.nodes.length} 个节点 · ${g.edges.length} 条连接 · ${unconnected.length} 个动作节点没有执行输入</div>${unconnected.length ? `<p>尚未接入执行流：${unconnected.map((n) => esc(title(n))).join("、")}。可以保留它们作为设计草稿。</p>` : ""}<p>检查范围为蓝图文档结构。此编辑器不运行蓝图，也不验证游戏运行结果。</p>`,
+      `<div class="validation-item">✓ 文件结构、端口类型和连接引用有效。</div><div class="validation-item">${g.nodes.length} 个节点 · ${g.edges.length} 条连接 · ${unconnected.length} 个动作节点没有执行输入</div>${unconnected.length ? `<p>尚未接入执行流：${unconnected.map((n) => esc(nodeHeading(n))).join(langMode === "en" ? ", " : "、")}。可以保留它们作为设计草稿。</p>` : ""}<p>检查范围为蓝图文档结构。此编辑器不运行蓝图，也不验证游戏运行结果。</p>`,
     );
   } catch (e) {
     toast(e.message, true);
@@ -1587,6 +1588,7 @@ $("export").innerHTML = `<span>↗</span>${bi("导出", "Export")}`;
 $("add-node").innerHTML = `＋ ${bi("节点", "Node")}`;
 $("validate").innerHTML = bi("检查", "Check");
 $("lang-select").value = langMode;
+setUiLanguage(langMode);
 $("lang-select").onchange = (e) => {
   langMode = e.target.value;
   document.documentElement.dataset.lang = langMode;
@@ -1597,5 +1599,6 @@ $("lang-select").onchange = (e) => {
   }
   renderLibrary();
   render();
+  setUiLanguage(langMode);
 };
 boot();
