@@ -1,0 +1,48 @@
+[
+  {
+    "version": "2.7.0",
+    "date": "2026-10-19",
+    "title": { "zh": "更新提醒", "en": "Update reminder" },
+    "items": [
+      { "zh": "每次打开网页会检查是否有新版本，有的话弹窗说明更新内容，可以选择立即更新或暂不更新", "en": "The page checks for a newer version every time it opens and asks whether to update, with a summary of what changed" },
+      { "zh": "修复「刷新」按钮漏刷新部分文件，可能导致刷新后仍是旧版本的问题", "en": "Fixed the Refresh button skipping some files, which could leave parts of the old version in place" }
+    ]
+  },
+  {
+    "version": "2.6.0",
+    "date": "2026-10-19",
+    "title": { "zh": "多卡牌工作区与统一导出", "en": "Workspace and unified export" },
+    "items": [
+      { "zh": "左侧新增「工作区」：同时保存多张卡牌，可新建、导入、切换、重命名、复制、删除", "en": "New Workspace on the left: keep several cards, with new / import / switch / rename / duplicate / delete" },
+      { "zh": "导出按钮合并为一个，带倒三角切换格式：蓝图文件、SVG、PNG、工作区全部（ZIP）", "en": "One Export button with a format switch: blueprint file, SVG, PNG or all cards (ZIP)" },
+      { "zh": "PNG 倍率可选 1×–4× 或手填 0.5–8；支持一次导入多个文件和 ZIP", "en": "PNG scale 1×–4× or custom 0.5–8; import several files or a ZIP at once" }
+    ]
+  },
+  {
+    "version": "2.5.0",
+    "date": "2026-10-19",
+    "title": { "zh": "手机顶栏适配", "en": "Phone header fixes" },
+    "items": [
+      { "zh": "顶栏和菜单栏不再超出手机屏幕，窄屏下菜单按钮只显示一种语言", "en": "The top bar and menu bar no longer run off phone screens; menu buttons show one language on narrow screens" }
+    ]
+  },
+  {
+    "version": "2.4.0",
+    "date": "2026-10-19",
+    "title": { "zh": "节点体验", "en": "Node experience" },
+    "items": [
+      { "zh": "节点按复杂度分档大小：简单数据节点更小，多参数函数节点更大更好连线", "en": "Nodes scale with complexity: small data nodes, roomier busy function nodes" },
+      { "zh": "Target 规则与 UE 一致：属于本蓝图的函数默认 Self 并隐藏，其他函数必须连线", "en": "Target works like Unreal: Self for this blueprint's own functions (hidden), required wire otherwise" },
+      { "zh": "节点上的数值、枚举、布尔值可以直接编辑；选择器与节点库支持「显示更多」", "en": "Edit numbers, enums and booleans right on the node; Show more in the picker and palette" }
+    ]
+  },
+  {
+    "version": "2.3.0",
+    "date": "2026-10-19",
+    "title": { "zh": "UE 式蓝图结构", "en": "Unreal-style blueprint structure" },
+    "items": [
+      { "zh": "唯一的 EventGraph，加上函数（自定义/重载）、宏、变量、局部变量、自定义事件、事件分发器", "en": "A single EventGraph plus functions (custom / override), macros, variables, local variables, custom events and event dispatchers" },
+      { "zh": "导出文件升级为版本 2，包含资源信息、依赖和统计；旧版本文件不再兼容", "en": "Export format version 2 with asset info, dependencies and stats; version 1 files are no longer supported" }
+    ]
+  }
+]

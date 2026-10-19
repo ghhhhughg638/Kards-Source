@@ -26,6 +26,11 @@ jobs:
           mkdir -p _site/v1
           cp -r docs/. _site/v1/
           touch _site/.nojekyll
+          # Stamp the build so the page can tell whether a newer one has been published
+          VERSION="$(jq -r '.[0].version' docs/changelog.json)"
+          sed -i "s/__BUILD_SHA__/${GITHUB_SHA}/; s/__BUILD_VERSION__/${VERSION}/" _site/v1/app.js
+          grep -q "${GITHUB_SHA}" _site/v1/app.js
+          printf '{"sha":"%s","version":"%s","builtAt":"%s"}\n' "${GITHUB_SHA}" "${VERSION}" "$(date -u +%FT%TZ)" > _site/v1/version.json
           cat > _site/index.html <<'HTML'
           <!doctype html>
           <html lang="zh-CN">
