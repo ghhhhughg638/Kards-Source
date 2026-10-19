@@ -213,6 +213,33 @@ const EXACT = {
   "文件中有重复的输入或执行连接": "The file has duplicate input or execution connections",
 };
 
+// English-only labels shown in the interface; "zh" mode swaps them for Chinese.
+const ZH_EXACT = {
+  "BLUEPRINT EDITOR": "蓝图编辑器",
+  "LOCAL WORKSPACE": "本地工作区",
+  "SCHEMA v1.0": "格式 v1.0",
+  "KARDS C++ · Unreal Blueprint": "KARDS C++ · 虚幻蓝图",
+  "BLUEPRINT GRAPH": "蓝图事件图",
+  NAVIGATOR: "导航",
+  Name: "名称",
+  Text: "文本",
+  "CARD DATA": "卡牌数据",
+  GRAPH: "事件图",
+  NODE: "节点",
+  DEFAULTS: "默认参数",
+  NATIVE: "原生",
+  "Event Graph · 卡牌事件图": "事件图 · 卡牌事件图",
+};
+const ZH_FACTIONS = {
+  GERMANY: "德国", BRITAIN: "英国", JAPAN: "日本", SOVIET: "苏联", AMERICA: "美国",
+  USA: "美国", FRANCE: "法国", ITALY: "意大利", POLAND: "波兰", FINLAND: "芬兰",
+  ANZAC: "澳新军团", ALLIES: "盟军", NEUTRAL: "中立",
+};
+const ZH_TYPES = { INFANTRY: "步兵", TANK: "坦克", ORDER: "命令", COUNTER: "反制", BUILDING: "建筑" };
+const ZH_PATTERNS = [
+  [/^(\d+) SELECTED$/, "已选 $1 个"],
+];
+
 const PATTERNS = [
   [/^(\d+) 个节点 · (\d+) 条连接 · (\d+) 个动作节点没有执行输入$/, "$1 nodes · $2 wires · $3 action nodes have no exec input"],
   [/^(\d+) 个节点 · (\d+) 条连接$/, "$1 nodes · $2 wires"],
@@ -256,8 +283,22 @@ function translateParts(body) {
   return null;
 }
 
+function translateEnglishLabel(core) {
+  if (ZH_EXACT[core] !== undefined) return ZH_EXACT[core];
+  const kind = /^([A-Z]+) \/ ([A-Z]+)$/.exec(core);
+  if (kind && (ZH_FACTIONS[kind[1]] || ZH_TYPES[kind[2]]))
+    return `${ZH_FACTIONS[kind[1]] ?? kind[1]} / ${ZH_TYPES[kind[2]] ?? kind[2]}`;
+  for (const [re, out] of ZH_PATTERNS) if (re.test(core)) return core.replace(re, out);
+  return null;
+}
+
 export function translateText(text, mode) {
-  if (mode === "both" || !text || !HAS_CJK.test(text)) return text;
+  if (mode === "both" || !text) return text;
+  if (mode === "zh" && !HAS_CJK.test(text)) {
+    const label = translateEnglishLabel(squash(text));
+    return label === null ? text : label;
+  }
+  if (!HAS_CJK.test(text)) return text;
   const lead = /^\s*/.exec(text)[0],
     trail = /\s*$/.exec(text)[0],
     core = squash(text);
@@ -267,6 +308,8 @@ export function translateText(text, mode) {
     tail = frame ? frame[3] : "";
   const keep = (value) => lead + deco + value + tail.trimEnd() + trail;
   if (mode === "zh") {
+    const label = ZH_EXACT[core] ?? null;
+    if (label !== null) return lead + label + trail;
     const m = BILINGUAL.exec(body);
     return m ? keep(m[1]) : text;
   }

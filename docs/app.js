@@ -1,4 +1,4 @@
-import { setUiLanguage, tr } from "./ui-i18n.js";
+import { setUiLanguage, tr, translateText } from "./ui-i18n.js";
 import {
   FORMAT,
   VERSION,
@@ -600,7 +600,7 @@ function pinMarkup(n, p) {
   const val = n.values[p.id] ?? defaultValue(p.type, enums);
   const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
-    raw = p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
+    raw = pinEnglish(p);
   const label = `<span class="pin-label"><span class="pin-cn zh">${esc(cn)}</span><span class="pin-en en">${esc(raw)}</span></span>`;
   const showValue =
     !connected &&
@@ -1239,11 +1239,17 @@ function exportProject() {
   );
   toast("已导出蓝图，可随时导入继续编辑");
 }
+// SVG exports are always English so files look the same whatever the display language is.
+const toEnglish = (text) => translateText(text, "en");
+const pinEnglish = (p) =>
+  p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
+const kindEnglish = (n) =>
+  `${(kindLabels[nodeKind(n.definition)] || "FUNCTION").split(" · ")[0]} · ${(n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "")}`;
 function exportSVG() {
   if (!graph().nodes.length) return toast("请先添加节点");
   const b = bounds();
   const header = 60;
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x} ${b.y - header} ${b.w} ${b.h + header}" width="${b.w}" height="${b.h + header}"><rect x="${b.x}" y="${b.y - header}" width="${b.w}" height="${b.h + header}" fill="#252525"/><text x="${b.x + 20}" y="${b.y - 25}" fill="#d4d4d4" font-family="sans-serif" font-size="16">${esc(project.card.title)} · ${esc(graph().name)}</text><g fill="none" stroke-width="2.3">`;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x} ${b.y - header} ${b.w} ${b.h + header}" width="${b.w}" height="${b.h + header}"><rect x="${b.x}" y="${b.y - header}" width="${b.w}" height="${b.h + header}" fill="#252525"/><text x="${b.x + 20}" y="${b.y - 25}" fill="#d4d4d4" font-family="sans-serif" font-size="16">${esc(toEnglish(project.card.title))} · ${esc(toEnglish(graph().name))}</text><g fill="none" stroke-width="2.3">`;
   for (const e of graph().edges) {
     const a = pinPosition(e.from),
       p = pinPosition(e.to),
@@ -1257,7 +1263,7 @@ function exportSVG() {
     const el = document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`),
       h = el.offsetHeight,
       w = el.offsetWidth;
-    svg += `<g font-family="monospace"><rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="6" fill="#171717" stroke="${color(n.definition)}"/><rect x="${n.x + 1}" y="${n.y + 1}" width="${w - 2}" height="57" rx="5" fill="${color(n.definition)}"/><text x="${n.x + 12}" y="${n.y + 24}" fill="#e0e9e2" font-size="12">${esc(title(n))}</text><text x="${n.x + 12}" y="${n.y + 43}" fill="#eeeeee" font-size="9">${esc(nodeEnglish(n.definition))}</text>`;
+    svg += `<g font-family="monospace"><rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="6" fill="#171717" stroke="${color(n.definition)}"/><rect x="${n.x + 1}" y="${n.y + 1}" width="${w - 2}" height="57" rx="5" fill="${color(n.definition)}"/><text x="${n.x + 12}" y="${n.y + 24}" fill="#e0e9e2" font-size="12">${esc(nodeEnglish(n.definition))}</text><text x="${n.x + 12}" y="${n.y + 43}" fill="#eeeeee" font-size="9">${esc(kindEnglish(n))}</text>`;
     if (n.comment)
       svg += `<text x="${n.x}" y="${n.y - 12}" fill="#a4b69d" font-size="10">${esc(n.comment)}</text>`;
     for (const p of n.definition.pins) {
@@ -1269,7 +1275,7 @@ function exportSVG() {
         p.type !== "exec" &&
         !graph().edges.some((e) => e.to.node === n.id && e.to.pin === p.id) &&
         (p.direction === "in" || n.definition.category === "variables");
-      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="4" fill="#171717" stroke="${pinColor(p.type)}" stroke-width="2"/><text x="${pos.x + (out ? -12 : 12)}" y="${pos.y + 3}" fill="#b1c4b8" font-size="9" text-anchor="${out ? "end" : "start"}">${esc(translate(p.name))} / ${esc(p.name)}${hasValue ? " = " + esc(val) : ""}</text>`;
+      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="4" fill="#171717" stroke="${pinColor(p.type)}" stroke-width="2"/><text x="${pos.x + (out ? -12 : 12)}" y="${pos.y + 3}" fill="#b1c4b8" font-size="9" text-anchor="${out ? "end" : "start"}">${esc(pinEnglish(p))}${hasValue ? " = " + esc(val) : ""}</text>`;
     }
     svg += "</g>";
   }
