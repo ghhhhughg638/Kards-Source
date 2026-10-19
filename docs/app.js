@@ -1912,7 +1912,9 @@ $("minimap").onclick = (e) => {
   scheduleSave();
 };
 function download(filename, text, type) {
-  const url = URL.createObjectURL(new Blob([text], { type })),
+  const url = URL.createObjectURL(
+      text instanceof Blob ? text : new Blob([text], { type }),
+    ),
     a = document.createElement("a");
   a.href = url;
   a.download = filename;
@@ -1943,8 +1945,9 @@ const pinEnglish = (p) =>
   p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
 const kindEnglish = (n) =>
   `${(kindLabels[nodeKind(n.definition)] || "FUNCTION").split(" · ")[0]} · ${(n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "")}`;
-function exportSVG() {
-  if (!graph().nodes.length) return toast("请先添加节点");
+// Draws the active graph as a standalone SVG; also the source for the PNG export.
+function buildGraphSVG() {
+  if (!graph().nodes.length) return null;
   const b = bounds();
   const header = 60;
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x} ${b.y - header} ${b.w} ${b.h + header}" width="${b.w}" height="${b.h + header}"><rect x="${b.x}" y="${b.y - header}" width="${b.w}" height="${b.h + header}" fill="#252525"/><text x="${b.x + 20}" y="${b.y - 25}" fill="#d4d4d4" font-family="sans-serif" font-size="16">${esc(project.card.title)} · ${esc(graph().name)}</text><g fill="none" stroke-width="2.3">`;
@@ -1979,12 +1982,112 @@ function exportSVG() {
     svg += "</g>";
   }
   svg += "</svg>";
-  download(
-    (graph().name || "graph").replace(/[\\/:*?"<>|]/g, "_") + ".svg",
-    svg,
-    "image/svg+xml",
-  );
+  return { svg, width: b.w, height: b.h + header };
+}
+const graphFileName = () =>
+  (graph().name || "graph").replace(/[\\/:*?"<>|]/g, "_");
+function exportSVG() {
+  const built = buildGraphSVG();
+  if (!built) return toast("请先添加节点");
+  download(`${graphFileName()}.svg`, built.svg, "image/svg+xml");
   toast("已导出可独立打开的 SVG 图像");
+}
+async function exportPNG() {
+  const built = buildGraphSVG();
+  if (!built) return toast("请先添加节点");
+  const url = URL.createObjectURL(
+    new Blob([built.svg], { type: "image/svg+xml" }),
+  );
+  try {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error("svg"));
+      img.src = url;
+    });
+    // Browsers cap canvas size (phones are the tightest), so shrink the scale for big graphs.
+    const scale = Math.min(
+      pngScale,
+      8192 / built.width,
+      8192 / built.height,
+      Math.sqrt(16e6 / (built.width * built.height)),
+    );
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(built.width * scale));
+    canvas.height = Math.max(1, Math.round(built.height * scale));
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#252525";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("png");
+    download(`${graphFileName()}.png`, blob);
+    toast(
+      scale < pngScale - 0.01
+        ? `已导出 PNG 图片（图较大，倍率降为 ${scale.toFixed(1)}×）`
+        : "已导出 PNG 图片",
+    );
+  } catch {
+    toast("PNG 导出失败，请改用 SVG 导出", true);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// ---- one Export button with a switchable format (blueprint file / SVG / PNG)
+const EXPORT_KEY = "kards-blueprint-studio.export";
+const EXPORT_FORMATS = {
+  json: { zh: "蓝图文件", en: "Blueprint file", ext: ".kardsbp.json" },
+  svg: { zh: "SVG 矢量图", en: "SVG vector", ext: "SVG" },
+  png: { zh: "PNG 图片", en: "PNG image", ext: "PNG" },
+};
+let exportFormat = "json",
+  pngScale = 2;
+try {
+  const saved = JSON.parse(localStorage.getItem(EXPORT_KEY) || "{}");
+  if (EXPORT_FORMATS[saved.format]) exportFormat = saved.format;
+  if ([1, 2, 3].includes(saved.scale)) pngScale = saved.scale;
+} catch {
+  /* storage unavailable: defaults */
+}
+function saveExportChoice() {
+  try {
+    localStorage.setItem(
+      EXPORT_KEY,
+      JSON.stringify({ format: exportFormat, scale: pngScale }),
+    );
+  } catch {
+    /* the choice just lasts for this visit */
+  }
+}
+function renderExportControl() {
+  const f = EXPORT_FORMATS[exportFormat];
+  $("export-label").textContent =
+    exportFormat === "png" ? `PNG · ${pngScale}×` : f.ext;
+  $("export-menu").innerHTML =
+    Object.entries(EXPORT_FORMATS)
+      .map(
+        ([key, v]) =>
+          `<button type="button" role="menuitemradio" aria-checked="${key === exportFormat}" class="export-item ${key === exportFormat ? "active" : ""}" data-format="${key}"><span class="export-check">${key === exportFormat ? "✓" : ""}</span><span class="export-name">${bi2(v.zh, v.en)}</span><span class="export-ext">${key === "json" ? v.ext : v.ext === "SVG" ? ".svg" : ".png"}</span></button>`,
+      )
+      .join("") +
+    (exportFormat === "png"
+      ? `<div class="export-scale" role="group" aria-label="PNG 倍率"><span>${bi2("倍率", "Scale")}</span>${[1, 2, 3].map((n) => `<button type="button" class="export-scale-btn ${n === pngScale ? "active" : ""}" data-scale="${n}">${n}×</button>`).join("")}</div>`
+      : "");
+}
+function setExportMenu(open) {
+  const menu = $("export-menu");
+  if (open) {
+    // position: fixed, so the top bar's own scrolling never clips the menu
+    const r = $("export-format").getBoundingClientRect();
+    menu.style.top = `${Math.round(r.bottom + 22)}px`;
+    menu.style.right = `${Math.max(8, Math.round(innerWidth - r.right))}px`;
+  }
+  menu.hidden = !open;
+  $("export-format").setAttribute("aria-expanded", String(open));
+}
+function exportCurrent() {
+  ({ json: exportProject, svg: exportSVG, png: exportPNG })[exportFormat]();
 }
 function newProject() {
   openModal(
@@ -2081,8 +2184,32 @@ $("save").onclick = () => {
   persist();
   toast("项目已保存到当前浏览器");
 };
-$("export").onclick = exportProject;
-$("export-svg").onclick = exportSVG;
+$("export").onclick = exportCurrent;
+$("export-format").onclick = (e) => {
+  e.stopPropagation();
+  setExportMenu($("export-menu").hidden);
+};
+$("export-menu").onclick = (e) => {
+  e.stopPropagation();
+  const item = e.target.closest("[data-format]"),
+    scale = e.target.closest("[data-scale]");
+  if (item) {
+    exportFormat = item.dataset.format;
+    saveExportChoice();
+    renderExportControl();
+    setExportMenu(false);
+  } else if (scale) {
+    pngScale = Number(scale.dataset.scale);
+    saveExportChoice();
+    renderExportControl();
+  }
+};
+document.addEventListener("click", () => setExportMenu(false));
+window.addEventListener("resize", () => setExportMenu(false));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") setExportMenu(false);
+});
+renderExportControl();
 $("undo").onclick = undo;
 $("redo").onclick = redo;
 $("fit").onclick = fit;

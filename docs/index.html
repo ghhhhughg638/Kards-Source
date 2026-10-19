@@ -41,9 +41,24 @@
             target="_blank"
             rel="noreferrer"
             >GitHub ↗</a
-          ><button id="export" class="primary-button">
-            <span>↗</span> 导出蓝图
-          </button>
+          ><div class="export-split">
+            <div class="export-buttons">
+              <button id="export" class="primary-button">
+                <span>↗</span> 导出蓝图
+              </button>
+              <button
+                id="export-format"
+                class="primary-button export-caret"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                title="切换导出格式"
+              >
+                ▾
+              </button>
+            </div>
+            <small id="export-label" class="export-label"></small>
+            <div id="export-menu" class="export-menu" role="menu" hidden></div>
+          </div>
         </div>
       </header>
       <nav class="menubar" aria-label="项目工具">
@@ -203,8 +218,7 @@
         </div>
         <div>
           <span id="source-status">正在读取节点库…</span
-          ><span class="separator"></span
-          ><button id="export-svg">导出 SVG ↗</button>
+          >
         </div>
       </footer>
     </div>
