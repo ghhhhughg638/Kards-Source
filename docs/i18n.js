@@ -89,4 +89,11 @@ export const kindLabels = {
   conversion: "CONVERSION · 转换",
   getter: "GET · 读取属性",
   setter: "SET · 写入属性",
+  functionEntry: "FUNCTION ENTRY · 函数入口",
+  functionResult: "FUNCTION RESULT · 函数返回",
+  macroEntry: "MACRO INPUT · 宏输入",
+  macroExit: "MACRO OUTPUT · 宏输出",
+  customEvent: "CUSTOM EVENT · 自定义事件",
+  call: "CALL · 调用",
+  macro: "MACRO · 宏",
 };

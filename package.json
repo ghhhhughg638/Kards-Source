@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tools/model.test.mjs",
+    "test": "node --test tools/*.test.mjs",
     "lint": "eslint docs/*.js tools/*.mjs",
     "catalog": "python3 tools/generate-node-catalog.py"
   },

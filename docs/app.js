@@ -1,3 +1,4 @@
+import { setUiLanguage, tr } from "./ui-i18n.js";
 import {
   FORMAT,
   VERSION,
@@ -5,7 +6,6 @@ import {
   clone,
   builtins,
   makeNode,
-  makeGraph,
   makeProject,
   pinKind,
   defaultValue,
@@ -15,6 +15,25 @@ import {
   matchingPin,
 } from "./model.js";
 import { typeNodes, engineClasses } from "./ue-nodes.js";
+import {
+  allowedInGraph,
+  arrayOf,
+  buildExport,
+  checkName,
+  customEventDefinition,
+  defaultValueFor,
+  dynamicDefinitions,
+  elementType,
+  isArrayType,
+  makeFunctionGraph,
+  makeMacroGraph,
+  makeVariable,
+  newParam,
+  overridableFunctions,
+  overrideSignature,
+  syncDefinitions,
+  typeChoices,
+} from "./blueprint.js";
 import {
   translate,
   nodeKind,
@@ -35,22 +54,36 @@ const $ = (id) => document.getElementById(id),
           "'": "&#39;",
         })[c],
     );
+// Display language: "both" (中文 + English), "zh" or "en". Elements marked .zh / .en are hidden by CSS.
+const LANG_KEY = "kards-blueprint-studio.lang";
+let langMode = "both";
+try {
+  const saved = localStorage.getItem(LANG_KEY);
+  if (["both", "zh", "en"].includes(saved)) langMode = saved;
+} catch {
+  /* storage unavailable: keep the default */
+}
+document.documentElement.dataset.lang = langMode;
+const bi = (zh, en) =>
+  `<span class="zh">${zh}</span> <span class="en">${en}</span>`;
 const STORAGE = "kards-blueprint-studio.v1",
   CAT = {
-    all: "全部 All",
-    events: "事件 Events",
-    combat: "战斗",
-    cards: "卡牌",
-    effects: "效果",
-    queries: "查询",
-    match: "对局",
-    flow: "流程 Flow",
-    variables: "变量 Variables",
-    utilities: "工具 Utilities",
-    properties: "属性 Properties",
-    math: "运算 Math",
-    arrays: "数组 Array",
-    conversion: "转换 Cast",
+    all: bi("全部", "All"),
+    events: bi("事件", "Events"),
+    combat: bi("战斗", "Combat"),
+    cards: bi("卡牌", "Cards"),
+    effects: bi("效果", "Effects"),
+    queries: bi("查询", "Queries"),
+    match: bi("对局", "Match"),
+    flow: bi("流程", "Flow"),
+    variables: bi("变量", "Variables"),
+    utilities: bi("工具", "Utilities"),
+    properties: bi("属性", "Properties"),
+    math: bi("运算", "Math"),
+    arrays: bi("数组", "Array"),
+    conversion: bi("转换", "Cast"),
+    functions: bi("函数", "Functions"),
+    macros: bi("宏", "Macros"),
   };
 const COLORS = {
   event: "#b52c2c",
@@ -62,6 +95,13 @@ const COLORS = {
   conversion: "#4b8c4b",
   getter: "#43834a",
   setter: "#43834a",
+  functionEntry: "#7b4fa0",
+  functionResult: "#7b4fa0",
+  macroEntry: "#9a8530",
+  macroExit: "#9a8530",
+  customEvent: "#b52c2c",
+  call: "#2469a1",
+  macro: "#727272",
 };
 const PINCOLORS = {
   exec: "#eeeeee",
@@ -75,6 +115,7 @@ const PINCOLORS = {
   text: "#ec96b4",
   vector: "#e3bd20",
   rotator: "#aaa0eb",
+  delegate: "#ff3838",
 };
 // Arrays and sets take the color of their element type, as in Unreal.
 function pinColor(type) {
@@ -95,6 +136,7 @@ const PIN_LEGEND = [
   ["enum", "枚举"],
   ["vector", "向量"],
   ["rotator", "旋转"],
+  ["delegate", "委托"],
 ];
 $("pin-legend").innerHTML = PIN_LEGEND.map(
   ([kind, label]) =>
@@ -151,6 +193,7 @@ const FACTIONS = {
   NotAvailable: "未指定",
 };
 let catalog = [],
+  repository = null,
   enums = {},
   project,
   category = "all",
@@ -167,6 +210,12 @@ let catalog = [],
   pickerContext = null,
   classes = {};
 const graph = () => project.graphs.find((g) => g.id === project.activeGraph),
+  // Static catalog plus this project's variables, functions, macros and custom events,
+  // limited to what the active graph may contain.
+  fullCatalog = () =>
+    [...catalog, ...dynamicDefinitions(project, graph())].filter((d) =>
+      allowedInGraph(d, graph()),
+    ),
   color = (d) => COLORS[nodeKind(d)] || "#2469a1",
   icon = (d) =>
     ({
@@ -179,6 +228,13 @@ const graph = () => project.graphs.find((g) => g.id === project.activeGraph),
       cast: "↪",
       conversion: "⇄",
       function: "ƒ",
+      functionEntry: "→",
+      functionResult: "←",
+      macroEntry: "⇥",
+      macroExit: "⇤",
+      customEvent: "ϟ",
+      call: "ƒ",
+      macro: "⧉",
     })[nodeKind(d)] || "ƒ",
   title = (n) =>
     n.title
@@ -186,6 +242,9 @@ const graph = () => project.graphs.find((g) => g.id === project.activeGraph),
           ? "事件 · "
           : "") + n.title
       : nodeChinese(n.definition);
+// Primary node name for the current language; a custom title the user typed is always shown.
+const nodeHeading = (n) =>
+  langMode === "en" && !n.title ? nodeEnglish(n.definition) : title(n);
 function toast(message, error = false) {
   $("toast").textContent = message;
   $("toast").classList.toggle("error", error);
@@ -214,6 +273,7 @@ function checkpoint() {
 function mutate(fn) {
   checkpoint();
   fn();
+  syncDefinitions(project);
   pending = null;
   render();
   persist();
@@ -254,27 +314,24 @@ function render() {
   $("card-breadcrumb").textContent = project.card.title;
   $("graph-breadcrumb").textContent = graph().name;
   $("canvas-title").textContent = graph().name;
-  $("graph-list").innerHTML = project.graphs
-    .map(
-      (g) =>
-        `<button class="graph-link ${g.id === project.activeGraph ? "active" : ""}" data-graph="${esc(g.id)}"><span class="graph-icon">⌘</span>${esc(g.name)}<span>${g.nodes.length}</span></button>`,
-    )
-    .join("");
+  $("graph-list").innerHTML = myBlueprintMarkup();
   $("tabs").innerHTML =
     project.graphs
       .map(
         (g) =>
-          `<button class="tab ${g.id === project.activeGraph ? "active" : ""}" data-graph="${esc(g.id)}"><span class="graph-icon">⌘</span>${esc(g.name)}<span class="tab-dot"></span></button>`,
+          `<button class="tab ${g.id === project.activeGraph ? "active" : ""}" data-graph="${esc(g.id)}"><span class="graph-icon">${GRAPH_ICON[g.kind]}</span>${esc(g.name)}<span class="tab-dot"></span></button>`,
       )
       .join("") +
-    '<button class="tab add-tab" id="tab-add" title="新建事件图">＋</button>';
+    '<button class="tab add-tab" id="tab-add" title="新建函数 / 宏 / 变量">＋</button>';
+  $("canvas-subtitle").textContent = GRAPH_SUBTITLE[graph().kind];
   document
     .querySelectorAll("[data-graph]")
     .forEach((b) => (b.onclick = () => switchGraph(b.dataset.graph)));
-  $("tab-add").onclick = addGraph;
+  $("tab-add").onclick = newItemMenu;
   $("tabs")
     .querySelectorAll("[data-graph]")
     .forEach((b) => (b.ondblclick = () => editGraph(b.dataset.graph)));
+  bindMyBlueprint();
   renderNodes();
   renderInspector();
   updateView();
@@ -297,55 +354,552 @@ function switchGraph(id) {
   render();
   persist();
 }
-function addGraph() {
-  openModal(
-    "新建事件图",
-    '<div class="field"><label class="detail-label" for="graph-name">事件图名称</label><input id="graph-name" maxlength="80" value="新事件图"></div><div class="modal-actions"><button id="create-graph" class="primary-button">创建事件图</button></div>',
+// ---------------------------------------------------------------- blueprint structure UI
+const GRAPH_ICON = { event: "⌘", function: "ƒ", macro: "⧉" };
+const GRAPH_SUBTITLE = {
+  event: "Event Graph · 卡牌事件图",
+  function: "Function · 函数",
+  macro: "Macro · 宏",
+};
+const graphById = (id) => project.graphs.find((g) => g.id === id);
+// Every top-level name already in use (variables, graphs, dispatchers, custom events, parent members).
+const usedNames = ({ graph: g, variable: v, dispatcher: d, events = true } = {}) => [
+  ...project.variables.filter((x) => x !== v).map((x) => x.name),
+  ...project.graphs.filter((x) => x !== g).map((x) => x.name),
+  ...project.dispatchers.filter((x) => x !== d).map((x) => x.name),
+  ...(events
+    ? project.graphs[0].nodes
+        .filter((n) => n.definition.bp?.type === "customEvent")
+        .map((n) => n.definition.name)
+    : []),
+  ...parentMembers(),
+];
+const classMap = () => ({ ...classes, ...project.types });
+// Names already used by the parent class; a blueprint may not redefine them.
+const parentMembers = () =>
+  catalog.filter((d) => d.class === project.asset.parentClass).map((d) => d.name);
+const bi2 = (zh, en) => `<span class="zh">${zh}</span><span class="en">${en}</span>`;
+
+function myBlueprintMarkup() {
+  const head = (zh, en, buttons = "") =>
+    `<div class="bp-head"><span>${bi2(zh, en)}</span><span class="bp-actions">${buttons}</span></div>`;
+  const add = (kind, title, icon = "＋") =>
+    `<button class="tiny-button" data-new="${kind}" title="${title}">${icon}</button>`;
+  const row = (g) =>
+    `<div class="bp-row"><button class="graph-link ${g.id === project.activeGraph ? "active" : ""}" data-graph="${esc(g.id)}"><span class="graph-icon">${GRAPH_ICON[g.kind]}</span>${esc(g.name)}${g.override ? '<em class="bp-tag">override</em>' : ""}<span>${g.nodes.length}</span></button>${g.kind === "event" ? "" : `<button class="tiny-button" data-edit-graph="${esc(g.id)}" title="编辑">✎</button>`}</div>`;
+  const events = project.graphs[0].nodes.filter(
+    (n) => n.definition.bp?.type === "customEvent",
   );
-  $("create-graph").onclick = () => {
-    const name = $("graph-name").value.trim();
-    if (!name) return;
+  const local = (v) =>
+    `<div class="bp-row"><button class="graph-link var-link" data-edit-graph="${esc(graph().id)}" title="${esc(v.type)}"><i class="var-dot" style="background:${pinColor(v.type)}"></i>${esc(v.name)}<span class="var-type">${esc(v.type)}</span></button><button class="tiny-button" data-add-var="getLocal:${esc(v.id)}" title="获取">G</button><button class="tiny-button" data-add-var="setLocal:${esc(v.id)}" title="设置">S</button></div>`;
+  const dispatcher = (d) =>
+    `<div class="bp-row"><button class="graph-link var-link" data-dispatcher="${esc(d.id)}" title="${esc(d.description || d.name)}"><span class="graph-icon">◉</span>${esc(d.name)}<span class="var-type">${d.params.length}</span></button><button class="tiny-button" data-add-dispatch="call:${esc(d.id)}" title="调用">C</button><button class="tiny-button" data-add-dispatch="bind:${esc(d.id)}" title="绑定事件">B</button><button class="tiny-button" data-add-dispatch="unbind:${esc(d.id)}" title="解除绑定">U</button></div>`;
+  const variable = (v) =>
+    `<div class="bp-row"><button class="graph-link var-link" data-var="${esc(v.id)}" title="${esc(v.tooltip || v.type)}"><i class="var-dot" style="background:${pinColor(v.type)}"></i>${esc(v.name)}<span class="var-type">${esc(v.type)}</span></button><button class="tiny-button" data-add-var="get:${esc(v.id)}" title="获取">G</button><button class="tiny-button" data-add-var="set:${esc(v.id)}" title="设置">S</button></div>`;
+  return (
+    head("图表", "Graphs") +
+    row(project.graphs[0]) +
+    events
+      .map(
+        (n) =>
+          `<div class="bp-row bp-sub"><button class="graph-link" data-event-node="${esc(n.id)}"><span class="graph-icon">ϟ</span>${esc(n.definition.name)}</button></div>`,
+      )
+      .join("") +
+    head(
+      "函数",
+      "Functions",
+      add("function", "新建函数") + add("override", "重载父类函数", "⤴"),
+    ) +
+    project.graphs.filter((g) => g.kind === "function").map(row).join("") +
+    head("宏", "Macros", add("macro", "新建宏")) +
+    project.graphs.filter((g) => g.kind === "macro").map(row).join("") +
+    head("变量", "Variables", add("variable", "新建变量")) +
+    project.variables.map(variable).join("") +
+    (graph().kind === "function"
+      ? head("局部变量", "Local variables") +
+        graph().locals.map(local).join("")
+      : "") +
+    head("事件分发器", "Event dispatchers", add("dispatcher", "新建事件分发器")) +
+    project.dispatchers.map(dispatcher).join("")
+  );
+}
+function bindMyBlueprint() {
+  document
+    .querySelectorAll("[data-new]")
+    .forEach((b) => (b.onclick = () => newItem(b.dataset.new)));
+  document
+    .querySelectorAll("[data-edit-graph]")
+    .forEach((b) => (b.onclick = () => editGraph(b.dataset.editGraph)));
+  document
+    .querySelectorAll("[data-var]")
+    .forEach((b) => (b.onclick = () => variableDialog(b.dataset.var)));
+  document
+    .querySelectorAll("[data-dispatcher]")
+    .forEach((b) => (b.onclick = () => dispatcherDialog(b.dataset.dispatcher)));
+  document.querySelectorAll("[data-add-dispatch]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        const [action, id] = b.dataset.addDispatch.split(":");
+        addBlueprintNode(`bp.dispatch.${action}.${id}`);
+        if (window.innerWidth <= 800) setDrawer(false);
+      }),
+  );
+  document.querySelectorAll("[data-add-var]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        const [kind, id] = b.dataset.addVar.split(":");
+        addVariableNode(kind, id);
+        if (window.innerWidth <= 800) setDrawer(false);
+      }),
+  );
+  document.querySelectorAll("[data-event-node]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        project.activeGraph = project.graphs[0].id;
+        selection = new Set([b.dataset.eventNode]);
+        selectedEdge = null;
+        render();
+        persist();
+      }),
+  );
+}
+function addBlueprintNode(defId) {
+  if (!fullCatalog().some((d) => d.id === defId))
+    return toast("当前图表不能使用此节点", true);
+  addNode(defId);
+}
+const addVariableNode = (kind, id) =>
+  addBlueprintNode(`bp.${kind.toLowerCase()}.${id}`);
+function newItem(kind) {
+  if ($("modal").open) $("modal").close();
+  if (kind === "function" || kind === "macro") functionDialog(null, kind);
+  else if (kind === "override") overrideDialog();
+  else if (kind === "dispatcher") dispatcherDialog(null);
+  else variableDialog(null);
+}
+function newItemMenu() {
+  const item = (kind, zh, en) =>
+    `<button class="secondary-button new-item" data-new-item="${kind}">${bi2(zh, en)}</button>`;
+  openModal(
+    "新建",
+    `<div class="new-menu">${item("function", "新建函数", "New function")}${item("override", "重载父类函数", "Override parent function")}${item("macro", "新建宏", "New macro")}${item("variable", "新建变量", "New variable")}${item("dispatcher", "新建事件分发器", "New event dispatcher")}</div><p class="detail-description">EventGraph 是唯一的事件图，不能再新建。更多逻辑请写在函数、宏或自定义事件里。</p>`,
+  );
+  $("modal-content")
+    .querySelectorAll("[data-new-item]")
+    .forEach((b) => (b.onclick = () => newItem(b.dataset.newItem)));
+}
+function editGraph(id) {
+  const g = graphById(id);
+  if (!g) return;
+  if (g.kind === "event")
+    return openModal(
+      "EventGraph",
+      "<p>EventGraph 是蓝图唯一的事件图，不能新建、重命名或删除。</p><p>事件（如“从手牌打出”）和自定义事件都放在这里；更多逻辑请新建函数或宏。</p>",
+    );
+  functionDialog(id, g.kind);
+}
+
+// ---- parameter lists (functions, macros, custom events)
+function typeSelect(current, { allowExec = false, locked = false } = {}) {
+  const base = elementType(current);
+  const choices = [
+    ...(allowExec ? ["exec"] : []),
+    ...typeChoices(enums, classMap()),
+  ];
+  if (!choices.includes(base)) choices.push(base);
+  return `<select class="param-type" ${locked ? "disabled" : ""}>${choices.map((t) => `<option ${t === base ? "selected" : ""}>${esc(t)}</option>`).join("")}</select><label class="param-array"><input type="checkbox" ${isArrayType(current) ? "checked" : ""} ${locked ? "disabled" : ""}> ${bi2("数组", "Array")}</label>`;
+}
+function paramRow(p, opts) {
+  return `<div class="param-row" data-param="${esc(p.id)}"><input class="param-name" maxlength="64" value="${esc(p.name)}" placeholder="Name" ${opts.locked ? "disabled" : ""}>${typeSelect(p.type, opts)}${opts.withDefault ? defaultControl(p.type, p.default ?? defaultValueFor(p.type, enums), 'class="param-default"') : ""}${opts.locked ? "" : '<button type="button" class="tiny-button param-del" title="删除">×</button>'}</div>`;
+}
+function paramEditor(listId, zh, en, params, opts = {}) {
+  return `<div class="field"><div class="detail-label">${bi2(zh, en)}</div><div id="${listId}" class="param-list" data-allow-exec="${opts.allowExec ? 1 : 0}" data-with-default="${opts.withDefault ? 1 : 0}">${params.map((p) => paramRow(p, opts)).join("")}</div>${opts.locked ? "" : `<button type="button" class="secondary-button param-add" data-list="${listId}">＋ ${bi2("添加参数", "Add parameter")}</button>`}</div>`;
+}
+function bindParamEditors() {
+  const root = $("modal-content");
+  root.onchange = (e) => {
+    const row = e.target.closest(".param-row");
+    if (!row || !row.querySelector(".param-default")) return;
+    if (!e.target.matches(".param-type, .param-array input")) return;
+    const base = row.querySelector(".param-type").value,
+      type = row.querySelector(".param-array input").checked ? arrayOf(base) : base;
+    row.querySelector(".param-default").outerHTML = defaultControl(
+      type,
+      defaultValueFor(type, enums),
+      'class="param-default"',
+    );
+  };
+  root.onclick = (e) => {
+    const del = e.target.closest(".param-del");
+    if (del) return del.closest(".param-row").remove();
+    const add = e.target.closest(".param-add");
+    if (!add) return;
+    const list = $(add.dataset.list),
+      n = list.querySelectorAll(".param-row").length + 1;
+    list.insertAdjacentHTML(
+      "beforeend",
+      paramRow(newParam(list.dataset.withDefault === "1" ? `Local${n}` : `Param${n}`, "bool"), {
+        allowExec: list.dataset.allowExec === "1",
+        withDefault: list.dataset.withDefault === "1",
+      }),
+    );
+  };
+}
+function readParams(listId, label) {
+  const seen = [],
+    out = [];
+  for (const row of $(listId).querySelectorAll(".param-row")) {
+    const name = row.querySelector(".param-name").value.trim(),
+      error = checkName(name, seen);
+    if (error) {
+      toast(`${label}：${error}`, true);
+      return null;
+    }
+    seen.push(name);
+    const base = row.querySelector(".param-type").value,
+      array = row.querySelector(".param-array input").checked && base !== "exec";
+    const type = array ? arrayOf(base) : base,
+      entry = { id: row.dataset.param, name, type };
+    if ($(listId).dataset.withDefault === "1")
+      entry.default = parseDefaultValue(type, row.querySelector(".param-default").value);
+    out.push(entry);
+  }
+  return out;
+}
+
+// ---- functions and macros
+function functionDialog(id, kind = "function") {
+  const g = id ? graphById(id) : null;
+  kind = g ? g.kind : kind;
+  const locked = !!g?.override,
+    isFn = kind === "function",
+    draft = g || {
+      description: "",
+      pure: false,
+      access: "Public",
+      category: "Default",
+      inputs: [],
+      outputs: [],
+    };
+  const title = g
+    ? isFn
+      ? "编辑函数"
+      : "编辑宏"
+    : isFn
+      ? "新建函数"
+      : "新建宏";
+  openModal(
+    title,
+    `<div class="field"><label class="detail-label" for="fn-name">名称</label><input id="fn-name" maxlength="64" value="${esc(g ? g.name : isFn ? "NewFunction" : "NewMacro")}" ${locked ? "disabled" : ""}><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><div class="field"><label class="detail-label" for="fn-desc">说明</label><textarea id="fn-desc" placeholder="可以用中文写说明">${esc(draft.description)}</textarea></div>${isFn ? `<div class="field-grid"><div class="field"><label class="detail-label" for="fn-access">访问</label><select id="fn-access">${["Public", "Protected", "Private"].map((v) => `<option ${v === draft.access ? "selected" : ""}>${v}</option>`).join("")}</select></div><div class="field"><label class="detail-label" for="fn-category">分类</label><input id="fn-category" maxlength="64" value="${esc(draft.category)}"></div></div>${locked ? "" : `<label class="check-row"><input type="checkbox" id="fn-pure" ${draft.pure ? "checked" : ""}> 纯函数（没有执行引脚）</label>`}` : ""}${paramEditor("fn-inputs", "输入参数", "Inputs", draft.inputs, { allowExec: !isFn, locked })}${paramEditor("fn-outputs", "输出参数", "Outputs", draft.outputs, { allowExec: !isFn, locked })}${isFn ? paramEditor("fn-locals", "局部变量", "Local variables", draft.locals || [], { withDefault: true }) : ""}<div class="modal-actions">${g ? '<button id="fn-delete" class="danger-button" style="width:auto;margin:0">删除</button>' : ""}<button id="fn-save" class="primary-button">${g ? "保存" : "创建"}</button></div>`,
+  );
+  bindParamEditors();
+  $("fn-save").onclick = () => {
+    const name = $("fn-name").value.trim();
+    if (!locked) {
+      const taken = [
+        ...usedNames({ graph: g }),
+      ];
+      const error = checkName(name, taken);
+      if (error) return toast(error, true);
+    }
+    const inputs = readParams("fn-inputs", "输入参数");
+    if (!inputs) return;
+    const outputs = readParams("fn-outputs", "输出参数");
+    if (!outputs) return;
+    const common = {
+      description: $("fn-desc").value.trim(),
+      inputs,
+      outputs,
+    };
+    if (isFn) {
+      const locals = readParams("fn-locals", "局部变量");
+      if (!locals) return;
+      const used = new Set([...inputs, ...outputs].map((p) => p.name.toLowerCase()));
+      if (locals.some((l) => used.has(l.name.toLowerCase())))
+        return toast("局部变量不能和输入、输出参数重名", true);
+      common.locals = locals;
+      common.access = $("fn-access").value;
+      common.category = $("fn-category").value.trim() || "Default";
+      common.pure = locked ? g.pure : $("fn-pure").checked;
+    }
     mutate(() => {
-      const g = makeGraph(name);
-      project.graphs.push(g);
-      project.activeGraph = g.id;
-      selection.clear();
+      if (g) Object.assign(g, { name, ...common });
+      else {
+        const ng = isFn
+          ? makeFunctionGraph(name, common)
+          : makeMacroGraph(name, common);
+        project.graphs.push(ng);
+        project.activeGraph = ng.id;
+        selection.clear();
+      }
     });
     $("modal").close();
   };
-  $("graph-name").select();
-}
-function editGraph(id) {
-  const g = project.graphs.find((x) => x.id === id);
-  openModal(
-    "事件图设置",
-    `<div class="field"><label class="detail-label" for="graph-name">名称</label><input id="graph-name" maxlength="80" value="${esc(g.name)}"></div><div class="modal-actions">${project.graphs.length > 1 ? '<button id="delete-graph" class="danger-button" style="width:auto;margin:0">删除事件图</button>' : ""}<button id="rename-graph" class="primary-button">保存</button></div>`,
-  );
-  $("rename-graph").onclick = () => {
-    const name = $("graph-name").value.trim();
-    if (name) {
-      mutate(() => (g.name = name));
-      $("modal").close();
-    }
-  };
-  if ($("delete-graph"))
-    $("delete-graph").onclick = () => {
-      if (!confirm(`删除“${g.name}”及其所有节点？可使用撤销恢复。`)) return;
+  if ($("fn-delete"))
+    $("fn-delete").onclick = () => {
+      if (!confirm(tr(`删除“${g.name}”？调用它的节点也会被一并删除，可使用撤销恢复。`)))
+        return;
       mutate(() => {
         project.graphs = project.graphs.filter((x) => x !== g);
-        if (project.activeGraph === id)
+        if (project.activeGraph === g.id)
           project.activeGraph = project.graphs[0].id;
         selection.clear();
       });
       $("modal").close();
     };
 }
+function overrideDialog() {
+  const used = new Set(
+      project.graphs.filter((g) => g.override).map((g) => g.override.function),
+    ),
+    list = overridableFunctions(catalog, project.asset.parentClass).filter(
+      (d) => !used.has(d.name),
+    );
+  if (!list.length)
+    return openModal("重载父类函数", "<p>没有可以重载的父类函数了。</p>");
+  const sigText = (d) => {
+    const s = overrideSignature(d);
+    return `${s.pure ? "pure " : ""}${d.name}(${s.inputs.map((p) => `${p.type} ${p.name}`).join(", ")})${s.outputs.length ? ` -> (${s.outputs.map((p) => `${p.type} ${p.name}`).join(", ")})` : ""}`;
+  };
+  openModal(
+    "重载父类函数",
+    `<div class="field"><label class="detail-label" for="ovr-fn">${esc(project.asset.parentClass)}</label><select id="ovr-fn">${list.map((d) => `<option>${esc(d.name)}</option>`).join("")}</select></div><pre id="ovr-sig" class="detail-source"></pre><div class="modal-actions"><button id="ovr-create" class="primary-button">创建重载</button></div>`,
+  );
+  const show = () =>
+    ($("ovr-sig").textContent = sigText(
+      list.find((d) => d.name === $("ovr-fn").value),
+    ));
+  $("ovr-fn").onchange = show;
+  show();
+  $("ovr-create").onclick = () => {
+    const def = list.find((d) => d.name === $("ovr-fn").value),
+      sig = overrideSignature(def);
+    mutate(() => {
+      const g = makeFunctionGraph(def.name, {
+        override: {
+          class: def.class,
+          function: def.name,
+          source: def.source || null,
+        },
+        pure: sig.pure,
+        inputs: sig.inputs,
+        outputs: sig.outputs,
+        description: `Override of ${def.class}::${def.name}`,
+      });
+      project.graphs.push(g);
+      project.activeGraph = g.id;
+      selection.clear();
+    });
+    $("modal").close();
+  };
+}
+
+// ---- variables
+// Input for a default value that matches the type: switch for bool, list for enums,
+// number box for int/float, text otherwise. `attrs` is e.g. `id="var-default"`.
+function defaultControl(type, value, attrs = 'id="var-default"') {
+  const base = elementType(type),
+    kind = pinKind(base);
+  if (isArrayType(type)) return `<input ${attrs} value="${esc(value)}">`;
+  const list = kind === "bool" ? ["false", "true"] : enums[base];
+  if (list)
+    return `<select ${attrs}>${list.map((v) => `<option ${String(value) === v ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>`;
+  if (kind === "int" || kind === "float")
+    return `<input ${attrs} type="number" step="${kind === "int" ? 1 : "any"}" value="${esc(value)}">`;
+  return `<input ${attrs} value="${esc(value)}">`;
+}
+function parseDefaultValue(type, raw) {
+  const base = elementType(type),
+    kind = pinKind(base);
+  if (isArrayType(type)) return raw;
+  if (kind === "bool") return raw === "true";
+  if (kind === "int" || kind === "float") {
+    const n = Number(raw);
+    return Number.isFinite(n) ? (kind === "int" ? Math.trunc(n) : n) : 0;
+  }
+  return raw;
+}
+const readDefault = (type) => parseDefaultValue(type, $("var-default").value);
+function variableDialog(id) {
+  const v = id ? project.variables.find((x) => x.id === id) : null;
+  let n = project.variables.length + 1,
+    suggestion = `NewVar${n}`;
+  while (project.variables.some((x) => x.name === suggestion))
+    suggestion = `NewVar${++n}`;
+  const draft = v || makeVariable(suggestion, "bool", enums);
+  openModal(
+    v ? "编辑变量" : "新建变量",
+    `<div class="field"><label class="detail-label" for="var-name">名称</label><input id="var-name" maxlength="64" value="${esc(draft.name)}"><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><div class="field-grid"><div class="field"><div class="detail-label">${bi2("类型", "Type")}</div><div class="param-row">${typeSelect(draft.type)}</div></div></div><div class="field"><div class="detail-label">${bi2("默认值", "Default value")}</div><div id="var-default-wrap">${defaultControl(draft.type, draft.default)}</div></div><div class="field"><label class="detail-label" for="var-category">分类</label><input id="var-category" maxlength="64" value="${esc(draft.category)}"></div><div class="field"><label class="detail-label" for="var-tip">说明</label><textarea id="var-tip" placeholder="可以用中文写说明">${esc(draft.tooltip)}</textarea></div><label class="check-row"><input type="checkbox" id="var-editable" ${draft.instanceEditable ? "checked" : ""}> 实例可编辑</label><label class="check-row"><input type="checkbox" id="var-expose" ${draft.exposeOnSpawn ? "checked" : ""}> 生成时公开</label><div class="modal-actions">${v ? '<button id="var-delete" class="danger-button" style="width:auto;margin:0">删除</button>' : ""}<button id="var-save" class="primary-button">${v ? "保存" : "创建"}</button></div>`,
+  );
+  const typeNow = () => {
+    const root = $("modal-content"),
+      base = root.querySelector(".param-type").value;
+    return root.querySelector(".param-array input").checked ? arrayOf(base) : base;
+  };
+  const refreshDefault = () => {
+    const type = typeNow();
+    $("var-default-wrap").innerHTML = defaultControl(type, defaultValueFor(type, enums));
+  };
+  $("modal-content").querySelector(".param-type").onchange = refreshDefault;
+  $("modal-content").querySelector(".param-array input").onchange = refreshDefault;
+  $("var-save").onclick = () => {
+    const name = $("var-name").value.trim(),
+      taken = usedNames({ variable: v }),
+      error = checkName(name, taken);
+    if (error) return toast(error, true);
+    const type = typeNow(),
+      values = {
+        name,
+        type,
+        default: readDefault(type),
+        category: $("var-category").value.trim() || "Default",
+        tooltip: $("var-tip").value.trim(),
+        instanceEditable: $("var-editable").checked,
+        exposeOnSpawn: $("var-expose").checked,
+      };
+    mutate(() => {
+      if (v) Object.assign(v, values);
+      else project.variables.push({ ...draft, ...values });
+    });
+    $("modal").close();
+  };
+  if ($("var-delete"))
+    $("var-delete").onclick = () => {
+      if (!confirm(tr(`删除“${v.name}”？使用它的获取/设置节点也会被一并删除，可使用撤销恢复。`)))
+        return;
+      mutate(() => {
+        project.variables = project.variables.filter((x) => x !== v);
+      });
+      $("modal").close();
+    };
+}
+
+// ---- custom events
+function customEventDialog(node, point) {
+  const params = node ? node.definition.bp.params : [];
+  openModal(
+    node ? "编辑自定义事件" : "添加自定义事件",
+    `<div class="field"><label class="detail-label" for="ce-name">名称</label><input id="ce-name" maxlength="64" value="${esc(node ? node.definition.name : "NewEvent")}"><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div>${paramEditor("ce-params", "参数", "Parameters", params)}<div class="modal-actions"><button id="ce-save" class="primary-button">${node ? "保存" : "创建"}</button></div>`,
+  );
+  bindParamEditors();
+  $("ce-save").onclick = () => {
+    const name = $("ce-name").value.trim(),
+      events = project.graphs[0].nodes.filter(
+        (n) => n.definition.bp?.type === "customEvent" && n !== node,
+      ),
+      taken = [
+        ...usedNames({ events: false }),
+        ...events.map((n) => n.definition.name),
+      ],
+      error = checkName(name, taken);
+    if (error) return toast(error, true);
+    const list = readParams("ce-params", "参数");
+    if (!list) return;
+    mutate(() => {
+      if (node) node.definition = customEventDefinition(name, list, node.definition);
+      else {
+        const at = point || freeSpotNearCenter();
+        const n = makeNode(
+          customEventDefinition(name, list),
+          Math.round(at.x / 10) * 10,
+          Math.round(at.y / 10) * 10,
+        );
+        graph().nodes.push(n);
+        selection = new Set([n.id]);
+        selectedEdge = null;
+      }
+    });
+    $("modal").close();
+  };
+}
+
+// ---- event dispatchers
+function dispatcherDialog(id) {
+  const d = id ? project.dispatchers.find((x) => x.id === id) : null;
+  openModal(
+    d ? "编辑事件分发器" : "新建事件分发器",
+    `<div class="field"><label class="detail-label" for="ed-name">名称</label><input id="ed-name" maxlength="64" value="${esc(d ? d.name : `OnEvent${project.dispatchers.length + 1}`)}"><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><div class="field"><label class="detail-label" for="ed-desc">说明</label><textarea id="ed-desc" placeholder="可以用中文写说明">${esc(d?.description || "")}</textarea></div>${paramEditor("ed-params", "参数", "Parameters", d ? d.params : [])}<div class="modal-actions">${d ? '<button id="ed-delete" class="danger-button" style="width:auto;margin:0">删除</button>' : ""}<button id="ed-save" class="primary-button">${d ? "保存" : "创建"}</button></div>`,
+  );
+  bindParamEditors();
+  $("ed-save").onclick = () => {
+    const name = $("ed-name").value.trim(),
+      error = checkName(name, usedNames({ dispatcher: d }));
+    if (error) return toast(error, true);
+    const params = readParams("ed-params", "参数");
+    if (!params) return;
+    const values = { name, params, description: $("ed-desc").value.trim() };
+    mutate(() => {
+      if (d) Object.assign(d, values);
+      else project.dispatchers.push({ id: uid(), ...values });
+    });
+    $("modal").close();
+  };
+  if ($("ed-delete"))
+    $("ed-delete").onclick = () => {
+      if (!confirm(tr(`删除“${d.name}”？使用它的调用、绑定节点也会被一并删除，可使用撤销恢复。`)))
+        return;
+      mutate(() => {
+        project.dispatchers = project.dispatchers.filter((x) => x !== d);
+      });
+      $("modal").close();
+    };
+}
+
+// ---- inspector helpers
+function assetSection() {
+  const a = project.asset;
+  return `<section class="detail-section"><h3 class="detail-heading">资源 <span>ASSET</span></h3>${field("资源名称", "asset.name", project.name)}<div class="field"><label class="detail-label">父类<input value="${esc(a.parentClass)}" disabled></label></div>${field("包路径", "asset.packagePath", a.packagePath)}<div class="field"><label class="detail-label">说明<textarea data-field="asset.description" placeholder="可以用中文写说明">${esc(a.description)}</textarea></label></div></section>`;
+}
+function graphSection() {
+  const g = graph(),
+    sig = (list) => list.map((p) => `${p.type} ${p.name}`).join(", ") || "—";
+  if (g.kind === "event")
+    return `<section class="detail-section"><h3 class="detail-heading">图表 <span>GRAPH</span></h3><p class="detail-description">EventGraph 是蓝图唯一的事件图，不能新建、重命名或删除。点击节点可编辑参数和注释。</p></section>`;
+  return `<section class="detail-section"><h3 class="detail-heading">${g.kind === "macro" ? "宏" : "函数"} <span>${g.kind === "macro" ? "MACRO" : "FUNCTION"}</span></h3><div class="detail-source">${esc(g.name)}${g.override ? `\n(override ${esc(g.override.class)}::${esc(g.override.function)})` : ""}\n in: ${esc(sig(g.inputs))}\nout: ${esc(sig(g.outputs))}</div><button class="secondary-button" id="graph-settings" style="width:100%">编辑</button></section>`;
+}
+function bpNodeSection(n) {
+  const t = n.definition.bp?.type;
+  if (!t) return "";
+  const label = {
+    customEvent: "编辑自定义事件",
+    entry: "编辑函数签名",
+    result: "编辑函数签名",
+    macroEntry: "编辑宏签名",
+    macroExit: "编辑宏签名",
+    call: "转到函数",
+    macro: "转到宏",
+    callEvent: "转到事件",
+    get: "编辑变量",
+    set: "编辑变量",
+    getLocal: "编辑函数（局部变量）",
+    setLocal: "编辑函数（局部变量）",
+    dispatcher: "编辑事件分发器",
+  }[t];
+  return `<section class="detail-section"><h3 class="detail-heading">蓝图 <span>BLUEPRINT</span></h3><button class="secondary-button" id="bp-edit" style="width:100%">${label}</button></section>`;
+}
+function editBlueprintNode(n) {
+  const bp = n.definition.bp;
+  if (bp.type === "customEvent") return customEventDialog(n);
+  if (["entry", "result", "macroEntry", "macroExit"].includes(bp.type))
+    return functionDialog(bp.graphId, graphById(bp.graphId).kind);
+  if (bp.type === "call" || bp.type === "macro") return switchGraph(bp.graphId);
+  if (bp.type === "getLocal" || bp.type === "setLocal")
+    return functionDialog(bp.graphId, "function");
+  if (bp.type === "dispatcher") return dispatcherDialog(bp.dispatcherId);
+  if (bp.type === "callEvent") {
+    project.activeGraph = project.graphs[0].id;
+    selection = new Set([bp.eventNodeId]);
+    render();
+    return persist();
+  }
+  return variableDialog(bp.variableId);
+}
 function libraryItem(d) {
-  return `<button class="library-node" draggable="true" data-def="${esc(d.id)}" title="${esc(d.signature || nodeEnglish(d))}" style="--node-color:${color(d)}"><span class="lib-icon">${icon(d)}</span><span><strong>${esc(nodeEnglish(d))}</strong><small>${esc(nodeChinese(d))} <span class="lib-owner">${esc((d.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "").replace("Stub", ""))}</span></small></span></button>`;
+  return `<button class="library-node" draggable="true" data-def="${esc(d.id)}" title="${esc(d.signature || nodeEnglish(d))}" style="--node-color:${color(d)}"><span class="lib-icon">${icon(d)}</span><span><strong>${esc(langMode === "zh" ? nodeChinese(d) : nodeEnglish(d))}</strong><small>${langMode === "both" ? esc(nodeChinese(d)) + " " : ""}<span class="lib-owner">${esc((d.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "").replace("Stub", ""))}</span></small></span></button>`;
 }
 function filterCatalog(q, cat = "all") {
   q = q.trim().toLowerCase();
-  const items = catalog.filter(
+  const items = fullCatalog().filter(
     (d) =>
       (cat === "all" || d.category === cat) &&
       `${nodeEnglish(d)} ${d.class} ${nodeChinese(d)} ${d.pins.map((p) => p.name).join(" ")}`
@@ -373,7 +927,7 @@ function renderLibrary() {
           renderLibrary();
         }),
     );
-  $("library-label").textContent = `${CAT[category]} · ${results.length}`;
+  $("library-label").innerHTML = `${CAT[category]} · ${results.length}`;
   $("node-list").innerHTML = results.length
     ? results.slice(0, 120).map(libraryItem).join("") +
       (results.length > 120
@@ -397,6 +951,21 @@ function bindLibrary(container) {
     };
   });
 }
+// Centre of the view, nudged diagonally so new nodes do not land exactly on existing ones.
+function freeSpotNearCenter() {
+  const at = centerPoint();
+  at.x = Math.round(at.x / 10) * 10;
+  at.y = Math.round(at.y / 10) * 10;
+  while (
+    graph().nodes.some(
+      (n) => Math.abs(n.x - at.x) < 30 && Math.abs(n.y - at.y) < 30,
+    )
+  ) {
+    at.x += 40;
+    at.y += 40;
+  }
+  return at;
+}
 function centerPoint() {
   const r = $("viewport").getBoundingClientRect(),
     v = graph().view;
@@ -406,9 +975,10 @@ function centerPoint() {
   };
 }
 function addNode(id, point, sourceEndpoint = null) {
-  const def = catalog.find((d) => d.id === id);
+  const def = fullCatalog().find((d) => d.id === id);
   if (!def) return;
-  point = point || centerPoint();
+  point = point || freeSpotNearCenter();
+  if (def.action === "newCustomEvent") return customEventDialog(null, point);
   mutate(() => {
     const n = makeNode(
       def,
@@ -468,7 +1038,7 @@ function picker(point, sourceEndpoint = null) {
     `${sourcePin ? `<div class="context-type"><i style="background:${pinColor(sourcePin.type)}"></i><strong>${esc(sourcePin.type)}</strong><span>${esc(translate(sourcePin.name))} · ${esc(sourcePin.name)}</span></div>` : ""}<input id="picker-search" class="modal-search" placeholder="搜索 / Search actions…" aria-label="搜索可添加节点"><div class="context-options"><label><input type="checkbox" id="context-sensitive" checked> 上下文关联 / Context Sensitive</label>${sourcePin ? '<select id="context-scope"><option value="all">所有兼容操作 / All Compatible</option><option value="members">属性和成员 / Members</option><option value="functions">成员函数 / Functions</option><option value="properties">读取/写入属性 / Properties</option><option value="casts">类型转换 / Cast & Convert</option></select>' : ""}</div><div id="picker-count"></div><div id="picker-results" class="picker-results"></div><div class="modal-actions"><button id="custom-node" class="secondary-button">＋ 自定义节点 / Custom Node</button></div>`,
     sourcePin
       ? "选择节点后自动连接此引脚 / Automatically connect compatible pins"
-      : `${catalog.length} 个节点 · KARDS + Unreal Blueprint`,
+      : `${fullCatalog().length} 个节点 · KARDS + Unreal Blueprint`,
   );
   const update = () => {
     let matches = filterCatalog($("picker-search").value);
@@ -506,8 +1076,9 @@ function picker(point, sourceEndpoint = null) {
       .forEach((b) => {
         b.draggable = false;
         b.onclick = () => {
-          addNode(b.dataset.def, placement, pickerContext);
+          if (Date.now() < ignoreBackdropUntil) return;
           $("modal").close();
+          addNode(b.dataset.def, placement, pickerContext);
         };
       });
   };
@@ -584,12 +1155,15 @@ function pinMarkup(n, p) {
   const val = n.values[p.id] ?? defaultValue(p.type, enums);
   const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
-    raw = p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
-  const label = `<span class="pin-label"><span class="pin-cn">${esc(cn)}</span><span class="pin-en">${esc(raw)}</span></span>`;
+    raw = pinEnglish(p);
+  const label = `<span class="pin-label"><span class="pin-cn zh">${esc(cn)}</span><span class="pin-en en">${esc(raw)}</span></span>`;
   const showValue =
     !connected &&
     p.type !== "exec" &&
-    (p.direction === "in" || n.definition.category === "variables");
+    pinKind(p.type) !== "delegate" &&
+    !(p.id === "target" && val === "Self") &&
+    (p.direction === "in" ||
+      (n.definition.category === "variables" && n.definition.kind === "variable"));
   return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? (typeof val === "boolean" ? `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>` : `<span class="pin-value">${esc(val)}</span>`) : ""}${p.direction === "out" ? button : ""}</div>`;
 }
 function nodeBody(n) {
@@ -601,13 +1175,26 @@ function nodeBody(n) {
       `<div class="pin-pair">${ins[i] ? pinMarkup(n, ins[i]) : '<div class="pin-row"></div>'}${outs[i] ? pinMarkup(n, outs[i]) : '<div class="pin-row output"></div>'}</div>`,
   ).join("");
 }
+// Nodes size themselves to their content, so redraw wires whenever one changes size.
+let relayoutFrame = 0;
+const nodeObserver = new ResizeObserver(() => {
+  cancelAnimationFrame(relayoutFrame);
+  relayoutFrame = requestAnimationFrame(() => {
+    drawEdges();
+    drawMinimap();
+  });
+});
 function renderNodes() {
   $("nodes").innerHTML = graph()
     .nodes.map(
       (n) =>
-        `<article class="node ue-${nodeKind(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(title(n))}</strong></div><div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div></div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
+        `<article class="node ue-${nodeKind(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
     )
     .join("");
+  nodeObserver.disconnect();
+  $("nodes")
+    .querySelectorAll(".node")
+    .forEach((el) => nodeObserver.observe(el));
 }
 function updateSelectionStatus() {
   const bar = $("selection-bar");
@@ -662,7 +1249,8 @@ function renderInspector() {
     const inputs = d.pins.filter(
       (p) =>
         p.type !== "exec" &&
-        (p.direction === "in" || d.category === "variables"),
+        pinKind(p.type) !== "delegate" &&
+        (p.direction === "in" || (d.category === "variables" && d.kind === "variable")),
     );
     body += inputs.length
       ? inputs
@@ -677,10 +1265,10 @@ function renderInspector() {
           })
           .join("")
       : '<p class="detail-description">此节点没有可编辑的默认输入。</p>';
-    body += `</section><section class="detail-section"><h3 class="detail-heading">源代码 <span>NATIVE</span></h3><div class="detail-source">${esc(d.signature || d.name)}${d.source ? `<p><a href="https://github.com/ghhhhughg638/KardsSource/blob/main/${encodeURI(d.source)}" target="_blank" rel="noreferrer">${esc(d.source)} ↗</a></p>` : "<p>Studio 自定义节点 · 仅用于可视化设计</p>"}</div><button class="secondary-button" id="duplicate" style="width:100%;margin-top:10px">复制节点 <kbd>Ctrl D</kbd></button><button class="danger-button" id="delete-selection">删除选中节点</button></section>`;
+    body += `</section>${bpNodeSection(n)}<section class="detail-section"><h3 class="detail-heading">源代码 <span>NATIVE</span></h3><div class="detail-source">${esc(d.signature || d.name)}${d.source ? `<p><a href="https://github.com/ghhhhughg638/KardsSource/blob/main/${encodeURI(d.source)}" target="_blank" rel="noreferrer">${esc(d.source)} ↗</a></p>` : "<p>Studio 自定义节点 · 仅用于可视化设计</p>"}</div><button class="secondary-button" id="duplicate" style="width:100%;margin-top:10px">复制节点 <kbd>Ctrl D</kbd></button><button class="danger-button" id="delete-selection">删除选中节点</button></section>`;
   } else {
     const card = project.card;
-    body = `<section class="detail-section"><h3 class="detail-heading">卡牌信息 <span>CARD DATA</span></h3><div class="card-preview"><div class="card-emblem">${esc(card.cost)}</div><div><small>${esc(card.faction.toUpperCase())} / ${esc(card.type.toUpperCase())}</small><h3>${esc(card.title)}</h3><p>${esc(FACTIONS[card.faction] || card.faction)} · ${esc(card.rarity)}</p></div></div>${field("卡牌名称", "card.title", card.title)}${field(
+    body = `${assetSection()}<section class="detail-section"><h3 class="detail-heading">卡牌信息 <span>CARD DATA</span></h3><div class="card-preview"><div class="card-emblem">${esc(card.cost)}</div><div><small>${esc(card.faction.toUpperCase())} / ${esc(card.type.toUpperCase())}</small><h3>${esc(card.title)}</h3><p>${esc(FACTIONS[card.faction] || card.faction)} · ${esc(card.rarity)}</p></div></div>${field("卡牌名称", "card.title", card.title)}${field(
       "所属阵营",
       "card.faction",
       card.faction,
@@ -688,7 +1276,7 @@ function renderInspector() {
         value,
         label: FACTIONS[value] || value,
       })),
-    )}${field("卡牌类型", "card.type", card.type, enums.ETypeEnum || ["infantry", "tank", "order"])}${field("稀有度", "card.rarity", card.rarity, enums.ERarityEnum || ["Common", "Uncommon", "Rare", "Unique"])}<div class="field-grid">${field("攻击力", "card.attack", card.attack)}${field("防御力", "card.defense", card.defense)}</div><div style="height:12px"></div>${field("指挥点消耗", "card.cost", card.cost)}<div class="field"><label class="detail-label">卡牌效果<textarea data-field="card.text">${esc(card.text)}</textarea></label></div></section><section class="detail-section"><h3 class="detail-heading">事件图 <span>GRAPH</span></h3>${field("名称", "graph.name", graph().name)}<p class="detail-description">点击节点可编辑参数和注释。双击顶部标签可重命名或删除事件图。</p><button class="secondary-button" id="graph-settings" style="width:100%">管理当前事件图</button></section><section class="detail-section"><h3 class="detail-heading">文件格式 <span>v1.0</span></h3><p class="detail-description">.kardsbp.json 包含卡牌信息、多个事件图、节点定义、参数和连线。导入后可继续编辑。</p></section>`;
+    )}${field("卡牌类型", "card.type", card.type, enums.ETypeEnum || ["infantry", "tank", "order"])}${field("稀有度", "card.rarity", card.rarity, enums.ERarityEnum || ["Common", "Uncommon", "Rare", "Unique"])}<div class="field-grid">${field("攻击力", "card.attack", card.attack)}${field("防御力", "card.defense", card.defense)}</div><div style="height:12px"></div>${field("指挥点消耗", "card.cost", card.cost)}<div class="field"><label class="detail-label">卡牌效果<textarea data-field="card.text">${esc(card.text)}</textarea></label></div></section>${graphSection()}<section class="detail-section"><h3 class="detail-heading">文件格式 <span>v1.0</span></h3><p class="detail-description">.kardsbp.json 包含资源信息、变量、函数、宏、EventGraph、节点定义、参数和连线。导入后可继续编辑。</p></section>`;
   }
   $("inspector-content").innerHTML = body;
   $("inspector-content")
@@ -699,9 +1287,18 @@ function renderInspector() {
           const key = input.dataset.field;
           let val = input.type === "number" ? Number(input.value) : input.value;
           if (typeof val === "number" && !Number.isFinite(val)) return;
+          if (key === "asset.name") {
+            const error = checkName(val.trim());
+            if (error) {
+              toast(error, true);
+              return renderInspector();
+            }
+            val = val.trim();
+          }
           mutate(() => {
             if (key.startsWith("card.")) project.card[key.slice(5)] = val;
-            else if (key === "graph.name") graph().name = val || "事件图";
+            else if (key === "asset.name") project.name = val;
+            else if (key.startsWith("asset.")) project.asset[key.slice(6)] = val;
             else if (n) n[key] = val;
           });
         }),
@@ -726,6 +1323,7 @@ function renderInspector() {
   if ($("duplicate")) $("duplicate").onclick = duplicate;
   if ($("graph-settings"))
     $("graph-settings").onclick = () => editGraph(project.activeGraph);
+  if ($("bp-edit")) $("bp-edit").onclick = () => editBlueprintNode(n);
 }
 function pinPosition(endpoint) {
   const node = $("nodes").querySelector(
@@ -795,6 +1393,9 @@ function zoomAt(factor, cx, cy) {
   drawMinimap();
   scheduleSave();
 }
+const nodeEl = (n) =>
+  document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`);
+const nodeWidth = (n) => nodeEl(n)?.offsetWidth || 280;
 function bounds() {
   if (!graph().nodes.length) return { x: 0, y: 0, w: 900, h: 600 };
   const ns = graph().nodes;
@@ -803,7 +1404,7 @@ function bounds() {
   return {
     x,
     y,
-    w: Math.max(...ns.map((n) => n.x + 280)) - x + 30,
+    w: Math.max(...ns.map((n) => n.x + nodeWidth(n))) - x + 30,
     h:
       Math.max(
         ...ns.map(
@@ -855,7 +1456,7 @@ function drawMinimap() {
     graph()
       .nodes.map(
         (n) =>
-          `<rect x="${n.x}" y="${n.y}" width="280" height="${document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`)?.offsetHeight || 150}" rx="5" fill="${color(n.definition)}" fill-opacity=".3" stroke="${color(n.definition)}" stroke-width="2"/>`,
+          `<rect x="${n.x}" y="${n.y}" width="${nodeWidth(n)}" height="${document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`)?.offsetHeight || 150}" rx="5" fill="${color(n.definition)}" fill-opacity=".3" stroke="${color(n.definition)}" stroke-width="2"/>`,
       )
       .join("") +
     `<rect x="${-v.x / v.zoom}" y="${-v.y / v.zoom}" width="${r.width / v.zoom}" height="${r.height / v.zoom}" fill="#dddddd" fill-opacity=".03" stroke="#c7c7c7" stroke-width="3"/>`;
@@ -863,11 +1464,16 @@ function drawMinimap() {
 function deleteSelection() {
   if (!selection.size && !selectedEdge) return;
   mutate(() => {
-    graph().nodes = graph().nodes.filter((n) => !selection.has(n.id));
+    const doomed = new Set(
+      graph()
+        .nodes.filter((n) => selection.has(n.id) && !n.definition.fixed)
+        .map((n) => n.id),
+    );
+    graph().nodes = graph().nodes.filter((n) => !doomed.has(n.id));
     graph().edges = graph().edges.filter(
       (e) =>
-        !selection.has(e.from.node) &&
-        !selection.has(e.to.node) &&
+        !doomed.has(e.from.node) &&
+        !doomed.has(e.to.node) &&
         e.id !== selectedEdge,
     );
     selection.clear();
@@ -877,7 +1483,12 @@ function deleteSelection() {
 function duplicate() {
   if (!selection.size) return;
   mutate(() => {
-    const copied = graph().nodes.filter((n) => selection.has(n.id)),
+    const copied = graph().nodes.filter(
+        (n) =>
+          selection.has(n.id) &&
+          !n.definition.fixed &&
+          n.definition.kind !== "customEvent",
+      ),
       ids = new Map();
     for (const n of copied) {
       const copy = clone(n);
@@ -963,7 +1574,8 @@ viewport.addEventListener(
   true,
 );
 // Long-press on empty canvas opens the node picker (touch devices have no right-click).
-let pressTimer = 0;
+let pressTimer = 0,
+  ignoreBackdropUntil = 0;
 const cancelPress = () => clearTimeout(pressTimer);
 viewport.addEventListener("pointerdown", (e) => {
   cancelPress();
@@ -978,6 +1590,8 @@ viewport.addEventListener("pointerdown", (e) => {
     if (touches.size !== 1) return;
     drag = null;
     viewport.classList.remove("panning");
+    // The finger is still down: its release must not count as a click outside the picker.
+    ignoreBackdropUntil = Infinity;
     picker(worldPoint({ clientX, clientY }), pending);
   }, 550);
 });
@@ -987,8 +1601,12 @@ viewport.addEventListener("pointermove", (e) => {
       cancelPress();
   }
 });
-window.addEventListener("pointerup", cancelPress, true);
-window.addEventListener("pointercancel", cancelPress, true);
+const releasePress = () => {
+  cancelPress();
+  if (ignoreBackdropUntil === Infinity) ignoreBackdropUntil = Date.now() + 500;
+};
+window.addEventListener("pointerup", releasePress, true);
+window.addEventListener("pointercancel", releasePress, true);
 const endTouch = (e) => {
   if (!touches.delete(e.pointerId)) return;
   if (touches.size < 2) pinch = null;
@@ -1194,18 +1812,26 @@ function download(filename, text, type) {
 }
 function exportProject() {
   persist();
+  const data = buildExport(project, {
+    classes: classMap(),
+    enums,
+    repository,
+  });
   download(
     (project.name || "blueprint").replace(/[\\/:*?"<>|]/g, "_") +
       ".kardsbp.json",
-    JSON.stringify(
-      { ...project, exportedAt: new Date().toISOString() },
-      null,
-      2,
-    ),
+    JSON.stringify(data, null, 2),
     "application/json",
   );
   toast("已导出蓝图，可随时导入继续编辑");
 }
+// SVG exports use English for everything the editor provides (node, pin and category names),
+// and exactly what the user typed for everything they can customise (card title, graph name,
+// node titles, comments, default values).
+const pinEnglish = (p) =>
+  p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
+const kindEnglish = (n) =>
+  `${(kindLabels[nodeKind(n.definition)] || "FUNCTION").split(" · ")[0]} · ${(n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "")}`;
 function exportSVG() {
   if (!graph().nodes.length) return toast("请先添加节点");
   const b = bounds();
@@ -1222,8 +1848,9 @@ function exportSVG() {
   svg += "</g>";
   for (const n of graph().nodes) {
     const el = document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`),
-      h = el.offsetHeight;
-    svg += `<g font-family="monospace"><rect x="${n.x}" y="${n.y}" width="280" height="${h}" rx="6" fill="#171717" stroke="${color(n.definition)}"/><rect x="${n.x + 1}" y="${n.y + 1}" width="278" height="57" rx="5" fill="${color(n.definition)}"/><text x="${n.x + 12}" y="${n.y + 24}" fill="#e0e9e2" font-size="12">${esc(title(n))}</text><text x="${n.x + 12}" y="${n.y + 43}" fill="#eeeeee" font-size="9">${esc(nodeEnglish(n.definition))}</text>`;
+      h = el.offsetHeight,
+      w = el.offsetWidth;
+    svg += `<g font-family="monospace"><rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="6" fill="#171717" stroke="${color(n.definition)}"/><rect x="${n.x + 1}" y="${n.y + 1}" width="${w - 2}" height="57" rx="5" fill="${color(n.definition)}"/><text x="${n.x + 12}" y="${n.y + 24}" fill="#e0e9e2" font-size="12">${esc(n.title || nodeEnglish(n.definition))}</text><text x="${n.x + 12}" y="${n.y + 43}" fill="#eeeeee" font-size="9">${esc(n.title ? nodeEnglish(n.definition) : kindEnglish(n))}</text>`;
     if (n.comment)
       svg += `<text x="${n.x}" y="${n.y - 12}" fill="#a4b69d" font-size="10">${esc(n.comment)}</text>`;
     for (const p of n.definition.pins) {
@@ -1234,8 +1861,9 @@ function exportSVG() {
       const hasValue =
         p.type !== "exec" &&
         !graph().edges.some((e) => e.to.node === n.id && e.to.pin === p.id) &&
-        (p.direction === "in" || n.definition.category === "variables");
-      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="4" fill="#171717" stroke="${pinColor(p.type)}" stroke-width="2"/><text x="${pos.x + (out ? -12 : 12)}" y="${pos.y + 3}" fill="#b1c4b8" font-size="9" text-anchor="${out ? "end" : "start"}">${esc(translate(p.name))} / ${esc(p.name)}${hasValue ? " = " + esc(val) : ""}</text>`;
+        (p.direction === "in" ||
+          (n.definition.category === "variables" && n.definition.kind === "variable"));
+      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="4" fill="#171717" stroke="${pinColor(p.type)}" stroke-width="2"/><text x="${pos.x + (out ? -12 : 12)}" y="${pos.y + 3}" fill="#b1c4b8" font-size="9" text-anchor="${out ? "end" : "start"}">${esc(pinEnglish(p))}${hasValue ? " = " + esc(val) : ""}</text>`;
     }
     svg += "</g>";
   }
@@ -1250,15 +1878,16 @@ function exportSVG() {
 function newProject() {
   openModal(
     "新建蓝图项目",
-    `<div class="field"><label class="detail-label" for="new-name">项目名称</label><input id="new-name" value="我的 KARDS 蓝图" maxlength="100"></div><p>当前项目会保留在撤销记录中。建议先导出文件，方便以后继续编辑。</p><div class="modal-actions"><button id="save-first" class="secondary-button">导出当前项目</button><button id="create-project" class="primary-button">创建项目</button></div>`,
+    `<div class="field"><label class="detail-label" for="new-name">资源名称</label><input id="new-name" value="BP_NewCard" maxlength="64"><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><p>当前项目会保留在撤销记录中。建议先导出文件，方便以后继续编辑。</p><div class="modal-actions"><button id="save-first" class="secondary-button">导出当前项目</button><button id="create-project" class="primary-button">创建项目</button></div>`,
   );
   $("save-first").onclick = exportProject;
   $("create-project").onclick = () => {
-    const name = $("new-name").value.trim() || "未命名卡牌";
+    const name = $("new-name").value.trim(),
+      error = checkName(name);
+    if (error) return toast(error, true);
     mutate(() => {
       project = makeProject();
       project.name = name;
-      project.card.title = name;
       selection.clear();
       selectedEdge = null;
     });
@@ -1278,7 +1907,7 @@ $("file-input").onchange = async (e) => {
       selection.clear();
       selectedEdge = null;
     });
-    toast(`已导入 ${project.name} · ${project.graphs.length} 个事件图`);
+    toast(`已导入 ${project.name} · ${project.graphs.length} 个图表`);
   } catch (error) {
     setTypeHierarchy({ ...classes, ...project.types });
     toast(
@@ -1303,7 +1932,7 @@ function validate() {
       );
     openModal(
       "蓝图检查",
-      `<div class="validation-item">✓ 文件结构、端口类型和连接引用有效。</div><div class="validation-item">${g.nodes.length} 个节点 · ${g.edges.length} 条连接 · ${unconnected.length} 个动作节点没有执行输入</div>${unconnected.length ? `<p>尚未接入执行流：${unconnected.map((n) => esc(title(n))).join("、")}。可以保留它们作为设计草稿。</p>` : ""}<p>检查范围为蓝图文档结构。此编辑器不运行蓝图，也不验证游戏运行结果。</p>`,
+      `<div class="validation-item">✓ 文件结构、端口类型和连接引用有效。</div><div class="validation-item">${g.nodes.length} 个节点 · ${g.edges.length} 条连接 · ${unconnected.length} 个动作节点没有执行输入</div>${unconnected.length ? `<p>尚未接入执行流：${unconnected.map((n) => esc(nodeHeading(n))).join(langMode === "en" ? ", " : "、")}。可以保留它们作为设计草稿。</p>` : ""}<p>检查范围为蓝图文档结构。此编辑器不运行蓝图，也不验证游戏运行结果。</p>`,
     );
   } catch (e) {
     toast(e.message, true);
@@ -1318,7 +1947,7 @@ function help() {
 $("node-search").oninput = renderLibrary;
 $("add-node").onclick = () => picker();
 $("empty-add").onclick = () => picker();
-$("add-graph").onclick = addGraph;
+$("add-graph").onclick = newItemMenu;
 $("new-project").onclick = newProject;
 $("import").onclick = () => $("file-input").click();
 $("save").onclick = () => {
@@ -1337,7 +1966,7 @@ $("zoom-label").onclick = () => zoomAt(1 / graph().view.zoom);
 async function forceRefresh() {
   const button = $("force-refresh");
   button.disabled = true;
-  button.textContent = "⟳ 读取中…";
+  button.textContent = "⟳ …";
   try {
     persist();
     const files = [
@@ -1363,7 +1992,7 @@ async function forceRefresh() {
     setTimeout(() => location.reload(), 400);
   } catch (error) {
     button.disabled = false;
-    button.textContent = "⟳ 刷新";
+    button.innerHTML = `⟳ ${bi("刷新", "Refresh")}`;
     toast(`刷新失败：${error.message}。请检查网络后重试。`, true);
   }
 }
@@ -1402,11 +2031,15 @@ $("graph-list").addEventListener("click", () => {
   if (window.innerWidth <= 800) setDrawer(false);
 });
 $("project-name").onchange = (e) => {
-  const name = e.target.value.trim().slice(0, 200);
-  if (name) mutate(() => (project.name = name));
-  else e.target.value = project.name;
+  const name = e.target.value.trim(),
+    error = checkName(name);
+  if (error) {
+    toast(error, true);
+    e.target.value = project.name;
+  } else mutate(() => (project.name = name));
 };
 $("modal").onclick = (e) => {
+  if (Date.now() < ignoreBackdropUntil) return;
   if (e.target === $("modal")) {
     const r = $("modal").getBoundingClientRect();
     if (
@@ -1510,6 +2143,7 @@ async function boot() {
       ...data.nodes,
     ];
     enums = data.enums;
+    repository = data.repository || null;
     $("catalog-count").textContent = catalog.length;
     $("source-status").textContent =
       `${data.nodes.length} 函数 · ${Object.keys(data.classes || {}).length} 类 · ${builtins.length} UE 节点`;
@@ -1548,9 +2182,23 @@ $("modal").addEventListener("close", () => {
     updateSelectionStatus();
   }
 });
-$("new-project").textContent = "新建 New";
-$("import").textContent = "导入 Import";
-$("export").innerHTML = "<span>↗</span>导出 Export";
-$("add-node").textContent = "＋ 节点 Node";
-$("validate").textContent = "检查 Check";
+$("new-project").innerHTML = bi("新建", "New");
+$("import").innerHTML = bi("导入", "Import");
+$("export").innerHTML = `<span>↗</span>${bi("导出", "Export")}`;
+$("add-node").innerHTML = `＋ ${bi("节点", "Node")}`;
+$("validate").innerHTML = bi("检查", "Check");
+$("lang-select").value = langMode;
+setUiLanguage(langMode);
+$("lang-select").onchange = (e) => {
+  langMode = e.target.value;
+  document.documentElement.dataset.lang = langMode;
+  try {
+    localStorage.setItem(LANG_KEY, langMode);
+  } catch {
+    /* storage unavailable: the choice lasts for this visit only */
+  }
+  renderLibrary();
+  render();
+  setUiLanguage(langMode);
+};
 boot();
