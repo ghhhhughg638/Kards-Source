@@ -34,6 +34,7 @@
             <option value="zh">中文</option>
             <option value="en">English</option>
           </select
+          ><button id="settings" class="icon-button" title="设置">⚙</button
           ><button id="help" class="icon-button" title="操作帮助">?</button
           ><a
             class="github-link"
@@ -141,7 +142,8 @@
               ><strong id="graph-breadcrumb">事件图</strong>
             </div>
             <div class="canvas-tools">
-              <button id="toggle-library" title="工作区、蓝图列表与节点库">☰ 工作区</button
+              <button id="multi-toggle" title="多选模式:点节点选中/取消,拖空白处框选">☑ <span class="zh">多选</span><span class="en">Multi</span></button
+              ><button id="toggle-library" title="工作区、蓝图列表与节点库">☰ 工作区</button
               ><button id="add-node" title="添加节点 (Tab)">＋ 添加节点</button
               ><button id="fit" class="icon-button" title="适应画布 (F)">
                 ⛶</button
@@ -160,6 +162,7 @@
             tabindex="0"
             aria-label="蓝图画布。滚轮缩放，拖动空白平移，Tab 添加节点"
           >
+            <div id="marquee" class="marquee" hidden></div>
             <div class="canvas-title">
               <span>BLUEPRINT GRAPH</span>
               <h1 id="canvas-title">事件图</h1>
@@ -189,6 +192,7 @@
             </div>
             <div id="selection-bar" class="selection-bar" hidden>
               <button id="bar-details" type="button">详情</button>
+              <button id="bar-clear" type="button">取消选择</button>
               <button id="bar-duplicate" type="button">复制</button>
               <button id="bar-delete" type="button" class="danger">删除</button>
             </div>

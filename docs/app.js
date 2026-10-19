@@ -1543,6 +1543,54 @@ function renderNodes() {
     .querySelectorAll(".node")
     .forEach((el) => nodeObserver.observe(el));
 }
+// ---------------------------------------------------------------- settings
+const SETTINGS_KEY = "kards-blueprint-studio.settings";
+const settings = { blockCopy: true, dragMode: "marquee" };
+try {
+  Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"));
+} catch {
+  /* defaults */
+}
+let multiMode = false;
+function applySettings() {
+  document.documentElement.classList.toggle("block-copy", !!settings.blockCopy);
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    /* settings only last for this visit */
+  }
+}
+const editable = (t) =>
+  !!t?.closest?.("input,textarea,select,[contenteditable='true']");
+document.addEventListener("selectstart", (e) => {
+  if (settings.blockCopy && !editable(e.target)) e.preventDefault();
+});
+document.addEventListener("copy", (e) => {
+  if (settings.blockCopy && !editable(e.target)) e.preventDefault();
+});
+document.addEventListener("cut", (e) => {
+  if (settings.blockCopy && !editable(e.target)) e.preventDefault();
+});
+function openSettings() {
+  openModal(
+    "设置 / Settings",
+    `<label class="check-row"><input type="checkbox" id="set-block" ${settings.blockCopy ? "checked" : ""}> ${bi2("阻止长按选中文字和复制", "Block long-press text selection and copy")}</label><p class="detail-description">${bi2("开启后长按不会再出现蓝色选中框和复制菜单；输入框里仍可正常编辑。", "Stops the blue selection and copy menu on long press. Text boxes still work normally.")}</p><div class="field"><label class="detail-label" for="set-drag">${bi2("鼠标左键拖动空白处", "Mouse: drag on empty canvas")}</label><select id="set-drag"><option value="marquee" ${settings.dragMode === "marquee" ? "selected" : ""}>框选节点 / Box select</option><option value="pan" ${settings.dragMode === "pan" ? "selected" : ""}>平移画布 / Pan</option></select><p class="detail-description">${bi2("框选时：按住空格、鼠标中键或 Alt 拖动可平移。手机上用「多选」按钮进入框选/点选多个节点。", "With box select: hold Space, middle mouse or Alt to pan. On phones use the Multi-select button to box-select or tap several nodes.")}</p></div>`,
+  );
+  $("set-block").onchange = (e) => {
+    settings.blockCopy = e.target.checked;
+    applySettings();
+  };
+  $("set-drag").onchange = (e) => {
+    settings.dragMode = e.target.value;
+    applySettings();
+  };
+}
+function setMultiMode(on) {
+  multiMode = on;
+  $("multi-toggle").classList.toggle("active", on);
+  viewport.classList.toggle("multi", on);
+  toast(on ? "多选模式:点节点选中/取消,拖空白处框选" : "已退出多选模式");
+}
 function updateSelectionStatus() {
   const bar = $("selection-bar");
   if (bar) {
@@ -1898,6 +1946,7 @@ viewport.addEventListener(
     if (touches.size === 2) {
       drag = null;
       pending = null;
+      $("marquee").hidden = true;
       viewport.classList.remove("panning");
       pinch = touchPair();
       drawEdges();
@@ -1947,7 +1996,7 @@ viewport.addEventListener("pointerdown", (e) => {
   }, 550);
 });
 viewport.addEventListener("pointermove", (e) => {
-  if (e.pointerType === "touch" && pressTimer && drag?.type === "pan") {
+  if (e.pointerType === "touch" && pressTimer && (drag?.type === "pan" || drag?.type === "marquee")) {
     if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) > 8)
       cancelPress();
   }
@@ -2009,9 +2058,17 @@ viewport.addEventListener("pointerdown", (e) => {
   }
   const node = e.target.closest(".node");
   if (node && e.button === 0 && !space) {
-    if (!selection.has(node.dataset.nodeId) || e.shiftKey)
-      selectNode(node.dataset.nodeId, e.shiftKey);
-    if (e.target.closest(".node-head")) {
+    const id = node.dataset.nodeId,
+      additive = multiMode || e.shiftKey || e.ctrlKey || e.metaKey,
+      drags = multiMode || !!e.target.closest(".node-head");
+    // Tapping a selected node in a multi-selection un-selects it (after the press turns out not to be a drag).
+    let toggleOff = null;
+    if (additive) {
+      if (!selection.has(id)) selectNode(id, true);
+      else if (drags) toggleOff = id;
+      else selectNode(id, true);
+    } else if (!selection.has(id)) selectNode(id, false);
+    if (drags) {
       drag = {
         type: "nodes",
         startX: e.clientX,
@@ -2020,12 +2077,38 @@ viewport.addEventListener("pointerdown", (e) => {
           .nodes.filter((n) => selection.has(n.id))
           .map((n) => ({ id: n.id, x: n.x, y: n.y })),
         changed: false,
+        toggleOff,
       };
       viewport.setPointerCapture(e.pointerId);
     }
     return;
   }
   if (e.button === 0 || e.button === 1) {
+    const marquee =
+      e.button === 0 &&
+      !space &&
+      !e.altKey &&
+      (multiMode ||
+        (e.pointerType !== "touch" && settings.dragMode === "marquee"));
+    if (marquee) {
+      const additive = multiMode || e.shiftKey || e.ctrlKey || e.metaKey;
+      if (!additive) {
+        selection.clear();
+        selectedEdge = null;
+        pending = null;
+        renderNodes();
+        drawEdges();
+      }
+      drag = {
+        type: "marquee",
+        startX: e.clientX,
+        startY: e.clientY,
+        base: new Set(selection),
+      };
+      viewport.setPointerCapture(e.pointerId);
+      e.preventDefault();
+      return;
+    }
     if (e.button === 0 && !space) {
       selection.clear();
       selectedEdge = null;
@@ -2052,7 +2135,32 @@ viewport.addEventListener("pointermove", (e) => {
   if (!drag) return;
   const dx = e.clientX - drag.startX,
     dy = e.clientY - drag.startY;
-  if (drag.type === "pan") {
+  if (drag.type === "marquee") {
+    const r = viewport.getBoundingClientRect(),
+      box = {
+        l: Math.min(e.clientX, drag.startX),
+        t: Math.min(e.clientY, drag.startY),
+        r: Math.max(e.clientX, drag.startX),
+        b: Math.max(e.clientY, drag.startY),
+      },
+      m = $("marquee");
+    if (Math.abs(dx) + Math.abs(dy) < 4 && m.hidden) return;
+    m.hidden = false;
+    Object.assign(m.style, {
+      left: box.l - r.left + "px",
+      top: box.t - r.top + "px",
+      width: box.r - box.l + "px",
+      height: box.b - box.t + "px",
+    });
+    selection = new Set(drag.base);
+    document.querySelectorAll(".node").forEach((el) => {
+      const b = el.getBoundingClientRect();
+      if (b.right >= box.l && b.left <= box.r && b.bottom >= box.t && b.top <= box.b)
+        selection.add(el.dataset.nodeId);
+      el.classList.toggle("selected", selection.has(el.dataset.nodeId));
+    });
+    updateSelectionStatus();
+  } else if (drag.type === "pan") {
     graph().view.x = drag.x + dx;
     graph().view.y = drag.y + dy;
     updateView();
@@ -2107,6 +2215,12 @@ window.addEventListener("pointerup", (e) => {
     }
     render();
     persist();
+  } else if (drag.type === "nodes" && drag.toggleOff) {
+    selectNode(drag.toggleOff, true);
+  } else if (drag.type === "marquee") {
+    $("marquee").hidden = true;
+    renderInspector();
+    updateSelectionStatus();
   } else if (drag.type === "pan") scheduleSave();
   drag = null;
   viewport.classList.remove("panning");
@@ -2394,7 +2508,7 @@ function validate() {
 function help() {
   openModal(
     "设计你的下一张卡牌",
-    `<div class="help-grid"><span>添加节点</span><kbd>Tab / 右键</kbd><span>平移画布</span><kbd>拖动空白 / 空格 + 拖动</kbd><span>缩放画布</span><kbd>滚轮 / ＋ −</kbd><span>适应所有节点</span><kbd>F</kbd><span>多选节点</span><kbd>Shift + 单击</kbd><span>全选 / 复制 / 删除</span><kbd>Ctrl A / Ctrl D / Delete</kbd><span>撤销 / 重做</span><kbd>Ctrl Z / Ctrl Shift Z</kbd><span>保存到本地 / 导出文件</span><kbd>Ctrl S / Ctrl Shift S</kbd><span>取消连线 / 取消选择</span><kbd>Esc</kbd></div><p>从一个端口拖向另一个端口，或依次点击两个端口。只有类型相同的输出与输入可以连接。点击连线后按 Delete 可断开。</p><p>修改会自动保存在当前浏览器。使用「导出蓝图」获得文件；更换设备或清除浏览器数据前请先导出。支持 macOS 的 ⌘ 快捷键。</p><div class="format-note">format: "${FORMAT}"\nversion: ${VERSION}\ngraphs: [{ nodes, edges, view }]</div>`,
+    `<div class="help-grid"><span>添加节点</span><kbd>Tab / 右键</kbd><span>框选节点</span><kbd>拖动空白（白色框）</kbd><span>平移画布</span><kbd>空格 / 中键 / Alt + 拖动</kbd><span>缩放画布</span><kbd>滚轮 / ＋ −</kbd><span>适应所有节点</span><kbd>F</kbd><span>多选节点</span><kbd>Shift + 单击 / 手机「多选」按钮</kbd><span>全选 / 复制 / 删除</span><kbd>Ctrl A / Ctrl D / Delete</kbd><span>撤销 / 重做</span><kbd>Ctrl Z / Ctrl Shift Z</kbd><span>保存到本地 / 导出文件</span><kbd>Ctrl S / Ctrl Shift S</kbd><span>取消连线 / 取消选择</span><kbd>Esc</kbd></div><p>从一个端口拖向另一个端口，或依次点击两个端口。只有类型相同的输出与输入可以连接。点击连线后按 Delete 可断开。</p><p>修改会自动保存在当前浏览器。使用「导出蓝图」获得文件；更换设备或清除浏览器数据前请先导出。支持 macOS 的 ⌘ 快捷键。</p><div class="format-note">format: "${FORMAT}"\nversion: ${VERSION}\ngraphs: [{ nodes, edges, view }]</div>`,
   );
 }
 $("node-search").oninput = () => {
@@ -2536,6 +2650,17 @@ async function forceRefresh() {
 }
 $("force-refresh").onclick = forceRefresh;
 $("help").onclick = help;
+$("settings").onclick = openSettings;
+$("multi-toggle").onclick = () => setMultiMode(!multiMode);
+$("bar-clear").onclick = () => {
+  selection.clear();
+  selectedEdge = null;
+  renderNodes();
+  renderInspector();
+  drawEdges();
+  updateSelectionStatus();
+};
+applySettings();
 $("validate").onclick = validate;
 $("toggle-inspector").onclick = () => {
   const panel = $("inspector");
