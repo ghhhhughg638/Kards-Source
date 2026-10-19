@@ -1,7 +1,10 @@
 export const FORMAT = "kards-blueprint";
 export const VERSION = 1;
 export const uid = () => crypto.randomUUID();
-export const clone = (value) => JSON.parse(JSON.stringify(value));
+export const clone = (value) =>
+  typeof structuredClone === "function"
+    ? structuredClone(value)
+    : JSON.parse(JSON.stringify(value));
 import { ueBuiltins, engineClasses } from "./ue-nodes.js";
 export const builtins = ueBuiltins;
 let typeHierarchy = { ...engineClasses };

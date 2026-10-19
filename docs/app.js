@@ -14,7 +14,6 @@ import {
   createDemo,
   setTypeHierarchy,
   matchingPin,
-  compatible,
 } from "./model.js";
 import { typeNodes, engineClasses } from "./ue-nodes.js";
 import {
