@@ -14,13 +14,13 @@
 - 多选、复制、删除、撤销与重做，浏览器本地自动保存。
 - 导入和导出 `.kardsbp.json`，或将当前图导出为独立 SVG 图像。
 
-这是蓝图的可视化设计和展示工具，不执行游戏逻辑，不导入或生成 Unreal `.uasset` 文件。演示中的战术条件是可编辑的设计占位值。
+这是蓝图的可视化设计和展示工具，不执行游戏逻辑，不导入或生成 Unreal `.uasset` 文件。
 
 ## 使用
 
 拖动左侧节点到画布，或按 `Tab` / 右键搜索节点。从数据引脚拖到空白位置会打开上下文菜单，自动筛选兼容的类型。可以选择「成员函数」「属性」或「类型转换」。创建节点后自动连接目标引脚；从 Cast 的对象输出创建动作函数时，还会在执行输出空闲的情况下接上成功执行流。
 
-例如：拖出 `ObjectReference` 的 `UObject*` 输出 → 选择 `Cast To BaseCardObject` → 从 `As BaseCardObject` 拖出 → 选择 `Get attack` 或 `ResetCardAttributes`。示例项目的「类型转换 · Cast & Call」事件图展示了完整结构。
+例如：拖出 `ObjectReference` 的 `UObject*` 输出 → 选择 `Cast To BaseCardObject` → 从 `As BaseCardObject` 拖出 → 选择 `Get attack` 或 `ResetCardAttributes`。
 
 拖动空白区域平移，滚轮缩放，`F` 适应画布。依次点击输出和输入端口，或将一个端口拖向另一个端口完成连线。新连接会替换同一输入端口的旧连接。
 

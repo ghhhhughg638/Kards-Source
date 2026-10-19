@@ -11,7 +11,6 @@ import {
   defaultValue,
   connect,
   validateProject,
-  createDemo,
   setTypeHierarchy,
   matchingPin,
 } from "./model.js";
@@ -1217,21 +1216,19 @@ function exportSVG() {
 function newProject() {
   openModal(
     "新建蓝图项目",
-    `<div class="field"><label class="detail-label" for="new-name">项目名称</label><input id="new-name" value="我的 KARDS 蓝图" maxlength="100"></div><div class="field"><label class="detail-label" for="template">起始模板</label><select id="template"><option value="empty">空白卡牌蓝图</option><option value="demo">示例：部署与战术分支</option></select></div><p>当前项目会保留在撤销记录中。建议先导出文件，方便以后继续编辑。</p><div class="modal-actions"><button id="save-first" class="secondary-button">导出当前项目</button><button id="create-project" class="primary-button">创建项目</button></div>`,
+    `<div class="field"><label class="detail-label" for="new-name">项目名称</label><input id="new-name" value="我的 KARDS 蓝图" maxlength="100"></div><p>当前项目会保留在撤销记录中。建议先导出文件，方便以后继续编辑。</p><div class="modal-actions"><button id="save-first" class="secondary-button">导出当前项目</button><button id="create-project" class="primary-button">创建项目</button></div>`,
   );
   $("save-first").onclick = exportProject;
   $("create-project").onclick = () => {
-    const name = $("new-name").value.trim() || "未命名卡牌",
-      demo = $("template").value === "demo";
+    const name = $("new-name").value.trim() || "未命名卡牌";
     mutate(() => {
-      project = demo ? createDemo(catalog) : makeProject();
+      project = makeProject();
       project.name = name;
-      if (!demo) project.card.title = name;
+      project.card.title = name;
       selection.clear();
       selectedEdge = null;
     });
     $("modal").close();
-    if (demo) requestAnimationFrame(fit);
   };
 }
 $("file-input").onchange = async (e) => {
@@ -1457,9 +1454,9 @@ async function boot() {
         restored = true;
       }
     } catch {
-      toast("本地草稿无法读取，已打开示例。可导入备份文件恢复。", true);
+      toast("本地草稿无法读取，已新建空白项目。可导入备份文件恢复。", true);
     }
-    project ??= createDemo(catalog);
+    project ??= makeProject();
     project.types = { ...classes, ...project.types };
     renderLibrary();
     render();

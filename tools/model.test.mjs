@@ -6,13 +6,32 @@ import {
   builtins,
   makeGraph,
   makeNode,
-  createDemo,
+  makeProject,
   validateProject,
   connect,
 } from "../docs/model.js";
 const catalog = JSON.parse(
   await readFile(new URL("../docs/catalog.json", import.meta.url), "utf8"),
 );
+
+// A small project assembled from real catalog nodes; replaces the removed built-in demo.
+function fixtureProject(defs = catalog.nodes) {
+  const p = makeProject(),
+    g = p.graphs[0],
+    find = (name) => [...defs, ...builtins].find((n) => n.name === name);
+  const event = makeNode(find("OnPlayedFromHand"), 70, 180),
+    branch = makeNode(find("Branch"), 390, 180),
+    blitz = makeNode(find("GiveBlitz"), 720, 110),
+    guard = makeNode(find("GiveGuard"), 720, 370),
+    condition = makeNode(find("Boolean"), 80, 410);
+  condition.values = { Value: true };
+  g.nodes = [event, branch, blitz, guard, condition];
+  connect(g, { node: event.id, pin: "exec-out" }, { node: branch.id, pin: "exec-in" });
+  connect(g, { node: condition.id, pin: "Value" }, { node: branch.id, pin: "Condition" });
+  connect(g, { node: branch.id, pin: "True" }, { node: blitz.id, pin: "exec-in" });
+  connect(g, { node: branch.id, pin: "False" }, { node: guard.id, pin: "exec-in" });
+  return p;
+}
 test("all native definitions have unique IDs and valid, distinct pins", () => {
   const ids = new Set();
   for (const d of catalog.nodes) {
@@ -29,8 +48,8 @@ test("all native definitions have unique IDs and valid, distinct pins", () => {
   assert(catalog.nodes.length > 500);
   assert(catalog.enums.EFactionEnum.includes("Soviet"));
 });
-test("demo survives a JSON round trip, including definitions and edges", () => {
-  const p = createDemo(catalog.nodes);
+test("project survives a JSON round trip, including definitions and edges", () => {
+  const p = fixtureProject();
   assert.deepEqual(validateProject(JSON.parse(JSON.stringify(p))), p);
   assert.equal(p.graphs[0].edges.length, 4);
 });
@@ -71,7 +90,7 @@ test("a new input connection replaces the old input and duplicate is a no-op", (
   assert.equal(connect(g, { node: b.id, pin: "Value" }, to), false);
 });
 test("import rejects unsupported versions and dangling, duplicate or mismatched connections", () => {
-  const p = createDemo(catalog.nodes);
+  const p = fixtureProject();
   const badVersion = clone(p);
   badVersion.version = 999;
   assert.throws(() => validateProject(badVersion));
@@ -86,7 +105,7 @@ test("import rejects unsupported versions and dangling, duplicate or mismatched 
   assert.throws(() => validateProject(mismatch), /类型不匹配/);
 });
 test("import restores missing view defaults but rejects nonfinite node positions", () => {
-  const p = createDemo(catalog.nodes);
+  const p = fixtureProject();
   delete p.graphs[0].view;
   validateProject(p);
   assert.equal(p.graphs[0].view.zoom, 1);
@@ -162,16 +181,36 @@ test("event labels retain explicit English Event and Chinese display text", () =
   assert(nodeChinese(event).includes("从手牌打出"));
 });
 
-test("full example includes a valid Cast & Call graph with execution and typed target links", () => {
+test("new projects start empty with a single event graph", () => {
+  const p = makeProject();
+  assert.equal(p.graphs.length, 1);
+  assert.equal(p.graphs[0].nodes.length, 0);
+  validateProject(clone(p));
+});
+
+test("Cast & Call graph validates with execution and typed target links", () => {
   const full = [
     ...builtins,
     ...typeNodes({ ...engineClasses, ...catalog.classes }, catalog.properties),
     ...catalog.nodes,
   ];
-  const demo = createDemo(full);
-  validateProject(clone(demo));
-  assert.equal(demo.graphs.length, 3);
-  const example = demo.graphs.find((g) => g.name.includes("Cast & Call"));
-  assert.equal(example.edges.length, 5);
-  assert(example.nodes.some((n) => n.definition.kind === "cast"));
+  const p = fixtureProject(full),
+    g = makeGraph("Cast & Call"),
+    find = (id) => full.find((d) => d.id === id),
+    byName = (name) => full.find((d) => d.name === name);
+  const entry = makeNode(byName("OnStartOfGame"), 40, 150),
+    object = makeNode(byName("ObjectReference"), 40, 380),
+    cast = makeNode(find("ue.cast.UBaseCardObject"), 390, 150),
+    call = makeNode(find("UBaseCardObject.ResetCardAttributes"), 750, 100),
+    get = makeNode(find("UBaseCardObject.get.attack"), 750, 410);
+  g.nodes = [entry, object, cast, call, get];
+  connect(g, { node: entry.id, pin: "exec-out" }, { node: cast.id, pin: "exec-in" });
+  connect(g, { node: object.id, pin: "Value" }, { node: cast.id, pin: "Object" });
+  connect(g, { node: cast.id, pin: "Success" }, { node: call.id, pin: "exec-in" });
+  connect(g, { node: cast.id, pin: "AsUBaseCardObject" }, { node: call.id, pin: "target" });
+  connect(g, { node: cast.id, pin: "AsUBaseCardObject" }, { node: get.id, pin: "target" });
+  p.graphs.push(g);
+  validateProject(clone(p));
+  assert.equal(g.edges.length, 5);
+  assert(g.nodes.some((n) => n.definition.kind === "cast"));
 });
