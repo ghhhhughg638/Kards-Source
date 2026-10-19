@@ -677,7 +677,7 @@ function renderInspector() {
           })
           .join("")
       : '<p class="detail-description">此节点没有可编辑的默认输入。</p>';
-    body += `</section><section class="detail-section"><h3 class="detail-heading">源代码 <span>NATIVE</span></h3><div class="detail-source">${esc(d.signature || d.name)}${d.source ? `<p><a href="https://github.com/ghhhhughg638/Kards-Source/blob/main/${encodeURI(d.source)}" target="_blank" rel="noreferrer">${esc(d.source)} ↗</a></p>` : "<p>Studio 自定义节点 · 仅用于可视化设计</p>"}</div><button class="secondary-button" id="duplicate" style="width:100%;margin-top:10px">复制节点 <kbd>Ctrl D</kbd></button><button class="danger-button" id="delete-selection">删除选中节点</button></section>`;
+    body += `</section><section class="detail-section"><h3 class="detail-heading">源代码 <span>NATIVE</span></h3><div class="detail-source">${esc(d.signature || d.name)}${d.source ? `<p><a href="https://github.com/ghhhhughg638/KardsSource/blob/main/${encodeURI(d.source)}" target="_blank" rel="noreferrer">${esc(d.source)} ↗</a></p>` : "<p>Studio 自定义节点 · 仅用于可视化设计</p>"}</div><button class="secondary-button" id="duplicate" style="width:100%;margin-top:10px">复制节点 <kbd>Ctrl D</kbd></button><button class="danger-button" id="delete-selection">删除选中节点</button></section>`;
   } else {
     const card = project.card;
     body = `<section class="detail-section"><h3 class="detail-heading">卡牌信息 <span>CARD DATA</span></h3><div class="card-preview"><div class="card-emblem">${esc(card.cost)}</div><div><small>${esc(card.faction.toUpperCase())} / ${esc(card.type.toUpperCase())}</small><h3>${esc(card.title)}</h3><p>${esc(FACTIONS[card.faction] || card.faction)} · ${esc(card.rarity)}</p></div></div>${field("卡牌名称", "card.title", card.title)}${field(

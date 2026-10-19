@@ -98,6 +98,6 @@ for path in sorted(root.glob('*/Public/*.h')):
         if not prop: continue
         typ,name=prop.groups();typ=re.sub(r'\s+',' ',typ.strip())
         properties.append({'class':cls,'name':name,'type':typ,'writable':'BlueprintReadWrite' in flags,'source':str(path.relative_to(root))})
-result={'version':1,'repository':'ghhhhughg638/Kards-Source','nodes':nodes,'enums':enums,'classes':classes,'properties':properties}
+result={'version':1,'repository':'ghhhhughg638/KardsSource','nodes':nodes,'enums':enums,'classes':classes,'properties':properties}
 (root/'docs/catalog.json').write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf-8')
 print(f'Generated {len(nodes)} functions and {len(enums)} enums, {len(classes)} classes, {len(properties)} properties')
