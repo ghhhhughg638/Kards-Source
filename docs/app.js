@@ -11,7 +11,6 @@ import {
   defaultValue,
   connect,
   validateProject,
-  createDemo,
   setTypeHierarchy,
   matchingPin,
 } from "./model.js";
@@ -587,6 +586,11 @@ function renderNodes() {
     .join("");
 }
 function updateSelectionStatus() {
+  const bar = $("selection-bar");
+  if (bar) {
+    bar.hidden = !(selection.size || selectedEdge);
+    $("bar-duplicate").hidden = !selection.size;
+  }
   $("selection-status").textContent = pending
     ? "选择一个兼容端口完成连线 · Esc 取消"
     : selectedEdge
@@ -795,11 +799,16 @@ function fit() {
     updateView();
     return;
   }
-  const b = bounds(),
+  const narrow = window.innerWidth <= 800,
+    b = bounds(),
     r = $("viewport").getBoundingClientRect(),
     z = Math.max(
       0.2,
-      Math.min(1.15, (r.width - 70) / b.w, (r.height - 145) / b.h),
+      Math.min(
+        1.15,
+        (r.width - (narrow ? 24 : 70)) / b.w,
+        (r.height - (narrow ? 80 : 145)) / b.h,
+      ),
     );
   graph().view = {
     x: (r.width - b.w * z) / 2 - b.x * z,
@@ -884,9 +893,88 @@ function tryConnect(a, b) {
   }
 }
 const viewport = $("viewport");
+// Two-finger pinch: zoom around the midpoint and pan with it.
+const touches = new Map();
+let pinch = null;
+const touchPair = () => {
+  const [a, b] = [...touches.values()];
+  return {
+    d: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
+};
+viewport.addEventListener(
+  "pointerdown",
+  (e) => {
+    if (e.pointerType !== "touch") return;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touches.size === 2) {
+      drag = null;
+      pending = null;
+      viewport.classList.remove("panning");
+      pinch = touchPair();
+      drawEdges();
+    }
+    if (touches.size >= 2) e.stopImmediatePropagation();
+  },
+  true,
+);
+viewport.addEventListener(
+  "pointermove",
+  (e) => {
+    if (!touches.has(e.pointerId)) return;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (!pinch || touches.size !== 2) return;
+    e.stopImmediatePropagation();
+    const now = touchPair(),
+      r = viewport.getBoundingClientRect();
+    zoomAt(now.d / pinch.d, now.x - r.left, now.y - r.top);
+    graph().view.x += now.x - pinch.x;
+    graph().view.y += now.y - pinch.y;
+    updateView();
+    drawMinimap();
+    pinch = now;
+  },
+  true,
+);
+// Long-press on empty canvas opens the node picker (touch devices have no right-click).
+let pressTimer = 0;
+const cancelPress = () => clearTimeout(pressTimer);
+viewport.addEventListener("pointerdown", (e) => {
+  cancelPress();
+  if (
+    e.pointerType !== "touch" ||
+    touches.size !== 1 ||
+    e.target.closest(".node,.pin,[data-edge],.canvas-bottom,.minimap-wrap,.empty-state,.selection-bar")
+  )
+    return;
+  const { clientX, clientY } = e;
+  pressTimer = setTimeout(() => {
+    if (touches.size !== 1) return;
+    drag = null;
+    viewport.classList.remove("panning");
+    picker(worldPoint({ clientX, clientY }), pending);
+  }, 550);
+});
+viewport.addEventListener("pointermove", (e) => {
+  if (e.pointerType === "touch" && pressTimer && drag?.type === "pan") {
+    if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) > 8)
+      cancelPress();
+  }
+});
+window.addEventListener("pointerup", cancelPress, true);
+window.addEventListener("pointercancel", cancelPress, true);
+const endTouch = (e) => {
+  if (!touches.delete(e.pointerId)) return;
+  if (touches.size < 2) pinch = null;
+};
+window.addEventListener("pointerup", endTouch, true);
+window.addEventListener("pointercancel", endTouch, true);
 viewport.addEventListener("pointerdown", (e) => {
   if (e.button === 2) return;
-  if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state")) return;
+  if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state,.selection-bar"))
+    return;
   const pin = e.target.closest(".pin");
   if (pin && e.button === 0) {
     e.preventDefault();
@@ -1128,21 +1216,19 @@ function exportSVG() {
 function newProject() {
   openModal(
     "新建蓝图项目",
-    `<div class="field"><label class="detail-label" for="new-name">项目名称</label><input id="new-name" value="我的 KARDS 蓝图" maxlength="100"></div><div class="field"><label class="detail-label" for="template">起始模板</label><select id="template"><option value="empty">空白卡牌蓝图</option><option value="demo">示例：部署与战术分支</option></select></div><p>当前项目会保留在撤销记录中。建议先导出文件，方便以后继续编辑。</p><div class="modal-actions"><button id="save-first" class="secondary-button">导出当前项目</button><button id="create-project" class="primary-button">创建项目</button></div>`,
+    `<div class="field"><label class="detail-label" for="new-name">项目名称</label><input id="new-name" value="我的 KARDS 蓝图" maxlength="100"></div><p>当前项目会保留在撤销记录中。建议先导出文件，方便以后继续编辑。</p><div class="modal-actions"><button id="save-first" class="secondary-button">导出当前项目</button><button id="create-project" class="primary-button">创建项目</button></div>`,
   );
   $("save-first").onclick = exportProject;
   $("create-project").onclick = () => {
-    const name = $("new-name").value.trim() || "未命名卡牌",
-      demo = $("template").value === "demo";
+    const name = $("new-name").value.trim() || "未命名卡牌";
     mutate(() => {
-      project = demo ? createDemo(catalog) : makeProject();
+      project = makeProject();
       project.name = name;
-      if (!demo) project.card.title = name;
+      project.card.title = name;
       selection.clear();
       selectedEdge = null;
     });
     $("modal").close();
-    if (demo) requestAnimationFrame(fit);
   };
 }
 $("file-input").onchange = async (e) => {
@@ -1217,7 +1303,8 @@ $("help").onclick = help;
 $("validate").onclick = validate;
 $("toggle-inspector").onclick = () => {
   const panel = $("inspector");
-  if (window.innerWidth <= 1000) panel.classList.toggle("mobile-open");
+  if (window.innerWidth <= 1000)
+    setInspectorOpen(!panel.classList.contains("mobile-open"));
   else panel.hidden = !panel.hidden;
   requestAnimationFrame(() => {
     drawEdges();
@@ -1227,10 +1314,21 @@ $("toggle-inspector").onclick = () => {
 function setDrawer(open) {
   $("left-panel").classList.toggle("open", open);
   $("drawer-backdrop").classList.toggle("open", open);
+  if (open) $("inspector").classList.remove("mobile-open");
 }
+function setInspectorOpen(open) {
+  $("inspector").classList.toggle("mobile-open", open);
+  $("drawer-backdrop").classList.toggle("open", open);
+}
+$("bar-details").onclick = () => setInspectorOpen(true);
+$("bar-duplicate").onclick = duplicate;
+$("bar-delete").onclick = deleteSelection;
 $("toggle-library").onclick = () =>
   setDrawer(!$("left-panel").classList.contains("open"));
-$("drawer-backdrop").onclick = () => setDrawer(false);
+$("drawer-backdrop").onclick = () => {
+  setDrawer(false);
+  setInspectorOpen(false);
+};
 $("graph-list").addEventListener("click", () => {
   if (window.innerWidth <= 800) setDrawer(false);
 });
@@ -1356,9 +1454,9 @@ async function boot() {
         restored = true;
       }
     } catch {
-      toast("本地草稿无法读取，已打开示例。可导入备份文件恢复。", true);
+      toast("本地草稿无法读取，已新建空白项目。可导入备份文件恢复。", true);
     }
-    project ??= createDemo(catalog);
+    project ??= makeProject();
     project.types = { ...classes, ...project.types };
     renderLibrary();
     render();
