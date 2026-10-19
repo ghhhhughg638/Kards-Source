@@ -84,6 +84,19 @@
       <main class="workspace">
         <div id="drawer-backdrop" class="drawer-backdrop"></div>
         <aside class="left-panel" id="left-panel">
+          <section class="workspace-section">
+            <div class="section-heading">
+              <h2>
+                <span class="zh">工作区</span>
+                <small class="en">Workspace</small>
+              </h2>
+              <span class="bp-actions"
+                ><button id="ws-new" class="tiny-button" title="新建卡牌">＋</button
+                ><button id="ws-import" class="tiny-button" title="导入卡牌">⇪</button></span
+              >
+            </div>
+            <div id="workspace-list" class="workspace-list"></div>
+          </section>
           <section class="graph-section">
             <div class="section-heading">
               <h2><span class="zh">我的蓝图</span> <small class="en">My Blueprint</small></h2>
@@ -222,7 +235,7 @@
         </div>
       </footer>
     </div>
-    <input type="file" id="file-input" accept=".json,.kardsbp" hidden />
+    <input type="file" id="file-input" accept=".json,.kardsbp,.zip" multiple hidden />
     <div id="toast" class="toast" role="status" hidden></div>
     <dialog id="modal"><div id="modal-content"></div></dialog>
     <script type="module" src="./app.js"></script>
