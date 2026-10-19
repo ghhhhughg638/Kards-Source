@@ -1,4 +1,4 @@
-import { setUiLanguage, tr, translateText } from "./ui-i18n.js";
+import { setUiLanguage, tr } from "./ui-i18n.js";
 import {
   FORMAT,
   VERSION,
@@ -1239,8 +1239,9 @@ function exportProject() {
   );
   toast("已导出蓝图，可随时导入继续编辑");
 }
-// SVG exports are always English so files look the same whatever the display language is.
-const toEnglish = (text) => translateText(text, "en");
+// SVG exports use English for everything the editor provides (node, pin and category names),
+// and exactly what the user typed for everything they can customise (card title, graph name,
+// node titles, comments, default values).
 const pinEnglish = (p) =>
   p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
 const kindEnglish = (n) =>
@@ -1249,7 +1250,7 @@ function exportSVG() {
   if (!graph().nodes.length) return toast("请先添加节点");
   const b = bounds();
   const header = 60;
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x} ${b.y - header} ${b.w} ${b.h + header}" width="${b.w}" height="${b.h + header}"><rect x="${b.x}" y="${b.y - header}" width="${b.w}" height="${b.h + header}" fill="#252525"/><text x="${b.x + 20}" y="${b.y - 25}" fill="#d4d4d4" font-family="sans-serif" font-size="16">${esc(toEnglish(project.card.title))} · ${esc(toEnglish(graph().name))}</text><g fill="none" stroke-width="2.3">`;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x} ${b.y - header} ${b.w} ${b.h + header}" width="${b.w}" height="${b.h + header}"><rect x="${b.x}" y="${b.y - header}" width="${b.w}" height="${b.h + header}" fill="#252525"/><text x="${b.x + 20}" y="${b.y - 25}" fill="#d4d4d4" font-family="sans-serif" font-size="16">${esc(project.card.title)} · ${esc(graph().name)}</text><g fill="none" stroke-width="2.3">`;
   for (const e of graph().edges) {
     const a = pinPosition(e.from),
       p = pinPosition(e.to),
@@ -1263,7 +1264,7 @@ function exportSVG() {
     const el = document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`),
       h = el.offsetHeight,
       w = el.offsetWidth;
-    svg += `<g font-family="monospace"><rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="6" fill="#171717" stroke="${color(n.definition)}"/><rect x="${n.x + 1}" y="${n.y + 1}" width="${w - 2}" height="57" rx="5" fill="${color(n.definition)}"/><text x="${n.x + 12}" y="${n.y + 24}" fill="#e0e9e2" font-size="12">${esc(nodeEnglish(n.definition))}</text><text x="${n.x + 12}" y="${n.y + 43}" fill="#eeeeee" font-size="9">${esc(kindEnglish(n))}</text>`;
+    svg += `<g font-family="monospace"><rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="6" fill="#171717" stroke="${color(n.definition)}"/><rect x="${n.x + 1}" y="${n.y + 1}" width="${w - 2}" height="57" rx="5" fill="${color(n.definition)}"/><text x="${n.x + 12}" y="${n.y + 24}" fill="#e0e9e2" font-size="12">${esc(n.title || nodeEnglish(n.definition))}</text><text x="${n.x + 12}" y="${n.y + 43}" fill="#eeeeee" font-size="9">${esc(n.title ? nodeEnglish(n.definition) : kindEnglish(n))}</text>`;
     if (n.comment)
       svg += `<text x="${n.x}" y="${n.y - 12}" fill="#a4b69d" font-size="10">${esc(n.comment)}</text>`;
     for (const p of n.definition.pins) {
