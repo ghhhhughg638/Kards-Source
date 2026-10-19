@@ -336,3 +336,40 @@ html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
 /* A Target that cannot default to Self and still needs a wire */
 .pin-value.pin-need { color: #ffd08a; border-color: #8a5a1c; background: #3a2a12; }
 .validation-item.warn { color: #ffd08a; }
+
+/* Inline value editors on nodes */
+.node .pin-input {
+  font: calc(10px * var(--s)) var(--mono);
+  height: calc(18px * var(--s));
+  min-width: 0;
+  padding: 0 calc(4px * var(--s));
+  color: #d4e4da;
+  background: #121a15;
+  border: 1px solid #36483a;
+  border-radius: 3px;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+.node .pin-input:focus { outline: none; border-color: var(--accent); }
+.node .pin-number { width: calc(56px * var(--s)); }
+.node .pin-text { width: calc(86px * var(--s)); }
+.node select.pin-input { max-width: calc(130px * var(--s)); }
+.node .pin-value.pin-need { cursor: help; }
+
+/* No blue tap/selection overlays when pressing or holding on nodes, ports and labels */
+.app, .app * { -webkit-tap-highlight-color: transparent; }
+.node, .node * , .viewport {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.node .pin-input { -webkit-user-select: text; user-select: text; }
+.node .pin:focus, .node .pin:focus-visible, .node button:focus, .node button:focus-visible { outline: none; }
+.node .pin:active { box-shadow: none; }
+@media (pointer: coarse) {
+  .node .pin:hover { box-shadow: none; background: inherit !important; }
+  .node .pin.pending { box-shadow: 0 0 0 4px color-mix(in srgb, var(--pin-color) 35%, transparent); }
+}
+.viewport ::selection { background: transparent; }
+.node .pin-input::selection, textarea::selection, input::selection { background: #3b5f8a; }

@@ -1149,6 +1149,26 @@ function customNode() {
     $("modal").close();
   };
 }
+// Editable default value shown on the node itself: switch (bool), list (enum / Self-None),
+// number box (int / float) or text box.
+function valueControl(n, p, val) {
+  const attrs = `data-input="${esc(p.id)}" data-input-node="${esc(n.id)}"`;
+  const kind = pinKind(p.type);
+  if (typeof val === "boolean")
+    return `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>`;
+  if (p.id === "target" && val === "None")
+    return `<span class="pin-value pin-need" title="${esc(`这个函数属于 ${n.definition.class}，不是本蓝图（${project.asset.parentClass}）的成员，Target 必须连接`)}">None</span>`;
+  const list = enums[p.type];
+  if (list)
+    return `<select class="pin-input" ${attrs}>${[...new Set([...list, String(val)])].map((v) => `<option ${String(v) === String(val) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>`;
+  if (kind === "object" && p.type.endsWith("*") && pinDefault(p) === "Self")
+    return `<select class="pin-input" ${attrs}>${["Self", "None"].map((v) => `<option ${v === String(val) ? "selected" : ""}>${v}</option>`).join("")}</select>`;
+  if (kind === "int" || kind === "float")
+    return `<input class="pin-input pin-number" type="number" step="${kind === "int" ? 1 : "any"}" value="${esc(val)}" ${attrs}>`;
+  if (kind === "object" || kind === "array")
+    return `<span class="pin-value">${esc(val)}</span>`;
+  return `<input class="pin-input pin-text" type="text" value="${esc(val)}" ${attrs}>`;
+}
 function pinMarkup(n, p) {
   const connected = graph().edges.some(
     (e) =>
@@ -1167,7 +1187,7 @@ function pinMarkup(n, p) {
     !(p.id === "target" && val === "Self") &&
     (p.direction === "in" ||
       (n.definition.category === "variables" && n.definition.kind === "variable"));
-  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? (typeof val === "boolean" ? `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>` : `<span class="pin-value${p.id === "target" && val === "None" ? " pin-need" : ""}"${p.id === "target" && val === "None" ? ` title="${esc(`这个函数属于 ${n.definition.class}，不是本蓝图（${project.asset.parentClass}）的成员，Target 必须连接`)}"` : ""}>${esc(val)}</span>`) : ""}${p.direction === "out" ? button : ""}</div>`;
+  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? valueControl(n, p, val) : ""}${p.direction === "out" ? button : ""}</div>`;
 }
 function nodeBody(n) {
   const ins = n.definition.pins.filter((p) => p.direction === "in"),
@@ -1191,6 +1211,18 @@ function nodeTier(d) {
   if ((!hasExec && data <= 4) || (hasExec && rows <= 2)) return "sm";
   return "md";
 }
+$("nodes").addEventListener("change", (e) => {
+  const el = e.target.closest("[data-input]");
+  if (!el) return;
+  const n = graph().nodes.find((x) => x.id === el.dataset.inputNode),
+    p = n?.definition.pins.find((x) => x.id === el.dataset.input);
+  if (!p) return;
+  const kind = pinKind(p.type);
+  const val =
+    kind === "int" || kind === "float" ? Number(el.value) : el.value;
+  if (typeof val === "number" && !Number.isFinite(val)) return renderNodes();
+  mutate(() => (n.values[p.id] = kind === "int" ? Math.trunc(val) : val));
+});
 // Nodes size themselves to their content, so redraw wires whenever one changes size.
 let relayoutFrame = 0;
 const nodeObserver = new ResizeObserver(() => {
@@ -1633,6 +1665,7 @@ viewport.addEventListener("pointerdown", (e) => {
   if (e.button === 2) return;
   if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state,.selection-bar"))
     return;
+  if (e.target.closest(".pin-input")) return;
   const toggle = e.target.closest("[data-toggle]");
   if (toggle && e.button === 0) {
     e.preventDefault();
