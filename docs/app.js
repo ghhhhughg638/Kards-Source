@@ -35,22 +35,34 @@ const $ = (id) => document.getElementById(id),
           "'": "&#39;",
         })[c],
     );
+// Display language: "both" (中文 + English), "zh" or "en". Elements marked .zh / .en are hidden by CSS.
+const LANG_KEY = "kards-blueprint-studio.lang";
+let langMode = "both";
+try {
+  const saved = localStorage.getItem(LANG_KEY);
+  if (["both", "zh", "en"].includes(saved)) langMode = saved;
+} catch {
+  /* storage unavailable: keep the default */
+}
+document.documentElement.dataset.lang = langMode;
+const bi = (zh, en) =>
+  `<span class="zh">${zh}</span> <span class="en">${en}</span>`;
 const STORAGE = "kards-blueprint-studio.v1",
   CAT = {
-    all: "全部 All",
-    events: "事件 Events",
-    combat: "战斗",
-    cards: "卡牌",
-    effects: "效果",
-    queries: "查询",
-    match: "对局",
-    flow: "流程 Flow",
-    variables: "变量 Variables",
-    utilities: "工具 Utilities",
-    properties: "属性 Properties",
-    math: "运算 Math",
-    arrays: "数组 Array",
-    conversion: "转换 Cast",
+    all: bi("全部", "All"),
+    events: bi("事件", "Events"),
+    combat: bi("战斗", "Combat"),
+    cards: bi("卡牌", "Cards"),
+    effects: bi("效果", "Effects"),
+    queries: bi("查询", "Queries"),
+    match: bi("对局", "Match"),
+    flow: bi("流程", "Flow"),
+    variables: bi("变量", "Variables"),
+    utilities: bi("工具", "Utilities"),
+    properties: bi("属性", "Properties"),
+    math: bi("运算", "Math"),
+    arrays: bi("数组", "Array"),
+    conversion: bi("转换", "Cast"),
   };
 const COLORS = {
   event: "#b52c2c",
@@ -186,6 +198,9 @@ const graph = () => project.graphs.find((g) => g.id === project.activeGraph),
           ? "事件 · "
           : "") + n.title
       : nodeChinese(n.definition);
+// Primary node name for the current language; a custom title the user typed is always shown.
+const nodeHeading = (n) =>
+  langMode === "en" && !n.title ? nodeEnglish(n.definition) : title(n);
 function toast(message, error = false) {
   $("toast").textContent = message;
   $("toast").classList.toggle("error", error);
@@ -341,7 +356,7 @@ function editGraph(id) {
     };
 }
 function libraryItem(d) {
-  return `<button class="library-node" draggable="true" data-def="${esc(d.id)}" title="${esc(d.signature || nodeEnglish(d))}" style="--node-color:${color(d)}"><span class="lib-icon">${icon(d)}</span><span><strong>${esc(nodeEnglish(d))}</strong><small>${esc(nodeChinese(d))} <span class="lib-owner">${esc((d.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "").replace("Stub", ""))}</span></small></span></button>`;
+  return `<button class="library-node" draggable="true" data-def="${esc(d.id)}" title="${esc(d.signature || nodeEnglish(d))}" style="--node-color:${color(d)}"><span class="lib-icon">${icon(d)}</span><span><strong>${esc(langMode === "zh" ? nodeChinese(d) : nodeEnglish(d))}</strong><small>${langMode === "both" ? esc(nodeChinese(d)) + " " : ""}<span class="lib-owner">${esc((d.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "").replace("Stub", ""))}</span></small></span></button>`;
 }
 function filterCatalog(q, cat = "all") {
   q = q.trim().toLowerCase();
@@ -373,7 +388,7 @@ function renderLibrary() {
           renderLibrary();
         }),
     );
-  $("library-label").textContent = `${CAT[category]} · ${results.length}`;
+  $("library-label").innerHTML = `${CAT[category]} · ${results.length}`;
   $("node-list").innerHTML = results.length
     ? results.slice(0, 120).map(libraryItem).join("") +
       (results.length > 120
@@ -585,7 +600,7 @@ function pinMarkup(n, p) {
   const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
     raw = p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
-  const label = `<span class="pin-label"><span class="pin-cn">${esc(cn)}</span><span class="pin-en">${esc(raw)}</span></span>`;
+  const label = `<span class="pin-label"><span class="pin-cn zh">${esc(cn)}</span><span class="pin-en en">${esc(raw)}</span></span>`;
   const showValue =
     !connected &&
     p.type !== "exec" &&
@@ -615,7 +630,7 @@ function renderNodes() {
   $("nodes").innerHTML = graph()
     .nodes.map(
       (n) =>
-        `<article class="node ue-${nodeKind(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(title(n))}</strong></div><div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div></div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
+        `<article class="node ue-${nodeKind(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
     )
     .join("");
   nodeObserver.disconnect();
@@ -1355,7 +1370,7 @@ $("zoom-label").onclick = () => zoomAt(1 / graph().view.zoom);
 async function forceRefresh() {
   const button = $("force-refresh");
   button.disabled = true;
-  button.textContent = "⟳ 读取中…";
+  button.textContent = "⟳ …";
   try {
     persist();
     const files = [
@@ -1381,7 +1396,7 @@ async function forceRefresh() {
     setTimeout(() => location.reload(), 400);
   } catch (error) {
     button.disabled = false;
-    button.textContent = "⟳ 刷新";
+    button.innerHTML = `⟳ ${bi("刷新", "Refresh")}`;
     toast(`刷新失败：${error.message}。请检查网络后重试。`, true);
   }
 }
@@ -1566,9 +1581,21 @@ $("modal").addEventListener("close", () => {
     updateSelectionStatus();
   }
 });
-$("new-project").textContent = "新建 New";
-$("import").textContent = "导入 Import";
-$("export").innerHTML = "<span>↗</span>导出 Export";
-$("add-node").textContent = "＋ 节点 Node";
-$("validate").textContent = "检查 Check";
+$("new-project").innerHTML = bi("新建", "New");
+$("import").innerHTML = bi("导入", "Import");
+$("export").innerHTML = `<span>↗</span>${bi("导出", "Export")}`;
+$("add-node").innerHTML = `＋ ${bi("节点", "Node")}`;
+$("validate").innerHTML = bi("检查", "Check");
+$("lang-select").value = langMode;
+$("lang-select").onchange = (e) => {
+  langMode = e.target.value;
+  document.documentElement.dataset.lang = langMode;
+  try {
+    localStorage.setItem(LANG_KEY, langMode);
+  } catch {
+    /* storage unavailable: the choice lasts for this visit only */
+  }
+  renderLibrary();
+  render();
+};
 boot();

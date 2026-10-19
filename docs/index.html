@@ -29,6 +29,11 @@
         </div>
         <div class="top-actions">
           <span id="save-state" class="save-state">本地已保存</span
+          ><select id="lang-select" class="lang-select" aria-label="显示语言 / Language" title="显示语言 / Language">
+            <option value="both">中文 + EN</option>
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+          </select
           ><button id="help" class="icon-button" title="操作帮助">?</button
           ><a
             class="github-link"
@@ -45,15 +50,15 @@
         <div>
           <button id="new-project">新建项目</button
           ><button id="import">导入文件</button
-          ><button id="save">保存 <kbd>⌘ S</kbd></button
+          ><button id="save"><span class="zh">保存</span> <span class="en">Save</span> <kbd>⌘ S</kbd></button
           ><span class="separator"></span
-          ><button id="undo" title="撤销 Ctrl/Cmd+Z">↶ 撤销</button
-          ><button id="redo" title="重做 Ctrl/Cmd+Shift+Z">↷ 重做</button><span class="separator"></span
+          ><button id="undo" title="撤销 Ctrl/Cmd+Z">↶ <span class="zh">撤销</span> <span class="en">Undo</span></button
+          ><button id="redo" title="重做 Ctrl/Cmd+Shift+Z">↷ <span class="zh">重做</span> <span class="en">Redo</span></button><span class="separator"></span
           ><button
             id="force-refresh"
             title="强制刷新：绕过缓存，重新从 GitHub 读取最新版本（本地草稿不会丢失）"
           >
-            ⟳ 刷新
+            ⟳ <span class="zh">刷新</span> <span class="en">Refresh</span>
           </button>
         </div>
         <div class="menubar-right">
@@ -66,7 +71,7 @@
         <aside class="left-panel" id="left-panel">
           <section class="graph-section">
             <div class="section-heading">
-              <h2>我的蓝图 <small>My Blueprint</small></h2>
+              <h2><span class="zh">我的蓝图</span> <small class="en">My Blueprint</small></h2>
               <button id="add-graph" class="tiny-button" title="新建事件图">
                 ＋
               </button>
@@ -78,7 +83,7 @@
           </section>
           <section class="library-section">
             <div class="section-heading">
-              <h2>节点库 <small>Palette</small></h2>
+              <h2><span class="zh">节点库</span> <small class="en">Palette</small></h2>
               <span id="catalog-count" class="count-badge">…</span>
             </div>
             <label class="search-box"
@@ -180,7 +185,7 @@
         </section>
         <aside id="inspector" class="inspector">
           <div class="inspector-heading">
-            <h2>详情 <small>Details</small></h2>
+            <h2><span class="zh">详情</span> <small class="en">Details</small></h2>
             <span>▥</span>
           </div>
           <div id="inspector-content"></div>

@@ -225,3 +225,18 @@ body {
 .pin-value { padding: 0 5px; font-size: 10px; line-height: 16px; }
 .pin-toggle { padding: 0 7px; line-height: 15px; }
 .node { min-width: 150px; }
+
+/* Display language: both (default), Chinese only, English only */
+html[data-lang="zh"] .en { display: none !important; }
+html[data-lang="en"] .zh { display: none !important; }
+html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
+.lang-select {
+  padding: 5px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  width: auto;
+  max-width: 110px;
+}
+@media (max-width: 800px) {
+  .lang-select { max-width: 88px; padding: 4px 4px; font-size: 13px; }
+}
