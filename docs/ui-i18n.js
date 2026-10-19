@@ -30,6 +30,7 @@ const EXACT = {
   "详情": "Details",
   "搜索可添加节点": "Search nodes to add",
   "节点库与蓝图列表": "Node library and graphs",
+  "工作区、蓝图列表与节点库": "Workspace, blueprint and node library",
   // canvas
   "添加节点 (Tab)": "Add node (Tab)",
   "添加节点": "Add node",
