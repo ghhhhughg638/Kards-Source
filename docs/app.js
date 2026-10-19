@@ -71,7 +71,7 @@ const PINCOLORS = {
   string: "#ec3fc4",
   enum: "#03c5b1",
   float: "#9fdb47",
-  array: "#e69030",
+  array: "#00a9ef",
   name: "#bf83ef",
   text: "#ec96b4",
   vector: "#e3bd20",
@@ -558,7 +558,7 @@ function pinMarkup(n, p) {
       (e.to.node === n.id && e.to.pin === p.id),
   );
   const val = n.values[p.id] ?? defaultValue(p.type, enums);
-  const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${PINCOLORS[pinKind(p.type)]}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
+  const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${PINCOLORS[pinKind(p.type)]}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
     raw = p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
   const label = `<span class="pin-label"><span class="pin-cn">${esc(cn)}</span><span class="pin-en">${esc(raw)}</span></span>`;

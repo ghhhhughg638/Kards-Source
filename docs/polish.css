@@ -32,6 +32,9 @@ body {
 .minimap-wrap:hover { opacity: 1; }
 
 #toggle-library { display: none; }
+/* Arrays share the object blue; a squared port tells them apart */
+.pin.array { border-radius: 2px; }
+.pin-legend .legend-array { background: #00a9ef; border-radius: 2px; }
 /* Boolean values on a node are tappable switches */
 .pin-toggle {
   cursor: pointer;
