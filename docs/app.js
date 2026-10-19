@@ -1333,6 +1333,41 @@ $("fit").onclick = fit;
 $("zoom-in").onclick = () => zoomAt(1.15);
 $("zoom-out").onclick = () => zoomAt(1 / 1.15);
 $("zoom-label").onclick = () => zoomAt(1 / graph().view.zoom);
+// Re-download every site file from the server (bypassing the HTTP cache), then reload.
+async function forceRefresh() {
+  const button = $("force-refresh");
+  button.disabled = true;
+  button.textContent = "⟳ 读取中…";
+  try {
+    persist();
+    const files = [
+      "./",
+      "./style.css",
+      "./polish.css",
+      "./app.js",
+      "./model.js",
+      "./ue-nodes.js",
+      "./i18n.js",
+      "./catalog.json",
+    ];
+    await Promise.all(
+      files.map((f) =>
+        fetch(f, { cache: "reload" }).then((r) => {
+          if (!r.ok) throw new Error(`${f} ${r.status}`);
+        }),
+      ),
+    );
+    if ("caches" in window)
+      await Promise.all((await caches.keys()).map((k) => caches.delete(k)));
+    toast("已从 GitHub 读取最新版本，正在刷新…");
+    setTimeout(() => location.reload(), 400);
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "⟳ 刷新";
+    toast(`刷新失败：${error.message}。请检查网络后重试。`, true);
+  }
+}
+$("force-refresh").onclick = forceRefresh;
 $("help").onclick = help;
 $("validate").onclick = validate;
 $("toggle-inspector").onclick = () => {
