@@ -1,4 +1,4 @@
-# Kards-Source
+# KardsSource
 
 Reconstructed Unreal Engine 5.6 C++ source tree for the KARDS client, plus **KARDS Blueprint Studio**, a browser-based blueprint editor (see `README.md` for full Studio documentation, in Chinese).
 

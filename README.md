@@ -2,7 +2,7 @@
 
 专为 KARDS 设计的浏览器蓝图编辑器，视觉布局参考 Unreal Engine 蓝图编辑器。
 
-**GitHub Pages 地址：https://ghhhhughg638.github.io/Kards-Source/v1/**（根地址会自动跳转到最新版本 `/v1/`；页面内的「⟳ 刷新」按钮可绕过缓存重新读取最新版本）
+**GitHub Pages 地址：https://ghhhhughg638.github.io/KardsSource/v1/**（根地址会自动跳转到最新版本 `/v1/`；页面内的「⟳ 刷新」按钮可绕过缓存重新读取最新版本）
 
 - UE 风格的灰色网格、红色 Event、蓝色函数、绿色纯函数、灰色流程、青色 Cast 节点，以及类型对应的引脚颜色。
 - 中文显示名与原始英文并列，例如「事件 · 从手牌打出 / Event OnPlayedFromHand」。
