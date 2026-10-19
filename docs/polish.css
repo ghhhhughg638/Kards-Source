@@ -32,6 +32,30 @@ body {
 .minimap-wrap:hover { opacity: 1; }
 
 #toggle-library { display: none; }
+/* Arrays share the object blue; a squared port tells them apart */
+.pin.array { border-radius: 2px; }
+.pin-legend .legend-square { border-radius: 2px; }
+.pin-legend-list {
+  display: flex;
+  align-items: center;
+  gap: 2px 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pin-legend-list .pin-legend { white-space: nowrap; margin-left: 8px; }
+.pin-legend-list .pin-legend i { width: 7px; height: 7px; }
+/* Boolean values on a node are tappable switches */
+.pin-toggle {
+  cursor: pointer;
+  padding: 2px 8px;
+  border: 1px solid #4a5a50;
+  border-radius: 10px;
+  background: #1e2723;
+  color: #cfe0d5;
+  font: inherit;
+}
+.pin-toggle:hover { border-color: var(--accent); }
 .canvas-tools > #add-node, .canvas-tools > #toggle-library {
   font-size: 11px;
   background: #383838;
@@ -91,6 +115,9 @@ body {
   .menubar button, .canvas-tools button, .zoom-controls button, .tiny-button { min-height: 36px; min-width: 36px; }
   .tab { min-width: 130px; font-size: 12px; }
 
+  .graph-footer > div:last-child { display: flex; flex: 1 1 0; min-width: 0; }
+  .graph-footer > div:first-child { flex-shrink: 0; }
+  .graph-footer { font-size: 11px; }
   .breadcrumbs { display: none; }
   .canvas-toolbar { justify-content: space-between; }
   .canvas-tools { display: flex; align-items: center; gap: 4px; }
