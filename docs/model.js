@@ -1,11 +1,18 @@
 export const FORMAT = "kards-blueprint";
-export const VERSION = 1;
+export const VERSION = 2;
 export const uid = () => crypto.randomUUID();
 export const clone = (value) =>
   typeof structuredClone === "function"
     ? structuredClone(value)
     : JSON.parse(JSON.stringify(value));
 import { ueBuiltins, engineClasses } from "./ue-nodes.js";
+import {
+  DEFAULT_PACKAGE_PATH,
+  DEFAULT_PARENT,
+  EVENT_GRAPH_NAME,
+  syncDefinitions,
+  validateBlueprint,
+} from "./blueprint.js";
 export const builtins = ueBuiltins;
 let typeHierarchy = { ...engineClasses };
 export function setTypeHierarchy(classes = {}) {
@@ -55,22 +62,29 @@ export function makeNode(def, x, y) {
     values: {},
   };
 }
-export function makeGraph(name = "事件图") {
+export function makeGraph(name = EVENT_GRAPH_NAME, kind = "event") {
   return {
     id: uid(),
     name,
+    kind,
     nodes: [],
     edges: [],
     view: { x: 40, y: 0, zoom: 1 },
   };
 }
 export function makeProject() {
-  const g = makeGraph();
+  const g = makeGraph(EVENT_GRAPH_NAME, "event");
   return {
     format: FORMAT,
     version: VERSION,
     id: uid(),
-    name: "未命名卡牌",
+    name: "BP_NewCard",
+    asset: {
+      parentClass: DEFAULT_PARENT,
+      packagePath: DEFAULT_PACKAGE_PATH,
+      description: "",
+    },
+    variables: [],
     card: {
       title: "未命名卡牌",
       faction: "Soviet",
@@ -148,7 +162,7 @@ export function connect(graph, a, b) {
 }
 export function validateProject(input) {
   if (!input || input.format !== FORMAT || input.version !== VERSION)
-    throw new Error("无法识别文件。请导入版本 1 的 .kardsbp.json 蓝图文件。");
+    throw new Error("无法识别文件。请导入版本 2 的 .kardsbp.json 蓝图文件（旧版本文件不兼容）。");
   if (
     typeof input.name !== "string" ||
     input.name.length > 200 ||
@@ -269,5 +283,7 @@ export function validateProject(input) {
     g.view.zoom = Math.max(0.2, Math.min(2, g.view.zoom));
   }
   if (!graphIds.has(input.activeGraph)) input.activeGraph = input.graphs[0].id;
+  validateBlueprint(input);
+  syncDefinitions(input);
   return input;
 }

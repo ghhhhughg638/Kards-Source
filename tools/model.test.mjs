@@ -114,6 +114,7 @@ test("import restores missing view defaults but rejects nonfinite node positions
 });
 
 import { engineClasses, typeNodes } from "../docs/ue-nodes.js";
+import { makeFunctionGraph } from "../docs/blueprint.js";
 import { setTypeHierarchy, compatible, matchingPin } from "../docs/model.js";
 import { nodeEnglish, nodeChinese } from "../docs/i18n.js";
 setTypeHierarchy({ ...engineClasses, ...catalog.classes });
@@ -195,16 +196,16 @@ test("Cast & Call graph validates with execution and typed target links", () => 
     ...catalog.nodes,
   ];
   const p = fixtureProject(full),
-    g = makeGraph("Cast & Call"),
+    g = makeFunctionGraph("CastAndCall"),
     find = (id) => full.find((d) => d.id === id),
     byName = (name) => full.find((d) => d.name === name);
-  const entry = makeNode(byName("OnStartOfGame"), 40, 150),
-    object = makeNode(byName("ObjectReference"), 40, 380),
+  const object = makeNode(byName("ObjectReference"), 40, 380),
     cast = makeNode(find("ue.cast.UBaseCardObject"), 390, 150),
     call = makeNode(find("UBaseCardObject.ResetCardAttributes"), 750, 100),
     get = makeNode(find("UBaseCardObject.get.attack"), 750, 410);
-  g.nodes = [entry, object, cast, call, get];
-  connect(g, { node: entry.id, pin: "exec-out" }, { node: cast.id, pin: "exec-in" });
+  const boundary = g.nodes.find((n) => n.definition.kind === "functionEntry");
+  g.nodes.push(object, cast, call, get);
+  connect(g, { node: boundary.id, pin: "then" }, { node: cast.id, pin: "exec-in" });
   connect(g, { node: object.id, pin: "Value" }, { node: cast.id, pin: "Object" });
   connect(g, { node: cast.id, pin: "Success" }, { node: call.id, pin: "exec-in" });
   connect(g, { node: cast.id, pin: "AsUBaseCardObject" }, { node: call.id, pin: "target" });

@@ -82,7 +82,7 @@ for path in sorted(root.glob('*/Public/*.h')):
             clean=typ.replace('const ','').replace('&','').strip()
             pins.append({'id':pname,'name':pname,'type':clean,'direction':direction})
         if ret.strip()!='void': pins.append({'id':'return','name':'Return Value','type':ret.strip(),'direction':'out'})
-        nodes.append({'id':f'{cls}.{name}','name':name,'class':cls,'category':category(name,source,pure),'pure':pure,'event':event,'static':is_static,'kind':'event' if event else 'pure' if pure else 'function','source':str(path.relative_to(root)),'signature':re.sub(r'\s+',' ',sig),'pins':pins})
+        nodes.append({'id':f'{cls}.{name}','name':name,'class':cls,'category':category(name,source,pure),'pure':pure,'event':event,'static':is_static,'nativeEvent':'BlueprintNativeEvent' in flags,'implementable':'BlueprintImplementableEvent' in flags,'kind':'event' if event else 'pure' if pure else 'function','source':str(path.relative_to(root)),'signature':re.sub(r'\s+',' ',sig),'pins':pins})
     for m in re.finditer(r'\bUPROPERTY\s*\(',text):
         enclosing=[c for c in class_matches if c.start()<m.start()]
         if not enclosing: continue
