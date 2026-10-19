@@ -510,13 +510,25 @@ function typeSelect(current, { allowExec = false, locked = false } = {}) {
   return `<select class="param-type" ${locked ? "disabled" : ""}>${choices.map((t) => `<option ${t === base ? "selected" : ""}>${esc(t)}</option>`).join("")}</select><label class="param-array"><input type="checkbox" ${isArrayType(current) ? "checked" : ""} ${locked ? "disabled" : ""}> ${bi2("数组", "Array")}</label>`;
 }
 function paramRow(p, opts) {
-  return `<div class="param-row" data-param="${esc(p.id)}"><input class="param-name" maxlength="64" value="${esc(p.name)}" placeholder="Name" ${opts.locked ? "disabled" : ""}>${typeSelect(p.type, opts)}${opts.withDefault ? `<input class="param-default" placeholder="Default" value="${esc(p.default ?? defaultValueFor(p.type, enums))}">` : ""}${opts.locked ? "" : '<button type="button" class="tiny-button param-del" title="删除">×</button>'}</div>`;
+  return `<div class="param-row" data-param="${esc(p.id)}"><input class="param-name" maxlength="64" value="${esc(p.name)}" placeholder="Name" ${opts.locked ? "disabled" : ""}>${typeSelect(p.type, opts)}${opts.withDefault ? defaultControl(p.type, p.default ?? defaultValueFor(p.type, enums), 'class="param-default"') : ""}${opts.locked ? "" : '<button type="button" class="tiny-button param-del" title="删除">×</button>'}</div>`;
 }
 function paramEditor(listId, zh, en, params, opts = {}) {
   return `<div class="field"><div class="detail-label">${bi2(zh, en)}</div><div id="${listId}" class="param-list" data-allow-exec="${opts.allowExec ? 1 : 0}" data-with-default="${opts.withDefault ? 1 : 0}">${params.map((p) => paramRow(p, opts)).join("")}</div>${opts.locked ? "" : `<button type="button" class="secondary-button param-add" data-list="${listId}">＋ ${bi2("添加参数", "Add parameter")}</button>`}</div>`;
 }
 function bindParamEditors() {
   const root = $("modal-content");
+  root.onchange = (e) => {
+    const row = e.target.closest(".param-row");
+    if (!row || !row.querySelector(".param-default")) return;
+    if (!e.target.matches(".param-type, .param-array input")) return;
+    const base = row.querySelector(".param-type").value,
+      type = row.querySelector(".param-array input").checked ? arrayOf(base) : base;
+    row.querySelector(".param-default").outerHTML = defaultControl(
+      type,
+      defaultValueFor(type, enums),
+      'class="param-default"',
+    );
+  };
   root.onclick = (e) => {
     const del = e.target.closest(".param-del");
     if (del) return del.closest(".param-row").remove();
@@ -683,18 +695,18 @@ function overrideDialog() {
 }
 
 // ---- variables
-function defaultControl(type, value) {
+// Input for a default value that matches the type: switch for bool, list for enums,
+// number box for int/float, text otherwise. `attrs` is e.g. `id="var-default"`.
+function defaultControl(type, value, attrs = 'id="var-default"') {
   const base = elementType(type),
     kind = pinKind(base);
-  if (isArrayType(type))
-    return `<input id="var-default" value="${esc(value)}">`;
-  if (kind === "bool")
-    return `<select id="var-default">${["false", "true"].map((v) => `<option ${String(value) === v ? "selected" : ""}>${v}</option>`).join("")}</select>`;
-  if (enums[base])
-    return `<select id="var-default">${enums[base].map((v) => `<option ${String(value) === v ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>`;
+  if (isArrayType(type)) return `<input ${attrs} value="${esc(value)}">`;
+  const list = kind === "bool" ? ["false", "true"] : enums[base];
+  if (list)
+    return `<select ${attrs}>${list.map((v) => `<option ${String(value) === v ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>`;
   if (kind === "int" || kind === "float")
-    return `<input id="var-default" type="number" step="${kind === "int" ? 1 : "any"}" value="${esc(value)}">`;
-  return `<input id="var-default" value="${esc(value)}">`;
+    return `<input ${attrs} type="number" step="${kind === "int" ? 1 : "any"}" value="${esc(value)}">`;
+  return `<input ${attrs} value="${esc(value)}">`;
 }
 function parseDefaultValue(type, raw) {
   const base = elementType(type),
@@ -786,7 +798,7 @@ function customEventDialog(node, point) {
     mutate(() => {
       if (node) node.definition = customEventDefinition(name, list, node.definition);
       else {
-        const at = point || centerPoint();
+        const at = point || freeSpotNearCenter();
         const n = makeNode(
           customEventDefinition(name, list),
           Math.round(at.x / 10) * 10,
@@ -939,6 +951,21 @@ function bindLibrary(container) {
     };
   });
 }
+// Centre of the view, nudged diagonally so new nodes do not land exactly on existing ones.
+function freeSpotNearCenter() {
+  const at = centerPoint();
+  at.x = Math.round(at.x / 10) * 10;
+  at.y = Math.round(at.y / 10) * 10;
+  while (
+    graph().nodes.some(
+      (n) => Math.abs(n.x - at.x) < 30 && Math.abs(n.y - at.y) < 30,
+    )
+  ) {
+    at.x += 40;
+    at.y += 40;
+  }
+  return at;
+}
 function centerPoint() {
   const r = $("viewport").getBoundingClientRect(),
     v = graph().view;
@@ -950,7 +977,7 @@ function centerPoint() {
 function addNode(id, point, sourceEndpoint = null) {
   const def = fullCatalog().find((d) => d.id === id);
   if (!def) return;
-  point = point || centerPoint();
+  point = point || freeSpotNearCenter();
   if (def.action === "newCustomEvent") return customEventDialog(null, point);
   mutate(() => {
     const n = makeNode(
@@ -1049,6 +1076,7 @@ function picker(point, sourceEndpoint = null) {
       .forEach((b) => {
         b.draggable = false;
         b.onclick = () => {
+          if (Date.now() < ignoreBackdropUntil) return;
           $("modal").close();
           addNode(b.dataset.def, placement, pickerContext);
         };
@@ -1546,7 +1574,8 @@ viewport.addEventListener(
   true,
 );
 // Long-press on empty canvas opens the node picker (touch devices have no right-click).
-let pressTimer = 0;
+let pressTimer = 0,
+  ignoreBackdropUntil = 0;
 const cancelPress = () => clearTimeout(pressTimer);
 viewport.addEventListener("pointerdown", (e) => {
   cancelPress();
@@ -1561,6 +1590,8 @@ viewport.addEventListener("pointerdown", (e) => {
     if (touches.size !== 1) return;
     drag = null;
     viewport.classList.remove("panning");
+    // The finger is still down: its release must not count as a click outside the picker.
+    ignoreBackdropUntil = Infinity;
     picker(worldPoint({ clientX, clientY }), pending);
   }, 550);
 });
@@ -1570,8 +1601,12 @@ viewport.addEventListener("pointermove", (e) => {
       cancelPress();
   }
 });
-window.addEventListener("pointerup", cancelPress, true);
-window.addEventListener("pointercancel", cancelPress, true);
+const releasePress = () => {
+  cancelPress();
+  if (ignoreBackdropUntil === Infinity) ignoreBackdropUntil = Date.now() + 500;
+};
+window.addEventListener("pointerup", releasePress, true);
+window.addEventListener("pointercancel", releasePress, true);
 const endTouch = (e) => {
   if (!touches.delete(e.pointerId)) return;
   if (touches.size < 2) pinch = null;
@@ -2004,6 +2039,7 @@ $("project-name").onchange = (e) => {
   } else mutate(() => (project.name = name));
 };
 $("modal").onclick = (e) => {
+  if (Date.now() < ignoreBackdropUntil) return;
   if (e.target === $("modal")) {
     const r = $("modal").getBoundingClientRect();
     if (
