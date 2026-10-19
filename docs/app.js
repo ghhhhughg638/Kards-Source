@@ -884,6 +884,57 @@ function tryConnect(a, b) {
   }
 }
 const viewport = $("viewport");
+// Two-finger pinch: zoom around the midpoint and pan with it.
+const touches = new Map();
+let pinch = null;
+const touchPair = () => {
+  const [a, b] = [...touches.values()];
+  return {
+    d: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
+};
+viewport.addEventListener(
+  "pointerdown",
+  (e) => {
+    if (e.pointerType !== "touch") return;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touches.size === 2) {
+      drag = null;
+      pending = null;
+      viewport.classList.remove("panning");
+      pinch = touchPair();
+      drawEdges();
+    }
+    if (touches.size >= 2) e.stopImmediatePropagation();
+  },
+  true,
+);
+viewport.addEventListener(
+  "pointermove",
+  (e) => {
+    if (!touches.has(e.pointerId)) return;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (!pinch || touches.size !== 2) return;
+    e.stopImmediatePropagation();
+    const now = touchPair(),
+      r = viewport.getBoundingClientRect();
+    zoomAt(now.d / pinch.d, now.x - r.left, now.y - r.top);
+    graph().view.x += now.x - pinch.x;
+    graph().view.y += now.y - pinch.y;
+    updateView();
+    drawMinimap();
+    pinch = now;
+  },
+  true,
+);
+const endTouch = (e) => {
+  if (!touches.delete(e.pointerId)) return;
+  if (touches.size < 2) pinch = null;
+};
+window.addEventListener("pointerup", endTouch, true);
+window.addEventListener("pointercancel", endTouch, true);
 viewport.addEventListener("pointerdown", (e) => {
   if (e.button === 2) return;
   if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state")) return;
