@@ -160,3 +160,31 @@ body {
   .selection-bar button.danger { color: #ff9a9a; background: #3a2527; }
   .canvas-bottom { bottom: 12px; }
 }
+
+/* Dynamic node size (as in Unreal): width follows the longest pin labels and title,
+   height follows the number of rows. Input pins form the left column, outputs the right. */
+.node {
+  width: max-content;
+  min-width: 190px;
+  max-width: 480px;
+}
+.node-head { min-height: 0; padding: 8px 14px 7px; }
+.node-heading strong, .node-subtitle { white-space: nowrap; }
+.node-kind-label > span { max-width: none; }
+.node-body {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  column-gap: 30px;
+  padding: 6px 0 8px;
+}
+.pin-pair { display: contents; }
+.pin-pair .pin-row {
+  width: auto;
+  min-width: 0;
+  min-height: 30px;
+  padding: 3px 11px;
+  gap: 6px;
+}
+.pin-row .pin-label { max-width: 220px; }
+.pin-value { max-width: 130px; }

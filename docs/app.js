@@ -601,6 +601,15 @@ function nodeBody(n) {
       `<div class="pin-pair">${ins[i] ? pinMarkup(n, ins[i]) : '<div class="pin-row"></div>'}${outs[i] ? pinMarkup(n, outs[i]) : '<div class="pin-row output"></div>'}</div>`,
   ).join("");
 }
+// Nodes size themselves to their content, so redraw wires whenever one changes size.
+let relayoutFrame = 0;
+const nodeObserver = new ResizeObserver(() => {
+  cancelAnimationFrame(relayoutFrame);
+  relayoutFrame = requestAnimationFrame(() => {
+    drawEdges();
+    drawMinimap();
+  });
+});
 function renderNodes() {
   $("nodes").innerHTML = graph()
     .nodes.map(
@@ -608,6 +617,10 @@ function renderNodes() {
         `<article class="node ue-${nodeKind(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(title(n))}</strong></div><div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div></div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
     )
     .join("");
+  nodeObserver.disconnect();
+  $("nodes")
+    .querySelectorAll(".node")
+    .forEach((el) => nodeObserver.observe(el));
 }
 function updateSelectionStatus() {
   const bar = $("selection-bar");
@@ -795,6 +808,9 @@ function zoomAt(factor, cx, cy) {
   drawMinimap();
   scheduleSave();
 }
+const nodeEl = (n) =>
+  document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`);
+const nodeWidth = (n) => nodeEl(n)?.offsetWidth || 280;
 function bounds() {
   if (!graph().nodes.length) return { x: 0, y: 0, w: 900, h: 600 };
   const ns = graph().nodes;
@@ -803,7 +819,7 @@ function bounds() {
   return {
     x,
     y,
-    w: Math.max(...ns.map((n) => n.x + 280)) - x + 30,
+    w: Math.max(...ns.map((n) => n.x + nodeWidth(n))) - x + 30,
     h:
       Math.max(
         ...ns.map(
@@ -855,7 +871,7 @@ function drawMinimap() {
     graph()
       .nodes.map(
         (n) =>
-          `<rect x="${n.x}" y="${n.y}" width="280" height="${document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`)?.offsetHeight || 150}" rx="5" fill="${color(n.definition)}" fill-opacity=".3" stroke="${color(n.definition)}" stroke-width="2"/>`,
+          `<rect x="${n.x}" y="${n.y}" width="${nodeWidth(n)}" height="${document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`)?.offsetHeight || 150}" rx="5" fill="${color(n.definition)}" fill-opacity=".3" stroke="${color(n.definition)}" stroke-width="2"/>`,
       )
       .join("") +
     `<rect x="${-v.x / v.zoom}" y="${-v.y / v.zoom}" width="${r.width / v.zoom}" height="${r.height / v.zoom}" fill="#dddddd" fill-opacity=".03" stroke="#c7c7c7" stroke-width="3"/>`;
@@ -1222,8 +1238,9 @@ function exportSVG() {
   svg += "</g>";
   for (const n of graph().nodes) {
     const el = document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`),
-      h = el.offsetHeight;
-    svg += `<g font-family="monospace"><rect x="${n.x}" y="${n.y}" width="280" height="${h}" rx="6" fill="#171717" stroke="${color(n.definition)}"/><rect x="${n.x + 1}" y="${n.y + 1}" width="278" height="57" rx="5" fill="${color(n.definition)}"/><text x="${n.x + 12}" y="${n.y + 24}" fill="#e0e9e2" font-size="12">${esc(title(n))}</text><text x="${n.x + 12}" y="${n.y + 43}" fill="#eeeeee" font-size="9">${esc(nodeEnglish(n.definition))}</text>`;
+      h = el.offsetHeight,
+      w = el.offsetWidth;
+    svg += `<g font-family="monospace"><rect x="${n.x}" y="${n.y}" width="${w}" height="${h}" rx="6" fill="#171717" stroke="${color(n.definition)}"/><rect x="${n.x + 1}" y="${n.y + 1}" width="${w - 2}" height="57" rx="5" fill="${color(n.definition)}"/><text x="${n.x + 12}" y="${n.y + 24}" fill="#e0e9e2" font-size="12">${esc(title(n))}</text><text x="${n.x + 12}" y="${n.y + 43}" fill="#eeeeee" font-size="9">${esc(nodeEnglish(n.definition))}</text>`;
     if (n.comment)
       svg += `<text x="${n.x}" y="${n.y - 12}" fill="#a4b69d" font-size="10">${esc(n.comment)}</text>`;
     for (const p of n.definition.pins) {
