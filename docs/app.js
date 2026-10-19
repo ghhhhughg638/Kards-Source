@@ -13,6 +13,7 @@ import {
   validateProject,
   setTypeHierarchy,
   matchingPin,
+  compatible,
 } from "./model.js";
 import { typeNodes, engineClasses } from "./ue-nodes.js";
 import {
@@ -1169,12 +1170,28 @@ function valueControl(n, p, val) {
     return `<span class="pin-value">${esc(val)}</span>`;
   return `<input class="pin-input pin-text" type="text" value="${esc(val)}" ${attrs}>`;
 }
-function pinMarkup(n, p) {
-  const connected = graph().edges.some(
+const pinConnected = (n, p) =>
+  graph().edges.some(
     (e) =>
       (e.from.node === n.id && e.from.pin === p.id) ||
       (e.to.node === n.id && e.to.pin === p.id),
   );
+// Like Unreal: a Target that would just be Self stays hidden until something is wired to it.
+// While a wire is being dragged from a compatible object pin it appears so it can be dropped on.
+function targetHidden(n, p) {
+  if (p.id !== "target" || p.direction !== "in" || pinConnected(n, p)) return false;
+  if ((n.values.target ?? pinDefault(p)) !== "Self") return false;
+  if (pending) {
+    const from = graph()
+      .nodes.find((x) => x.id === pending.node)
+      ?.definition.pins.find((x) => x.id === pending.pin);
+    if (from && from.direction === "out" && compatible(from.type, p.type))
+      return false;
+  }
+  return true;
+}
+function pinMarkup(n, p) {
+  const connected = pinConnected(n, p);
   const val = n.values[p.id] ?? pinDefault(p);
   const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
@@ -1190,7 +1207,9 @@ function pinMarkup(n, p) {
   return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? valueControl(n, p, val) : ""}${p.direction === "out" ? button : ""}</div>`;
 }
 function nodeBody(n) {
-  const ins = n.definition.pins.filter((p) => p.direction === "in"),
+  const ins = n.definition.pins.filter(
+      (p) => p.direction === "in" && !targetHidden(n, p),
+    ),
     outs = n.definition.pins.filter((p) => p.direction === "out");
   return Array.from(
     { length: Math.max(ins.length, outs.length) },
