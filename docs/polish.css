@@ -284,3 +284,24 @@ html[data-lang="zh"] .pin-label, html[data-lang="en"] .pin-label { gap: 0; }
 }
 
 .bp-head .zh + .en { margin-left: 6px; opacity: 0.7; }
+
+/* Dialog form details */
+.modal-body .zh + .en,
+.detail-label .zh + .en,
+.new-item .zh + .en { margin-left: 6px; }
+.check-row { gap: 8px; }
+.check-row input[type="checkbox"],
+.param-array input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  flex: none;
+  accent-color: var(--accent);
+}
+.param-row .param-default { flex: 1 1 100px; min-width: 0; }
+@media (max-width: 800px) {
+  .bp-head { padding: 8px 12px 2px; }
+  .bp-row .tiny-button { min-width: 30px; height: 30px; }
+  .param-row .param-name, .param-row .param-type { flex-basis: 100%; }
+}

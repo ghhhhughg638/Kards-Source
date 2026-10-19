@@ -266,6 +266,20 @@ const EXACT = {
   "函数定义无效": "Invalid function definition",
   "自定义事件名称无效或重复": "Invalid or duplicate custom event name",
   "自定义事件只能放在 EventGraph 中": "Custom events can only be placed in the EventGraph",
+  "局部变量": "Local variables",
+  "事件分发器": "Event dispatchers",
+  "新建事件分发器": "New event dispatcher",
+  "编辑事件分发器": "Edit event dispatcher",
+  "编辑函数（局部变量）": "Edit function (local variables)",
+  "局部变量不能和输入、输出参数重名": "A local variable cannot share a name with an input or output parameter",
+  "调用": "Call",
+  "绑定事件": "Bind event",
+  "解除绑定": "Unbind",
+  "委托": "Delegate",
+  "局部变量无效": "Invalid local variables",
+  "局部变量名无效或重复": "Invalid or duplicate local variable name",
+  "事件分发器列表无效": "Invalid event dispatcher list",
+  "事件分发器名称无效或重复": "Invalid or duplicate event dispatcher name",
   // model errors
   "请连接两个不同的节点": "Connect two different nodes",
   "请将输出端口连接到输入端口": "Connect an output pin to an input pin",
@@ -302,6 +316,7 @@ const ZH_EXACT = {
   "Event Graph · 卡牌事件图": "事件图 · 卡牌事件图",
   "Function · 函数": "函数",
   "Macro · 宏": "宏",
+  Delegate: "委托",
   ASSET: "资源",
   BLUEPRINT: "蓝图",
   FUNCTION: "函数",
@@ -317,9 +332,11 @@ const ZH_PATTERNS = [
   [/^(\d+) SELECTED$/, "已选 $1 个"],
 ];
 
-const PARAM_LABELS = { 输入参数: "Inputs", 输出参数: "Outputs", 参数: "Parameters" };
+const PARAM_LABELS = { 输入参数: "Inputs", 输出参数: "Outputs", 参数: "Parameters", 局部变量: "Local variables" };
 const PATTERNS = [
-  [/^(输入参数|输出参数|参数)：(.+)$/s, (m) => `${PARAM_LABELS[m[1]]}: ${translateText(m[2], "en")}`],
+  [/^宏不能引用自身，嵌套也不能超过 (\d+) 层$/, "A macro cannot reference itself, and nesting cannot exceed $1 levels"],
+  [/^删除“(.*)”？使用它的调用、绑定节点也会被一并删除，可使用撤销恢复。$/, "Delete “$1”? Call and bind nodes that use it are deleted too; you can undo this."],
+  [/^(输入参数|输出参数|参数|局部变量)：(.+)$/s, (m) => `${PARAM_LABELS[m[1]]}: ${translateText(m[2], "en")}`],
   [/^资源名称无效：(.+)$/s, (m) => `Invalid asset name: ${translateText(m[1], "en")}`],
   [/^“(.+)”是保留名称，请换一个$/, "“$1” is a reserved name — choose another"],
   [/^名称“(.+)”已被使用$/, "The name “$1” is already in use"],

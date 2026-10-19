@@ -4,6 +4,7 @@
 import {
   uid,
   clone,
+  compatible,
   defaultValue,
   makeGraph,
   makeNode,
@@ -122,6 +123,12 @@ export function makeFunctionGraph(name, options = {}) {
   g.override = options.override || null;
   g.inputs = (options.inputs || []).map((p) => ({ id: p.id || uid(), ...p }));
   g.outputs = (options.outputs || []).map((p) => ({ id: p.id || uid(), ...p }));
+  g.locals = (options.locals || []).map((v) => ({
+    id: v.id || uid(),
+    name: v.name,
+    type: v.type,
+    default: v.default ?? defaultValueFor(v.type),
+  }));
   return ensureBoundaryNodes(g);
 }
 export function makeMacroGraph(name, options = {}) {
@@ -229,6 +236,9 @@ export function macroDefinition(g) {
     pins,
   });
 }
+// Pin type that connects a custom event to an event dispatcher's Bind / Unbind node.
+export const delegateType = (params) =>
+  `Delegate<${params.map((p) => p.type).join(",")}>`;
 export function customEventDefinition(name, params, previous = {}) {
   return base({
     id: previous.id || `bp.customEvent.${uid()}`,
@@ -241,6 +251,7 @@ export function customEventDefinition(name, params, previous = {}) {
     signature: `event ${name}(${params.map((p) => `${p.type} ${p.name}`).join(", ")})`,
     pins: [
       execOut("then", "Then"),
+      pin("delegate", "Delegate", delegateType(params), "out"),
       ...params.map((p) => pin(`p:${p.id}`, p.name, p.type, "out")),
     ],
   });
@@ -297,6 +308,62 @@ export function setDefinition(v) {
     ],
   });
 }
+export function localGetDefinition(g, v) {
+  return base({
+    id: `bp.getlocal.${v.id}`,
+    name: `Get ${v.name}`,
+    label: `获取局部变量 ${v.name}`,
+    class: "Local",
+    category: "variables",
+    kind: "getter",
+    pure: true,
+    property: v.name,
+    bp: { type: "getLocal", graphId: g.id, variableId: v.id },
+    signature: `local ${v.type} ${v.name}`,
+    pins: [pin("value", v.name, v.type, "out")],
+  });
+}
+export function localSetDefinition(g, v) {
+  return base({
+    id: `bp.setlocal.${v.id}`,
+    name: `Set ${v.name}`,
+    label: `设置局部变量 ${v.name}`,
+    class: "Local",
+    category: "variables",
+    kind: "setter",
+    property: v.name,
+    bp: { type: "setLocal", graphId: g.id, variableId: v.id },
+    signature: `local ${v.type} ${v.name} = …`,
+    pins: [
+      execIn(),
+      pin("value", v.name, v.type, "in"),
+      execOut(),
+      pin("result", "Output", v.type, "out"),
+    ],
+  });
+}
+export function dispatcherDefinition(d, action) {
+  const params = d.params.map((p) => pin(`p:${p.id}`, p.name, p.type, "in"));
+  const delegate = pin("event", "Event", delegateType(d.params), "in");
+  const shape = {
+    call: { label: "调用分发器", pins: [execIn(), execOut(), ...params] },
+    bind: { label: "绑定事件", pins: [execIn(), execOut(), delegate] },
+    unbind: { label: "解除绑定", pins: [execIn(), execOut(), delegate] },
+    unbindAll: { label: "解除全部绑定", pins: [execIn(), execOut()] },
+  }[action];
+  const verb = { call: "Call", bind: "Bind Event to", unbind: "Unbind Event from", unbindAll: "Unbind all Events from" }[action];
+  return base({
+    id: `bp.dispatch.${action}.${d.id}`,
+    name: `${verb} ${d.name}`,
+    label: `${shape.label} · ${d.name}`,
+    class: "Dispatcher",
+    category: "events",
+    kind: "call",
+    bp: { type: "dispatcher", action, dispatcherId: d.id },
+    signature: `dispatcher ${d.name}(${d.params.map((p) => `${p.type} ${p.name}`).join(", ")})`,
+    pins: shape.pins,
+  });
+}
 export const newCustomEventEntry = () =>
   base({
     id: "bp.new.customEvent",
@@ -335,14 +402,13 @@ export function ensureBoundaryNodes(g) {
   }
   return g;
 }
-const hasPin = (def, id, direction) =>
-  def.pins.some((p) => p.id === id && p.direction === direction);
 
 // Rebuild every blueprint-defined node from the project's current functions, macros,
 // variables and custom events, and drop wires whose pins no longer exist.
 export function syncDefinitions(project) {
   const graphs = new Map(project.graphs.map((g) => [g.id, g]));
   const variables = new Map(project.variables.map((v) => [v.id, v]));
+  const dispatchers = new Map(project.dispatchers.map((d) => [d.id, d]));
   const eventNodes = new Map();
   for (const g of project.graphs)
     for (const n of g.nodes)
@@ -365,6 +431,12 @@ export function syncDefinitions(project) {
       else if (bp.type === "macro") next = graphs.get(bp.graphId)?.kind === "macro" ? macroDefinition(graphs.get(bp.graphId)) : null;
       else if (bp.type === "get") next = variables.has(bp.variableId) ? getDefinition(variables.get(bp.variableId)) : null;
       else if (bp.type === "set") next = variables.has(bp.variableId) ? setDefinition(variables.get(bp.variableId)) : null;
+      else if (bp.type === "getLocal" || bp.type === "setLocal") {
+        const owner = graphs.get(bp.graphId);
+        const v = owner?.kind === "function" && owner === g ? owner.locals.find((x) => x.id === bp.variableId) : null;
+        next = v ? (bp.type === "getLocal" ? localGetDefinition(owner, v) : localSetDefinition(owner, v)) : null;
+      } else if (bp.type === "dispatcher")
+        next = dispatchers.has(bp.dispatcherId) && !(g.kind === "function" && g.pure) ? dispatcherDefinition(dispatchers.get(bp.dispatcherId), bp.action) : null;
       else if (bp.type === "callEvent") next = eventNodes.has(bp.eventNodeId) ? callEventDefinition(eventNodes.get(bp.eventNodeId)) : null;
       else if (bp.type === "customEvent") next = n.definition;
       else if (BOUNDARY_ID[bp.type]) next = n.definition;
@@ -376,7 +448,10 @@ export function syncDefinitions(project) {
     g.edges = g.edges.filter((e) => {
       const a = byId.get(e.from.node),
         b = byId.get(e.to.node);
-      return a && b && hasPin(a.definition, e.from.pin, "out") && hasPin(b.definition, e.to.pin, "in");
+      if (!a || !b) return false;
+      const out = a.definition.pins.find((p) => p.id === e.from.pin && p.direction === "out"),
+        into = b.definition.pins.find((p) => p.id === e.to.pin && p.direction === "in");
+      return !!out && !!into && compatible(out.type, into.type);
     });
     for (const n of g.nodes) {
       const ids = new Set(n.definition.pins.map((p) => p.id));
@@ -399,18 +474,54 @@ function dependsOnMacro(project, macroId, targetId, seen = new Set()) {
       dependsOnMacro(project, n.definition.bp.graphId, targetId, seen),
   );
 }
+export const MAX_MACRO_DEPTH = 8;
+// Number of macro levels from `id` down through the macros it instantiates (1 = none).
+export function macroLevels(project, id, seen = new Set()) {
+  if (seen.has(id)) return Infinity;
+  const g = project.graphs.find((x) => x.id === id);
+  if (!g) return 0;
+  const next = new Set(seen).add(id);
+  let deepest = 0;
+  for (const n of g.nodes)
+    if (n.definition.bp?.type === "macro")
+      deepest = Math.max(deepest, macroLevels(project, n.definition.bp.graphId, next));
+  return 1 + deepest;
+}
+// Number of macro levels above `id` (macros that instantiate it, directly or not).
+export function macroAbove(project, id, seen = new Set()) {
+  if (seen.has(id)) return Infinity;
+  const next = new Set(seen).add(id);
+  let highest = 0;
+  for (const g of project.graphs)
+    if (g.kind === "macro" && g.nodes.some((n) => n.definition.bp?.type === "macro" && n.definition.bp.graphId === id))
+      highest = Math.max(highest, 1 + macroAbove(project, g.id, next));
+  return highest;
+}
+const macroFits = (project, host, macro) =>
+  host.kind !== "macro" ||
+  (!dependsOnMacro(project, macro.id, host.id) &&
+    macroAbove(project, host.id) + 1 + macroLevels(project, macro.id) <= MAX_MACRO_DEPTH);
 // Definitions that exist only because of this project, filtered to what `graph` may contain.
 export function dynamicDefinitions(project, graph) {
   const out = [];
+  const pureFn = graph.kind === "function" && graph.pure;
   for (const v of project.variables) {
     out.push(getDefinition(v));
-    if (!(graph.kind === "function" && graph.pure)) out.push(setDefinition(v));
+    if (!pureFn) out.push(setDefinition(v));
   }
+  if (graph.kind === "function")
+    for (const v of graph.locals) {
+      out.push(localGetDefinition(graph, v));
+      if (!pureFn) out.push(localSetDefinition(graph, v));
+    }
   for (const g of project.graphs) {
     if (g.kind === "function") out.push(callDefinition(g));
-    if (g.kind === "macro" && !(graph.kind === "macro" && dependsOnMacro(project, g.id, graph.id)))
-      out.push(macroDefinition(g));
+    if (g.kind === "macro" && macroFits(project, graph, g)) out.push(macroDefinition(g));
   }
+  if (!pureFn)
+    for (const d of project.dispatchers)
+      for (const action of ["call", "bind", "unbind", "unbindAll"])
+        out.push(dispatcherDefinition(d, action));
   if (graph.kind === "event") {
     out.push(newCustomEventEntry());
     for (const n of graph.nodes)
@@ -424,6 +535,9 @@ export function allowedInGraph(def, graph) {
   if (def.fixed) return false;
   if (kind === "event" || kind === "customEvent") return graph.kind === "event";
   if (def.bp?.type === "callEvent") return graph.kind === "event";
+  if (def.bp?.type === "getLocal" || def.bp?.type === "setLocal")
+    return graph.kind === "function" && def.bp.graphId === graph.id;
+  if (def.bp?.type === "dispatcher") return !(graph.kind === "function" && graph.pure);
   return true;
 }
 export function referencesGraph(project, graphId) {
@@ -480,6 +594,9 @@ export function validateBlueprint(project) {
     bad("资源信息不完整");
   if (!Array.isArray(project.variables) || project.variables.length > 500)
     bad("变量列表无效");
+  project.dispatchers = project.dispatchers ?? [];
+  if (!Array.isArray(project.dispatchers) || project.dispatchers.length > 200)
+    bad("事件分发器列表无效");
   const varNames = new Set();
   for (const v of project.variables) {
     if (
@@ -495,6 +612,23 @@ export function validateBlueprint(project) {
     )
       bad("变量定义无效或名称重复");
     varNames.add(v.name.toLowerCase());
+  }
+  const dispatcherNames = new Set();
+  const paramListOf = (list) => {
+    if (!Array.isArray(list) || list.length > 64) bad("函数参数无效");
+    const seen = new Set();
+    for (const p of list) {
+      if (typeof p.id !== "string" || typeof p.type !== "string" || checkName(p.name) || seen.has(p.name.toLowerCase()))
+        bad("函数参数名无效或重复");
+      seen.add(p.name.toLowerCase());
+    }
+  };
+  for (const d of project.dispatchers) {
+    if (typeof d.id !== "string" || checkName(d.name) || dispatcherNames.has(d.name.toLowerCase()) || varNames.has(d.name.toLowerCase()))
+      bad("事件分发器名称无效或重复");
+    dispatcherNames.add(d.name.toLowerCase());
+    d.description = typeof d.description === "string" ? d.description : "";
+    paramListOf(d.params);
   }
   const events = project.graphs.filter((g) => g.kind === "event");
   if (events.length !== 1 || project.graphs[0] !== events[0] || events[0].name !== EVENT_GRAPH_NAME)
@@ -521,6 +655,24 @@ export function validateBlueprint(project) {
     names.add(g.name.toLowerCase());
     paramList(g.inputs);
     paramList(g.outputs);
+    if (dispatcherNames.has(g.name.toLowerCase()) || varNames.has(g.name.toLowerCase()))
+      bad("函数或宏的名称无效或重复");
+    if (g.kind === "function") {
+      g.locals = g.locals ?? [];
+      if (!Array.isArray(g.locals) || g.locals.length > 200) bad("局部变量无效");
+      const seenLocal = new Set([...g.inputs, ...g.outputs].map((p) => p.name.toLowerCase()));
+      for (const v of g.locals) {
+        if (
+          typeof v.id !== "string" ||
+          typeof v.type !== "string" ||
+          !["string", "number", "boolean"].includes(typeof v.default) ||
+          checkName(v.name) ||
+          seenLocal.has(v.name.toLowerCase())
+        )
+          bad("局部变量名无效或重复");
+        seenLocal.add(v.name.toLowerCase());
+      }
+    }
     if (g.kind === "function" && typeof g.pure !== "boolean") bad("函数定义无效");
     g.description = typeof g.description === "string" ? g.description : "";
     if (g.kind === "function") {
@@ -546,6 +698,9 @@ export function validateBlueprint(project) {
         g.kind !== "event"
       )
         bad("自定义事件只能放在 EventGraph 中");
+  for (const g of project.graphs.filter((x) => x.kind === "macro"))
+    if (macroLevels(project, g.id) + macroAbove(project, g.id) > MAX_MACRO_DEPTH)
+      bad(`宏不能引用自身，嵌套也不能超过 ${MAX_MACRO_DEPTH} 层`);
   return project;
 }
 
@@ -572,6 +727,8 @@ export function buildExport(project, context = {}) {
     typeMentions.add(inner.replace(/\*$/, ""));
   };
   for (const v of project.variables) noteType(v.type);
+  for (const d of project.dispatchers) for (const p of d.params) noteType(p.type);
+  for (const g of project.graphs) for (const v of g.locals || []) noteType(v.type);
   const graphsOut = project.graphs.map((g) => {
     const nodeById = new Map(g.nodes.map((n) => [n.id, n]));
     const links = g.edges.map((e) => {
@@ -615,7 +772,7 @@ export function buildExport(project, context = {}) {
     outputs: g.outputs,
     graph: g.id,
     ...(g.kind === "function"
-      ? { pure: g.pure, access: g.access, category: g.category, override: g.override }
+      ? { pure: g.pure, access: g.access, category: g.category, override: g.override, locals: g.locals }
       : {}),
   });
   const customEvents = project.graphs[0].nodes
@@ -650,6 +807,7 @@ export function buildExport(project, context = {}) {
     },
     card: project.card,
     variables: project.variables,
+    dispatchers: project.dispatchers,
     eventGraph: project.graphs[0].id,
     functions: project.graphs.filter((g) => g.kind === "function").map(sig),
     macros: project.graphs.filter((g) => g.kind === "macro").map(sig),
@@ -678,6 +836,8 @@ export function buildExport(project, context = {}) {
       macros: project.graphs.filter((g) => g.kind === "macro").length,
       customEvents: customEvents.length,
       variables: project.variables.length,
+      localVariables: project.graphs.reduce((sum, g) => sum + (g.locals?.length || 0), 0),
+      dispatchers: project.dispatchers.length,
       nodes: graphsOut.reduce((s, g) => s + g.stats.nodes, 0),
       links: graphsOut.reduce((s, g) => s + g.stats.links, 0),
     },

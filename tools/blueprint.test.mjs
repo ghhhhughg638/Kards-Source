@@ -201,3 +201,95 @@ test("export is comprehensive and imports back unchanged", () => {
   assert.equal(back.variables[0].id, v.id);
   assert.equal(back.graphs[1].inputs[0].name, "Amount");
 });
+
+test("local variables belong to one function and are removed with it", () => {
+  const p = makeProject();
+  const fn = makeFunctionGraph("Calc", {
+    inputs: [newParam("Base", "int32")],
+    locals: [{ name: "Temp", type: "int32" }],
+  });
+  const other = makeFunctionGraph("Other");
+  p.graphs.push(fn, other);
+  const defs = dynamicDefinitions(p, fn);
+  assert(defs.some((d) => d.bp?.type === "getLocal" && d.property === "Temp"));
+  assert(defs.some((d) => d.bp?.type === "setLocal"));
+  assert(!dynamicDefinitions(p, other).some((d) => d.bp?.type === "getLocal"));
+  assert(!dynamicDefinitions(p, p.graphs[0]).some((d) => d.bp?.type === "getLocal"));
+  const get = makeNode(defs.find((d) => d.bp?.type === "getLocal"), 100, 100);
+  fn.nodes.push(get);
+  validateProject(clone(p));
+  fn.locals = [];
+  syncDefinitions(p);
+  assert(!fn.nodes.some((n) => n.id === get.id));
+  fn.locals = [{ id: "l1", name: "Base", type: "int32", default: 0 }];
+  assert.throws(() => validateProject(clone(p)), /局部变量/);
+});
+
+test("event dispatchers: call/bind nodes, delegate pins and renames", () => {
+  const p = makeProject();
+  p.dispatchers.push({
+    id: "d1",
+    name: "OnHealed",
+    description: "",
+    params: [newParam("Amount", "int32")],
+  });
+  const event = makeNode(
+    customEventDefinition("HandleHealed", [newParam("Amount", "int32")]),
+    0,
+    0,
+  );
+  const defs = dynamicDefinitions(p, p.graphs[0]);
+  const bind = makeNode(defs.find((d) => d.name === "Bind Event to OnHealed"), 300, 0);
+  const call = makeNode(defs.find((d) => d.name === "Call OnHealed"), 300, 200);
+  p.graphs[0].nodes.push(event, bind, call);
+  event.definition.bp.params[0].id = p.dispatchers[0].params[0].id;
+  syncDefinitions(p);
+  connect(p.graphs[0], { node: event.id, pin: "delegate" }, { node: bind.id, pin: "event" });
+  assert.equal(p.graphs[0].edges.length, 1);
+  validateProject(clone(p));
+  // changing the dispatcher signature breaks the delegate wire
+  p.dispatchers[0].params = [newParam("Amount", "float")];
+  syncDefinitions(p);
+  assert.equal(p.graphs[0].edges.length, 0);
+  p.dispatchers = [];
+  syncDefinitions(p);
+  assert(!p.graphs[0].nodes.some((n) => n.definition.bp?.type === "dispatcher"));
+  const pure = makeFunctionGraph("Q", { pure: true });
+  p.dispatchers.push({ id: "d2", name: "X", description: "", params: [] });
+  assert(!dynamicDefinitions(p, pure).some((d) => d.bp?.type === "dispatcher"));
+});
+
+test("macro nesting is limited and cycles are rejected", () => {
+  const p = makeProject();
+  const macros = Array.from({ length: 9 }, (_, i) => makeMacroGraph(`M${i}`));
+  p.graphs.push(...macros);
+  for (let i = 0; i < 7; i++) {
+    const defs = dynamicDefinitions(p, macros[i]);
+    const next = defs.find((d) => d.bp?.graphId === macros[i + 1].id);
+    assert(next, `M${i} may contain M${i + 1}`);
+    macros[i].nodes.push(makeNode(next, 200, 200));
+  }
+  // M0..M7 is eight levels; one more would exceed the limit
+  assert(!dynamicDefinitions(p, macros[7]).some((d) => d.bp?.graphId === macros[8].id));
+  validateProject(clone(p));
+  macros[7].nodes.push(
+    makeNode(
+      { ...dynamicDefinitions(p, p.graphs[0]).find((d) => d.bp?.graphId === macros[0].id) },
+      200,
+      200,
+    ),
+  );
+  assert.throws(() => validateProject(clone(p)), /宏不能引用自身/);
+});
+
+test("export lists dispatchers and local variables", () => {
+  const p = makeProject();
+  p.dispatchers.push({ id: "d1", name: "OnDone", description: "", params: [] });
+  p.graphs.push(makeFunctionGraph("F", { locals: [{ name: "Tmp", type: "bool" }] }));
+  const out = buildExport(p, { classes: engineClasses, enums: {} });
+  assert.equal(out.dispatchers[0].name, "OnDone");
+  assert.equal(out.functions[0].locals[0].name, "Tmp");
+  assert.equal(out.stats.dispatchers, 1);
+  assert.equal(out.stats.localVariables, 1);
+  validateProject(JSON.parse(JSON.stringify(out)));
+});

@@ -85,6 +85,7 @@ export function makeProject() {
       description: "",
     },
     variables: [],
+    dispatchers: [],
     card: {
       title: "未命名卡牌",
       faction: "Soviet",
@@ -101,6 +102,7 @@ export function makeProject() {
 }
 export function pinKind(type) {
   if (type === "exec") return "exec";
+  if (type.startsWith("Delegate<")) return "delegate";
   if (type.includes("TArray") || type.includes("TSet")) return "array";
   if (type.includes("bool")) return "bool";
   if (/^(int|uint)/.test(type)) return "int";

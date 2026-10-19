@@ -115,6 +115,7 @@ const PINCOLORS = {
   text: "#ec96b4",
   vector: "#e3bd20",
   rotator: "#aaa0eb",
+  delegate: "#ff3838",
 };
 // Arrays and sets take the color of their element type, as in Unreal.
 function pinColor(type) {
@@ -135,6 +136,7 @@ const PIN_LEGEND = [
   ["enum", "枚举"],
   ["vector", "向量"],
   ["rotator", "旋转"],
+  ["delegate", "委托"],
 ];
 $("pin-legend").innerHTML = PIN_LEGEND.map(
   ([kind, label]) =>
@@ -360,6 +362,18 @@ const GRAPH_SUBTITLE = {
   macro: "Macro · 宏",
 };
 const graphById = (id) => project.graphs.find((g) => g.id === id);
+// Every top-level name already in use (variables, graphs, dispatchers, custom events, parent members).
+const usedNames = ({ graph: g, variable: v, dispatcher: d, events = true } = {}) => [
+  ...project.variables.filter((x) => x !== v).map((x) => x.name),
+  ...project.graphs.filter((x) => x !== g).map((x) => x.name),
+  ...project.dispatchers.filter((x) => x !== d).map((x) => x.name),
+  ...(events
+    ? project.graphs[0].nodes
+        .filter((n) => n.definition.bp?.type === "customEvent")
+        .map((n) => n.definition.name)
+    : []),
+  ...parentMembers(),
+];
 const classMap = () => ({ ...classes, ...project.types });
 // Names already used by the parent class; a blueprint may not redefine them.
 const parentMembers = () =>
@@ -376,6 +390,10 @@ function myBlueprintMarkup() {
   const events = project.graphs[0].nodes.filter(
     (n) => n.definition.bp?.type === "customEvent",
   );
+  const local = (v) =>
+    `<div class="bp-row"><button class="graph-link var-link" data-edit-graph="${esc(graph().id)}" title="${esc(v.type)}"><i class="var-dot" style="background:${pinColor(v.type)}"></i>${esc(v.name)}<span class="var-type">${esc(v.type)}</span></button><button class="tiny-button" data-add-var="getLocal:${esc(v.id)}" title="获取">G</button><button class="tiny-button" data-add-var="setLocal:${esc(v.id)}" title="设置">S</button></div>`;
+  const dispatcher = (d) =>
+    `<div class="bp-row"><button class="graph-link var-link" data-dispatcher="${esc(d.id)}" title="${esc(d.description || d.name)}"><span class="graph-icon">◉</span>${esc(d.name)}<span class="var-type">${d.params.length}</span></button><button class="tiny-button" data-add-dispatch="call:${esc(d.id)}" title="调用">C</button><button class="tiny-button" data-add-dispatch="bind:${esc(d.id)}" title="绑定事件">B</button><button class="tiny-button" data-add-dispatch="unbind:${esc(d.id)}" title="解除绑定">U</button></div>`;
   const variable = (v) =>
     `<div class="bp-row"><button class="graph-link var-link" data-var="${esc(v.id)}" title="${esc(v.tooltip || v.type)}"><i class="var-dot" style="background:${pinColor(v.type)}"></i>${esc(v.name)}<span class="var-type">${esc(v.type)}</span></button><button class="tiny-button" data-add-var="get:${esc(v.id)}" title="获取">G</button><button class="tiny-button" data-add-var="set:${esc(v.id)}" title="设置">S</button></div>`;
   return (
@@ -396,7 +414,13 @@ function myBlueprintMarkup() {
     head("宏", "Macros", add("macro", "新建宏")) +
     project.graphs.filter((g) => g.kind === "macro").map(row).join("") +
     head("变量", "Variables", add("variable", "新建变量")) +
-    project.variables.map(variable).join("")
+    project.variables.map(variable).join("") +
+    (graph().kind === "function"
+      ? head("局部变量", "Local variables") +
+        graph().locals.map(local).join("")
+      : "") +
+    head("事件分发器", "Event dispatchers", add("dispatcher", "新建事件分发器")) +
+    project.dispatchers.map(dispatcher).join("")
   );
 }
 function bindMyBlueprint() {
@@ -409,6 +433,17 @@ function bindMyBlueprint() {
   document
     .querySelectorAll("[data-var]")
     .forEach((b) => (b.onclick = () => variableDialog(b.dataset.var)));
+  document
+    .querySelectorAll("[data-dispatcher]")
+    .forEach((b) => (b.onclick = () => dispatcherDialog(b.dataset.dispatcher)));
+  document.querySelectorAll("[data-add-dispatch]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        const [action, id] = b.dataset.addDispatch.split(":");
+        addBlueprintNode(`bp.dispatch.${action}.${id}`);
+        if (window.innerWidth <= 800) setDrawer(false);
+      }),
+  );
   document.querySelectorAll("[data-add-var]").forEach(
     (b) =>
       (b.onclick = () => {
@@ -428,16 +463,18 @@ function bindMyBlueprint() {
       }),
   );
 }
-function addVariableNode(kind, id) {
-  const defId = `bp.${kind}.${id}`;
+function addBlueprintNode(defId) {
   if (!fullCatalog().some((d) => d.id === defId))
     return toast("当前图表不能使用此节点", true);
   addNode(defId);
 }
+const addVariableNode = (kind, id) =>
+  addBlueprintNode(`bp.${kind.toLowerCase()}.${id}`);
 function newItem(kind) {
   if ($("modal").open) $("modal").close();
   if (kind === "function" || kind === "macro") functionDialog(null, kind);
   else if (kind === "override") overrideDialog();
+  else if (kind === "dispatcher") dispatcherDialog(null);
   else variableDialog(null);
 }
 function newItemMenu() {
@@ -445,7 +482,7 @@ function newItemMenu() {
     `<button class="secondary-button new-item" data-new-item="${kind}">${bi2(zh, en)}</button>`;
   openModal(
     "新建",
-    `<div class="new-menu">${item("function", "新建函数", "New function")}${item("override", "重载父类函数", "Override parent function")}${item("macro", "新建宏", "New macro")}${item("variable", "新建变量", "New variable")}</div><p class="detail-description">EventGraph 是唯一的事件图，不能再新建。更多逻辑请写在函数、宏或自定义事件里。</p>`,
+    `<div class="new-menu">${item("function", "新建函数", "New function")}${item("override", "重载父类函数", "Override parent function")}${item("macro", "新建宏", "New macro")}${item("variable", "新建变量", "New variable")}${item("dispatcher", "新建事件分发器", "New event dispatcher")}</div><p class="detail-description">EventGraph 是唯一的事件图，不能再新建。更多逻辑请写在函数、宏或自定义事件里。</p>`,
   );
   $("modal-content")
     .querySelectorAll("[data-new-item]")
@@ -473,10 +510,10 @@ function typeSelect(current, { allowExec = false, locked = false } = {}) {
   return `<select class="param-type" ${locked ? "disabled" : ""}>${choices.map((t) => `<option ${t === base ? "selected" : ""}>${esc(t)}</option>`).join("")}</select><label class="param-array"><input type="checkbox" ${isArrayType(current) ? "checked" : ""} ${locked ? "disabled" : ""}> ${bi2("数组", "Array")}</label>`;
 }
 function paramRow(p, opts) {
-  return `<div class="param-row" data-param="${esc(p.id)}"><input class="param-name" maxlength="64" value="${esc(p.name)}" placeholder="Name" ${opts.locked ? "disabled" : ""}>${typeSelect(p.type, opts)}${opts.locked ? "" : '<button type="button" class="tiny-button param-del" title="删除">×</button>'}</div>`;
+  return `<div class="param-row" data-param="${esc(p.id)}"><input class="param-name" maxlength="64" value="${esc(p.name)}" placeholder="Name" ${opts.locked ? "disabled" : ""}>${typeSelect(p.type, opts)}${opts.withDefault ? `<input class="param-default" placeholder="Default" value="${esc(p.default ?? defaultValueFor(p.type, enums))}">` : ""}${opts.locked ? "" : '<button type="button" class="tiny-button param-del" title="删除">×</button>'}</div>`;
 }
 function paramEditor(listId, zh, en, params, opts = {}) {
-  return `<div class="field"><div class="detail-label">${bi2(zh, en)}</div><div id="${listId}" class="param-list" data-allow-exec="${opts.allowExec ? 1 : 0}">${params.map((p) => paramRow(p, opts)).join("")}</div>${opts.locked ? "" : `<button type="button" class="secondary-button param-add" data-list="${listId}">＋ ${bi2("添加参数", "Add parameter")}</button>`}</div>`;
+  return `<div class="field"><div class="detail-label">${bi2(zh, en)}</div><div id="${listId}" class="param-list" data-allow-exec="${opts.allowExec ? 1 : 0}" data-with-default="${opts.withDefault ? 1 : 0}">${params.map((p) => paramRow(p, opts)).join("")}</div>${opts.locked ? "" : `<button type="button" class="secondary-button param-add" data-list="${listId}">＋ ${bi2("添加参数", "Add parameter")}</button>`}</div>`;
 }
 function bindParamEditors() {
   const root = $("modal-content");
@@ -489,8 +526,9 @@ function bindParamEditors() {
       n = list.querySelectorAll(".param-row").length + 1;
     list.insertAdjacentHTML(
       "beforeend",
-      paramRow(newParam(`Param${n}`, "bool"), {
+      paramRow(newParam(list.dataset.withDefault === "1" ? `Local${n}` : `Param${n}`, "bool"), {
         allowExec: list.dataset.allowExec === "1",
+        withDefault: list.dataset.withDefault === "1",
       }),
     );
   };
@@ -508,7 +546,11 @@ function readParams(listId, label) {
     seen.push(name);
     const base = row.querySelector(".param-type").value,
       array = row.querySelector(".param-array input").checked && base !== "exec";
-    out.push({ id: row.dataset.param, name, type: array ? arrayOf(base) : base });
+    const type = array ? arrayOf(base) : base,
+      entry = { id: row.dataset.param, name, type };
+    if ($(listId).dataset.withDefault === "1")
+      entry.default = parseDefaultValue(type, row.querySelector(".param-default").value);
+    out.push(entry);
   }
   return out;
 }
@@ -536,16 +578,14 @@ function functionDialog(id, kind = "function") {
       : "新建宏";
   openModal(
     title,
-    `<div class="field"><label class="detail-label" for="fn-name">名称</label><input id="fn-name" maxlength="64" value="${esc(g ? g.name : isFn ? "NewFunction" : "NewMacro")}" ${locked ? "disabled" : ""}><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><div class="field"><label class="detail-label" for="fn-desc">说明</label><textarea id="fn-desc" placeholder="可以用中文写说明">${esc(draft.description)}</textarea></div>${isFn ? `<div class="field-grid"><div class="field"><label class="detail-label" for="fn-access">访问</label><select id="fn-access">${["Public", "Protected", "Private"].map((v) => `<option ${v === draft.access ? "selected" : ""}>${v}</option>`).join("")}</select></div><div class="field"><label class="detail-label" for="fn-category">分类</label><input id="fn-category" maxlength="64" value="${esc(draft.category)}"></div></div>${locked ? "" : `<label class="check-row"><input type="checkbox" id="fn-pure" ${draft.pure ? "checked" : ""}> 纯函数（没有执行引脚）</label>`}` : ""}${paramEditor("fn-inputs", "输入参数", "Inputs", draft.inputs, { allowExec: !isFn, locked })}${paramEditor("fn-outputs", "输出参数", "Outputs", draft.outputs, { allowExec: !isFn, locked })}<div class="modal-actions">${g ? '<button id="fn-delete" class="danger-button" style="width:auto;margin:0">删除</button>' : ""}<button id="fn-save" class="primary-button">${g ? "保存" : "创建"}</button></div>`,
+    `<div class="field"><label class="detail-label" for="fn-name">名称</label><input id="fn-name" maxlength="64" value="${esc(g ? g.name : isFn ? "NewFunction" : "NewMacro")}" ${locked ? "disabled" : ""}><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><div class="field"><label class="detail-label" for="fn-desc">说明</label><textarea id="fn-desc" placeholder="可以用中文写说明">${esc(draft.description)}</textarea></div>${isFn ? `<div class="field-grid"><div class="field"><label class="detail-label" for="fn-access">访问</label><select id="fn-access">${["Public", "Protected", "Private"].map((v) => `<option ${v === draft.access ? "selected" : ""}>${v}</option>`).join("")}</select></div><div class="field"><label class="detail-label" for="fn-category">分类</label><input id="fn-category" maxlength="64" value="${esc(draft.category)}"></div></div>${locked ? "" : `<label class="check-row"><input type="checkbox" id="fn-pure" ${draft.pure ? "checked" : ""}> 纯函数（没有执行引脚）</label>`}` : ""}${paramEditor("fn-inputs", "输入参数", "Inputs", draft.inputs, { allowExec: !isFn, locked })}${paramEditor("fn-outputs", "输出参数", "Outputs", draft.outputs, { allowExec: !isFn, locked })}${isFn ? paramEditor("fn-locals", "局部变量", "Local variables", draft.locals || [], { withDefault: true }) : ""}<div class="modal-actions">${g ? '<button id="fn-delete" class="danger-button" style="width:auto;margin:0">删除</button>' : ""}<button id="fn-save" class="primary-button">${g ? "保存" : "创建"}</button></div>`,
   );
   bindParamEditors();
   $("fn-save").onclick = () => {
     const name = $("fn-name").value.trim();
     if (!locked) {
       const taken = [
-        ...project.graphs.filter((x) => x !== g).map((x) => x.name),
-        ...project.variables.map((v) => v.name),
-        ...parentMembers(),
+        ...usedNames({ graph: g }),
       ];
       const error = checkName(name, taken);
       if (error) return toast(error, true);
@@ -560,6 +600,12 @@ function functionDialog(id, kind = "function") {
       outputs,
     };
     if (isFn) {
+      const locals = readParams("fn-locals", "局部变量");
+      if (!locals) return;
+      const used = new Set([...inputs, ...outputs].map((p) => p.name.toLowerCase()));
+      if (locals.some((l) => used.has(l.name.toLowerCase())))
+        return toast("局部变量不能和输入、输出参数重名", true);
+      common.locals = locals;
       common.access = $("fn-access").value;
       common.category = $("fn-category").value.trim() || "Default";
       common.pure = locked ? g.pure : $("fn-pure").checked;
@@ -650,10 +696,9 @@ function defaultControl(type, value) {
     return `<input id="var-default" type="number" step="${kind === "int" ? 1 : "any"}" value="${esc(value)}">`;
   return `<input id="var-default" value="${esc(value)}">`;
 }
-function readDefault(type) {
+function parseDefaultValue(type, raw) {
   const base = elementType(type),
-    kind = pinKind(base),
-    raw = $("var-default").value;
+    kind = pinKind(base);
   if (isArrayType(type)) return raw;
   if (kind === "bool") return raw === "true";
   if (kind === "int" || kind === "float") {
@@ -662,6 +707,7 @@ function readDefault(type) {
   }
   return raw;
 }
+const readDefault = (type) => parseDefaultValue(type, $("var-default").value);
 function variableDialog(id) {
   const v = id ? project.variables.find((x) => x.id === id) : null;
   let n = project.variables.length + 1,
@@ -686,11 +732,7 @@ function variableDialog(id) {
   $("modal-content").querySelector(".param-array input").onchange = refreshDefault;
   $("var-save").onclick = () => {
     const name = $("var-name").value.trim(),
-      taken = [
-        ...project.variables.filter((x) => x !== v).map((x) => x.name),
-        ...project.graphs.map((g) => g.name),
-        ...parentMembers(),
-      ],
+      taken = usedNames({ variable: v }),
       error = checkName(name, taken);
     if (error) return toast(error, true);
     const type = typeNow(),
@@ -734,9 +776,8 @@ function customEventDialog(node, point) {
         (n) => n.definition.bp?.type === "customEvent" && n !== node,
       ),
       taken = [
+        ...usedNames({ events: false }),
         ...events.map((n) => n.definition.name),
-        ...project.graphs.map((g) => g.name),
-        ...parentMembers(),
       ],
       error = checkName(name, taken);
     if (error) return toast(error, true);
@@ -758,6 +799,38 @@ function customEventDialog(node, point) {
     });
     $("modal").close();
   };
+}
+
+// ---- event dispatchers
+function dispatcherDialog(id) {
+  const d = id ? project.dispatchers.find((x) => x.id === id) : null;
+  openModal(
+    d ? "编辑事件分发器" : "新建事件分发器",
+    `<div class="field"><label class="detail-label" for="ed-name">名称</label><input id="ed-name" maxlength="64" value="${esc(d ? d.name : `OnEvent${project.dispatchers.length + 1}`)}"><p class="detail-description">名称只能包含英文字母、数字和下划线，不能以数字开头（不支持中文）。</p></div><div class="field"><label class="detail-label" for="ed-desc">说明</label><textarea id="ed-desc" placeholder="可以用中文写说明">${esc(d?.description || "")}</textarea></div>${paramEditor("ed-params", "参数", "Parameters", d ? d.params : [])}<div class="modal-actions">${d ? '<button id="ed-delete" class="danger-button" style="width:auto;margin:0">删除</button>' : ""}<button id="ed-save" class="primary-button">${d ? "保存" : "创建"}</button></div>`,
+  );
+  bindParamEditors();
+  $("ed-save").onclick = () => {
+    const name = $("ed-name").value.trim(),
+      error = checkName(name, usedNames({ dispatcher: d }));
+    if (error) return toast(error, true);
+    const params = readParams("ed-params", "参数");
+    if (!params) return;
+    const values = { name, params, description: $("ed-desc").value.trim() };
+    mutate(() => {
+      if (d) Object.assign(d, values);
+      else project.dispatchers.push({ id: uid(), ...values });
+    });
+    $("modal").close();
+  };
+  if ($("ed-delete"))
+    $("ed-delete").onclick = () => {
+      if (!confirm(tr(`删除“${d.name}”？使用它的调用、绑定节点也会被一并删除，可使用撤销恢复。`)))
+        return;
+      mutate(() => {
+        project.dispatchers = project.dispatchers.filter((x) => x !== d);
+      });
+      $("modal").close();
+    };
 }
 
 // ---- inspector helpers
@@ -786,6 +859,9 @@ function bpNodeSection(n) {
     callEvent: "转到事件",
     get: "编辑变量",
     set: "编辑变量",
+    getLocal: "编辑函数（局部变量）",
+    setLocal: "编辑函数（局部变量）",
+    dispatcher: "编辑事件分发器",
   }[t];
   return `<section class="detail-section"><h3 class="detail-heading">蓝图 <span>BLUEPRINT</span></h3><button class="secondary-button" id="bp-edit" style="width:100%">${label}</button></section>`;
 }
@@ -795,6 +871,9 @@ function editBlueprintNode(n) {
   if (["entry", "result", "macroEntry", "macroExit"].includes(bp.type))
     return functionDialog(bp.graphId, graphById(bp.graphId).kind);
   if (bp.type === "call" || bp.type === "macro") return switchGraph(bp.graphId);
+  if (bp.type === "getLocal" || bp.type === "setLocal")
+    return functionDialog(bp.graphId, "function");
+  if (bp.type === "dispatcher") return dispatcherDialog(bp.dispatcherId);
   if (bp.type === "callEvent") {
     project.activeGraph = project.graphs[0].id;
     selection = new Set([bp.eventNodeId]);
@@ -1053,6 +1132,7 @@ function pinMarkup(n, p) {
   const showValue =
     !connected &&
     p.type !== "exec" &&
+    pinKind(p.type) !== "delegate" &&
     !(p.id === "target" && val === "Self") &&
     (p.direction === "in" ||
       (n.definition.category === "variables" && n.definition.kind === "variable"));
@@ -1141,6 +1221,7 @@ function renderInspector() {
     const inputs = d.pins.filter(
       (p) =>
         p.type !== "exec" &&
+        pinKind(p.type) !== "delegate" &&
         (p.direction === "in" || (d.category === "variables" && d.kind === "variable")),
     );
     body += inputs.length
