@@ -1,0 +1,87 @@
+# KARDS Blueprint Studio
+
+专为 KARDS 设计的浏览器蓝图编辑器，视觉布局参考 Unreal Engine 蓝图编辑器。
+
+**GitHub Pages 地址（启用 Pages 后）：https://ghhhhughg638.github.io/Kards-Source/**
+
+- UE 风格的灰色网格、红色 Event、蓝色函数、绿色纯函数、灰色流程、青色 Cast 节点，以及类型对应的引脚颜色。
+- 中文显示名与原始英文并列，例如「事件 · 从手牌打出 / Event OnPlayedFromHand」。
+- 从本仓库 C++ 头文件生成 608 个原生函数、35 个类、216 个属性和 37 个枚举，保留源码链接。
+- 101 个常用 UE 基础节点：Branch、Sequence、DoOnce、Gate、ForLoop、ForEachLoop、Delay、IsValid、GetGameInstance、GetPlayerController、Actor 访问、数学、数组、变量与基本类型转换。
+- 为已知对象类型提供 Cast To，生成属性 Get / Set 节点，为非静态成员函数添加正确类型的 Target 引脚。
+- 节点拖拽、执行流与数据连线、相同类型检查、参数及枚举编辑。
+- 多事件图、节点注释、自定义节点、卡牌元数据、导航缩略图、画布缩放。
+- 多选、复制、删除、撤销与重做，浏览器本地自动保存。
+- 导入和导出 `.kardsbp.json`，或将当前图导出为独立 SVG 图像。
+
+这是蓝图的可视化设计和展示工具，不执行游戏逻辑，不导入或生成 Unreal `.uasset` 文件。演示中的战术条件是可编辑的设计占位值。
+
+## 使用
+
+拖动左侧节点到画布，或按 `Tab` / 右键搜索节点。从数据引脚拖到空白位置会打开上下文菜单，自动筛选兼容的类型。可以选择「成员函数」「属性」或「类型转换」。创建节点后自动连接目标引脚；从 Cast 的对象输出创建动作函数时，还会在执行输出空闲的情况下接上成功执行流。
+
+例如：拖出 `ObjectReference` 的 `UObject*` 输出 → 选择 `Cast To BaseCardObject` → 从 `As BaseCardObject` 拖出 → 选择 `Get attack` 或 `ResetCardAttributes`。示例项目的「类型转换 · Cast & Call」事件图展示了完整结构。
+
+拖动空白区域平移，滚轮缩放，`F` 适应画布。依次点击输出和输入端口，或将一个端口拖向另一个端口完成连线。新连接会替换同一输入端口的旧连接。
+
+点击节点，在右侧修改参数、位置和注释。`Shift` 点击进行多选，`Ctrl/Cmd+D` 复制，`Delete` 删除，`Ctrl/Cmd+Z` 撤销。双击事件图标签可重命名或删除事件图。
+
+自动保存仅保存在当前浏览器的 localStorage。使用「导出蓝图」备份文件；导入文件可在其他设备继续编辑。`Ctrl/Cmd+S` 保存本地草稿，`Ctrl/Cmd+Shift+S` 导出文件。节点定义随文件保存，不依赖未来节点库的版本。
+
+## 自定义文件格式
+
+`format` 为 `kards-blueprint`，`version` 为 `1`。扩展名为 `.kardsbp.json`，UTF-8 JSON。完整字段：
+
+```json
+{
+  "format": "kards-blueprint",
+  "version": 1,
+  "id": "project-uuid",
+  "name": "我的卡牌",
+  "card": {
+    "title": "我的卡牌", "faction": "Soviet", "type": "infantry",
+    "rarity": "Common", "cost": 3, "attack": 3, "defense": 4,
+    "text": "卡牌效果说明"
+  },
+  "activeGraph": "graph-uuid",
+  "graphs": [{
+    "id": "graph-uuid",
+    "name": "事件图",
+    "view": { "x": 40, "y": 0, "zoom": 1 },
+    "nodes": [{
+      "id": "node-uuid", "x": 100, "y": 100,
+      "title": "", "comment": "注释", "values": { "Value": true },
+      "definition": {
+        "id": "studio.Boolean", "name": "Boolean", "class": "Studio",
+        "category": "variables", "pure": true,
+        "pins": [{"id": "Value", "name": "Value", "type": "bool", "direction": "out"}]
+      }
+    }],
+    "edges": []
+  }]
+}
+```
+
+连线结构为 `{ "id": "edge-uuid", "from": { "node": "输出节点ID", "pin": "端口ID" }, "to": { "node": "输入节点ID", "pin": "端口ID" } }`。每个输入端口最多接受一条连线；执行输出端口最多一条，数据输出可连接多个输入。数值、枚举和容器类型字符串必须相同；对象允许按类继承关系连接到父类型输入，向子类型转换使用 Cast To。项目的可选 `types` 字段保留 `{ "ClassName": { "parent": "ParentClass" } }` 类型层级。`exec` 为执行类型，其余保留 C++ 类型（移除 const/reference 修饰）。事件参数在事件入口上显示为输出。
+
+动作默认带执行输入与输出，纯函数只有数据端口。节点的 `kind` 字段区分 `event`、`function`、`pure`、`flow`、`variable`、`cast`、`conversion`、`getter`、`setter`。可通过「添加节点 → 创建自定义节点」声明独立类型和端口。文件载入时会检查版本、节点与端口标识、连接方向及类型，拒绝无效引用。
+
+## 本地开发与 GitHub Pages
+
+字体和前端资源均随站点保存，不依赖外部 CDN。站点位于 `docs/`，无构建依赖，可直接托管在任意静态服务器。ES modules 和节点库读取需要通过 HTTP 打开：
+
+```sh
+python -m http.server 4173 --directory docs
+# 打开 http://localhost:4173
+```
+
+更新 C++ 头文件后重新生成节点库并提交：
+
+```sh
+python tools/generate-node-catalog.py
+node --test tools/model.test.mjs
+```
+
+`.github/workflows/pages.yml` 在 `main` 的 `docs/` 更新时发布 GitHub Pages。仓库 Settings → Pages 的 Source 使用 **GitHub Actions**。不上传游戏源码到站点产物，仅发布 `docs/`。
+
+源代码中的 Unreal 模块和兼容声明继续保留在仓库原目录。节点库生成器提供浏览用途的签名解析，不替代 Unreal Header Tool。

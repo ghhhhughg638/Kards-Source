@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#121719" />
+    <meta
+      name="description"
+      content="KARDS Blueprint Studio — 专为 KARDS 打造的可视化蓝图编辑器。浏览原生函数、连接节点、编辑卡牌并导出蓝图。"
+    />
+    <title>KARDS · Blueprint Studio</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="KARDS Blueprint Studio"
+          ><span class="brand-mark">K<span>✦</span></span
+          ><span>KARDS<span class="brand-sub">BLUEPRINT EDITOR</span></span></a
+        >
+        <div class="project-heading">
+          <span class="project-dot"></span
+          ><input id="project-name" aria-label="项目名称" value="" /><span
+            class="version-tag"
+            >.kardsbp</span
+          >
+        </div>
+        <div class="top-actions">
+          <span id="save-state" class="save-state">本地已保存</span
+          ><button id="help" class="icon-button" title="操作帮助">?</button
+          ><a
+            class="github-link"
+            href="https://github.com/ghhhhughg638/Kards-Source"
+            target="_blank"
+            rel="noreferrer"
+            >GitHub ↗</a
+          ><button id="export" class="primary-button">
+            <span>↗</span> 导出蓝图
+          </button>
+        </div>
+      </header>
+      <nav class="menubar" aria-label="项目工具">
+        <div>
+          <button id="new-project">新建项目</button
+          ><button id="import">导入文件</button
+          ><button id="save">保存 <kbd>⌘ S</kbd></button
+          ><span class="separator"></span
+          ><button id="undo" title="撤销 Ctrl/Cmd+Z">↶ 撤销</button
+          ><button id="redo" title="重做 Ctrl/Cmd+Shift+Z">↷ 重做</button>
+        </div>
+        <div class="menubar-right">
+          <span class="green-dot"></span> LOCAL WORKSPACE
+          <span class="separator"></span><span>SCHEMA v1.0</span>
+        </div>
+      </nav>
+      <main class="workspace">
+        <aside class="left-panel">
+          <section class="graph-section">
+            <div class="section-heading">
+              <h2>我的蓝图 <small>My Blueprint</small></h2>
+              <button id="add-graph" class="tiny-button" title="新建事件图">
+                ＋
+              </button>
+            </div>
+            <div class="project-label">
+              <span>▱</span> <span id="project-label">卡牌蓝图</span>
+            </div>
+            <div id="graph-list" class="graph-list"></div>
+          </section>
+          <section class="library-section">
+            <div class="section-heading">
+              <h2>节点库 <small>Palette</small></h2>
+              <span id="catalog-count" class="count-badge">…</span>
+            </div>
+            <label class="search-box"
+              ><span>⌕</span
+              ><input
+                id="node-search"
+                placeholder="搜索 / Search…"
+                aria-label="搜索节点"
+              /><kbd>/</kbd></label
+            >
+            <div id="category-list" class="category-list"></div>
+            <div class="library-divider">
+              <span id="library-label">所有节点</span><span>拖入画布</span>
+            </div>
+            <div id="node-list" class="node-list" aria-label="可用节点"></div>
+            <div class="library-footer">
+              <span class="green-dot"></span> KARDS C++ · Unreal Blueprint
+            </div>
+          </section>
+        </aside>
+        <section class="editor">
+          <div class="tabs" id="tabs"></div>
+          <div class="canvas-toolbar">
+            <div class="breadcrumbs">
+              <span>▱</span><span id="card-breadcrumb">卡牌</span
+              ><span class="chevron">›</span
+              ><strong id="graph-breadcrumb">事件图</strong>
+            </div>
+            <div class="canvas-tools">
+              <button id="add-node" title="添加节点 (Tab)">＋ 添加节点</button
+              ><button id="fit" class="icon-button" title="适应画布 (F)">
+                ⛶</button
+              ><button
+                id="toggle-inspector"
+                class="icon-button"
+                title="显示/隐藏详情面板"
+              >
+                ▥
+              </button>
+            </div>
+          </div>
+          <div
+            id="viewport"
+            class="viewport"
+            tabindex="0"
+            aria-label="蓝图画布。滚轮缩放，拖动空白平移，Tab 添加节点"
+          >
+            <div class="canvas-title">
+              <span>BLUEPRINT GRAPH</span>
+              <h1 id="canvas-title">事件图</h1>
+              <p>Event Graph · 卡牌事件图</p>
+            </div>
+            <div id="world" class="world">
+              <svg id="edges" class="edges" aria-label="节点连线"></svg>
+              <div id="nodes"></div>
+            </div>
+            <div class="canvas-watermark">
+              KARDS<span>BLUEPRINT EDITOR</span>
+            </div>
+            <div class="canvas-bottom">
+              <div class="canvas-hint">
+                <span class="key-mouse">↔</span> 拖动画布
+                <span>·</span> 滚轮缩放 <span>·</span> <kbd>Tab</kbd> 添加节点
+              </div>
+              <div class="zoom-controls">
+                <button id="zoom-out" title="缩小">−</button
+                ><button id="zoom-label" title="重置缩放">100%</button
+                ><button id="zoom-in" title="放大">＋</button>
+              </div>
+            </div>
+            <div class="minimap-wrap">
+              <span class="minimap-label">NAVIGATOR</span
+              ><svg id="minimap" aria-label="画布导航"></svg>
+            </div>
+            <div id="empty-state" class="empty-state" hidden>
+              <span>⌘</span>
+              <h2>让一个想法，成为蓝图。</h2>
+              <p>从左侧拖入节点，或按 Tab 开始。</p>
+              <button id="empty-add" class="primary-button">
+                ＋ 添加第一个节点
+              </button>
+            </div>
+          </div>
+          <div class="graph-footer">
+            <div>
+              <span class="green-dot"></span
+              ><span id="graph-stats">0 个节点 · 0 条连接</span
+              ><span class="separator"></span
+              ><button id="validate">检查连接</button>
+            </div>
+            <div>
+              <span class="pin-legend"><i class="legend-exec"></i> 执行</span
+              ><span class="pin-legend"><i class="legend-object"></i> 对象</span
+              ><span class="pin-legend"><i class="legend-int"></i> 数值</span
+              ><span class="pin-legend"><i class="legend-bool"></i> 布尔</span>
+            </div>
+          </div>
+        </section>
+        <aside id="inspector" class="inspector">
+          <div class="inspector-heading">
+            <h2>详情 <small>Details</small></h2>
+            <span>▥</span>
+          </div>
+          <div id="inspector-content"></div>
+          <div class="inspector-note">
+            <span>◇</span>
+            <p>用于设计、编辑与展示蓝图。<br />蓝图文件保存在你的设备上。</p>
+          </div>
+        </aside>
+      </main>
+      <footer class="statusbar">
+        <div>
+          <span class="status-logo">K</span><span>KARDS 专用蓝图编辑器</span
+          ><span class="separator"></span
+          ><span id="selection-status">就绪</span>
+        </div>
+        <div>
+          <span id="source-status">正在读取节点库…</span
+          ><span class="separator"></span
+          ><button id="export-svg">导出 SVG ↗</button>
+        </div>
+      </footer>
+    </div>
+    <input type="file" id="file-input" accept=".json,.kardsbp" hidden />
+    <div id="toast" class="toast" role="status" hidden></div>
+    <dialog id="modal"><div id="modal-content"></div></dialog>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
