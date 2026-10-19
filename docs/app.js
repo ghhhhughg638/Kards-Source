@@ -1228,20 +1228,87 @@ function bindLibrary(container) {
     };
   });
 }
-// Centre of the view, nudged diagonally so new nodes do not land exactly on existing ones.
+// Centre of the view, moved to the nearest spot that does not cover an existing node.
 function freeSpotNearCenter() {
-  const at = centerPoint();
-  at.x = Math.round(at.x / 10) * 10;
-  at.y = Math.round(at.y / 10) * 10;
-  while (
-    graph().nodes.some(
-      (n) => Math.abs(n.x - at.x) < 30 && Math.abs(n.y - at.y) < 30,
-    )
-  ) {
-    at.x += 40;
-    at.y += 40;
-  }
-  return at;
+  const base = centerPoint();
+  base.x = Math.round(base.x / 10) * 10;
+  base.y = Math.round(base.y / 10) * 10;
+  const boxes = graph().nodes.map((n) => {
+      const el = document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`);
+      return { x: n.x, y: n.y, w: el?.offsetWidth || 240, h: el?.offsetHeight || 120 };
+    }),
+    free = (x, y) =>
+      !boxes.some(
+        (b) => x < b.x + b.w + 20 && b.x < x + 240 && y < b.y + b.h + 20 && b.y < y + 130,
+      );
+  for (let ring = 0; ring < 12; ring++)
+    for (let dy = -ring; dy <= ring; dy++)
+      for (let dx = -ring; dx <= ring; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+        const x = base.x + dx * 270,
+          y = base.y + dy * 150;
+        if (free(x, y)) return { x, y };
+      }
+  return base;
+}
+// Tidy the graph: columns by flow depth (left to right), stacked by measured node size.
+function arrangeNodes() {
+  const g = graph();
+  if (!g.nodes.length) return;
+  const size = (n) => {
+    const el = document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`);
+    return { w: el?.offsetWidth || 240, h: el?.offsetHeight || 120 };
+  };
+  mutate(() => {
+    const ids = new Set(g.nodes.map((n) => n.id)),
+      depth = new Map(g.nodes.map((n) => [n.id, 0]));
+    const edges = g.edges.filter(
+      (e) => ids.has(e.from.node) && ids.has(e.to.node) && e.from.node !== e.to.node,
+    );
+    // Longest-path layering; the pass limit keeps cycles from looping forever.
+    for (let pass = 0; pass < g.nodes.length; pass++) {
+      let changed = false;
+      for (const e of edges) {
+        const d = depth.get(e.from.node) + 1;
+        if (d > depth.get(e.to.node) && d <= g.nodes.length) {
+          depth.set(e.to.node, d);
+          changed = true;
+        }
+      }
+      if (!changed) break;
+    }
+    const columns = new Map();
+    for (const n of g.nodes) {
+      const d = depth.get(n.id);
+      if (!columns.has(d)) columns.set(d, []);
+      columns.get(d).push(n);
+    }
+    const order = new Map(); // average row of already placed upstream nodes keeps wires short
+    let x = 0;
+    for (const d of [...columns.keys()].sort((a, b) => a - b)) {
+      const col = columns.get(d),
+        rank = (n) => {
+          const up = edges
+            .filter((e) => e.to.node === n.id && order.has(e.from.node))
+            .map((e) => order.get(e.from.node));
+          return up.length ? up.reduce((a, b) => a + b, 0) / up.length : Infinity;
+        };
+      col.sort((a, b) => rank(a) - rank(b) || a.y - b.y || a.x - b.x);
+      let y = 0,
+        width = 0;
+      for (const n of col) {
+        const { w, h } = size(n);
+        n.x = Math.round(x / 10) * 10;
+        n.y = Math.round(y / 10) * 10;
+        order.set(n.id, n.y);
+        y += h + 40;
+        width = Math.max(width, w);
+      }
+      x += width + 90;
+    }
+  });
+  fit();
+  toast("已整理节点布局");
 }
 function centerPoint() {
   const r = $("viewport").getBoundingClientRect(),
@@ -1301,7 +1368,7 @@ function addNode(id, point, sourceEndpoint = null) {
   });
 }
 function picker(point, sourceEndpoint = null) {
-  placement = point || centerPoint();
+  placement = point || freeSpotNearCenter();
   pickerContext = sourceEndpoint ? clone(sourceEndpoint) : null;
   const sourceNode =
     sourceEndpoint && graph().nodes.find((n) => n.id === sourceEndpoint.node);
@@ -2651,6 +2718,7 @@ async function forceRefresh() {
 $("force-refresh").onclick = forceRefresh;
 $("help").onclick = help;
 $("settings").onclick = openSettings;
+$("arrange").onclick = arrangeNodes;
 $("multi-toggle").onclick = () => setMultiMode(!multiMode);
 $("bar-clear").onclick = () => {
   selection.clear();
