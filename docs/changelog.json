@@ -1,5 +1,27 @@
 [
   {
+    "version": "2.8.0",
+    "date": "2026-10-19",
+    "title": {
+      "zh": "框选与多选、阻止长按复制",
+      "en": "Box select, multi-select, block long-press copy"
+    },
+    "items": [
+      {
+        "zh": "鼠标在空白处拖动会出现白色选框,框住的节点被选中,可删除/复制;空格、中键或 Alt 拖动仍可平移",
+        "en": "Dragging on empty canvas draws a white box and selects the nodes inside; Space, middle mouse or Alt still pans"
+      },
+      {
+        "zh": "新增「多选」按钮:开启后点节点选中、再点取消,拖空白处也可框选;选中的节点有黄色边框",
+        "en": "New Multi button: tap nodes to select and tap again to deselect, drag on empty space to box-select; selected nodes get a yellow frame"
+      },
+      {
+        "zh": "新增设置(⚙):可阻止长按选中文字和复制菜单,也可把鼠标拖动改回平移",
+        "en": "New Settings (⚙): block long-press text selection and the copy menu, or switch mouse drag back to panning"
+      }
+    ]
+  },
+  {
     "version": "2.7.2",
     "date": "2026-10-19",
     "title": {

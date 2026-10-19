@@ -56,7 +56,7 @@ body {
   font: inherit;
 }
 .pin-toggle:hover { border-color: var(--accent); }
-.canvas-tools > #add-node, .canvas-tools > #toggle-library {
+.canvas-tools > #add-node, .canvas-tools > #toggle-library, .canvas-tools > #multi-toggle {
   font-size: 11px;
   background: #383838;
   color: #ddd;
@@ -578,3 +578,16 @@ body { max-width: 100vw; overflow-x: hidden; }
 .library-section .search-box { margin-bottom: 6px; }
 .category-list { flex: none; }
 .library-section .more-row { position: static; background: none; }
+
+/* Selected nodes: yellow frame */
+.node.selected { outline: 2px solid #ffd43b; outline-offset: 1px; box-shadow: 0 0 0 4px #ffd43b30, 2px 5px 10px #0006; }
+
+/* Box selection (white rectangle) and multi-select mode */
+.marquee { position: absolute; z-index: 30; pointer-events: none; border: 1px solid #fff; background: #ffffff1a; }
+.canvas-tools > #multi-toggle.active { background: #5b4a12; border-color: #ffd43b; color: #ffe27a; }
+.viewport.multi { cursor: crosshair; }
+
+/* "Block copy" setting: no text selection or callout outside text fields */
+html.block-copy body, html.block-copy body * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html.block-copy input, html.block-copy textarea, html.block-copy [contenteditable="true"],
+html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text; }
