@@ -71,6 +71,8 @@
           ><span class="separator"></span
           ><button id="undo" title="撤销 Ctrl/Cmd+Z">↶ <span class="zh">撤销</span> <span class="en">Undo</span></button
           ><button id="redo" title="重做 Ctrl/Cmd+Shift+Z">↷ <span class="zh">重做</span> <span class="en">Redo</span></button><span class="separator"></span
+          ><button id="copy-nodes" class="edit-only" title="复制选中的节点 Ctrl/Cmd+C"><span class="zh">复制</span><span class="en">Copy</span></button
+          ><button id="paste-nodes" class="edit-only" title="粘贴节点 Ctrl/Cmd+V"><span class="zh">粘贴</span><span class="en">Paste</span></button><span class="separator edit-only"></span
           ><button
             id="force-refresh"
             title="强制刷新：绕过缓存，重新从 GitHub 读取最新版本（本地草稿不会丢失）"
@@ -196,7 +198,9 @@
             <div id="selection-bar" class="selection-bar" hidden>
               <button id="bar-details" type="button">详情</button>
               <button id="bar-clear" type="button">取消选择</button>
-              <button id="bar-duplicate" type="button">复制</button>
+              <button id="bar-copy" type="button">复制</button>
+              <button id="bar-paste" type="button">粘贴</button>
+              <button id="bar-duplicate" type="button">副本</button>
               <button id="bar-delete" type="button" class="danger">删除</button>
             </div>
             <div id="empty-state" class="empty-state" hidden>

@@ -1,5 +1,27 @@
 [
   {
+    "version": "2.10.6",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "复制 / 粘贴 / 剪切节点",
+      "en": "Copy, paste and cut nodes"
+    },
+    "items": [
+      {
+        "zh": "新增复制、粘贴、剪切:Ctrl/Cmd+C、V、X,顶部菜单有「复制」「粘贴」按钮;手机上选中节点后底部操作条有「复制」「粘贴」,没选中时只显示「粘贴」",
+        "en": "New Copy, Paste and Cut: Ctrl/Cmd+C, V, X, Copy/Paste buttons in the menu bar, and Copy/Paste in the phone selection bar (only Paste when nothing is selected)"
+      },
+      {
+        "zh": "粘贴会带上节点之间的连线,放在鼠标位置(手机放在画面中央),连续粘贴会错开;可以粘贴到别的图表、别的卡牌甚至别的标签页,放不进去的节点(如事件放进函数图)会跳过并提示",
+        "en": "Pasting keeps the wires between nodes and puts them at the mouse (screen centre on phones); repeated pastes are staggered; works across graphs, cards and tabs, and skips nodes that cannot go there (e.g. events in a function graph)"
+      },
+      {
+        "zh": "原来的「复制」改名为「副本」(Ctrl+D 原地复制一份)",
+        "en": "The old Copy is now called Duplicate (Ctrl+D makes a copy next to the original)"
+      }
+    ]
+  },
+  {
     "version": "2.10.5",
     "date": "2026-10-20",
     "title": {

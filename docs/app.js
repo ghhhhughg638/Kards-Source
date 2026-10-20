@@ -2030,8 +2030,14 @@ function setMultiMode(on) {
 function updateSelectionStatus() {
   const bar = $("selection-bar");
   if (bar) {
-    bar.hidden = !(selection.size || selectedEdge);
+    const canPaste = window.innerWidth <= 800 && !!readLocalClip();
+    bar.hidden = !(selection.size || selectedEdge || canPaste);
+    for (const id of ["bar-duplicate", "bar-copy", "bar-details", "bar-clear"])
+      $(id).hidden = !selection.size && !selectedEdge;
+    $("bar-copy").hidden = !selection.size;
     $("bar-duplicate").hidden = !selection.size;
+    $("bar-delete").hidden = !selection.size && !selectedEdge;
+    $("bar-paste").hidden = !readLocalClip();
   }
   $("selection-status").textContent = pending
     ? "选择一个兼容端口完成连线 · Esc 取消"
@@ -2464,6 +2470,127 @@ function deleteSelection() {
     selection.clear();
     selectedEdge = null;
   });
+}
+// ---------------------------------------------------------------- copy & paste
+// Nodes (with the wires between them) go to an in-app clipboard that also lives in the browser's
+// storage, so they can be pasted into another graph, another card or another tab; the same text is
+// offered to the system clipboard as well.
+const CLIP_KEY = "kards-blueprint-studio.clipboard",
+  CLIP_TAG = "KARDS-BP-NODES:";
+let pasteCount = 0,
+  lastPointer = null;
+const readLocalClip = () => {
+  try {
+    return localStorage.getItem(CLIP_KEY);
+  } catch {
+    return null;
+  }
+};
+function copyNodes() {
+  const nodes = graph().nodes.filter(
+    (n) => selection.has(n.id) && !n.definition.fixed && n.definition.kind !== "customEvent",
+  );
+  if (!nodes.length) return toast("先选中要复制的节点", true);
+  const ids = new Set(nodes.map((n) => n.id)),
+    text = JSON.stringify({
+      format: "kards-bp-nodes",
+      version: 1,
+      nodes: clone(nodes),
+      edges: clone(graph().edges.filter((e) => ids.has(e.from.node) && ids.has(e.to.node))),
+    });
+  try {
+    localStorage.setItem(CLIP_KEY, text);
+  } catch {
+    return toast("存储空间不足，无法复制", true);
+  }
+  navigator.clipboard?.writeText(CLIP_TAG + text).catch(() => {});
+  pasteCount = 0;
+  toast(`已复制 ${nodes.length} 个节点`);
+  updateSelectionStatus();
+}
+function cutNodes() {
+  const had = selection.size;
+  copyNodes();
+  if (had) deleteSelection();
+}
+function pasteNodes(text) {
+  let data = null;
+  // text copied from another device (tagged) first, then the copy kept in this app
+  for (const raw of [text?.startsWith(CLIP_TAG) ? text.slice(CLIP_TAG.length) : null, readLocalClip()]) {
+    try {
+      const found = raw ? JSON.parse(raw) : null;
+      if (found?.format === "kards-bp-nodes") {
+        data = found;
+        break;
+      }
+    } catch {
+      /* not ours: try the next source */
+    }
+  }
+  if (
+    data?.format !== "kards-bp-nodes" ||
+    !Array.isArray(data.nodes) ||
+    !data.nodes.length ||
+    data.nodes.length > 500 ||
+    data.nodes.some((n) => !n?.definition || !Array.isArray(n.definition.pins))
+  )
+    return toast("没有可粘贴的节点：先复制一些节点", true);
+  const fits = data.nodes.filter((n) => allowedInGraph(n.definition, graph())),
+    skipped = data.nodes.length - fits.length;
+  if (!fits.length) return toast("这些节点不能放进当前图表（例如事件只能放在 EventGraph）", true);
+  const left = Math.min(...fits.map((n) => n.x)),
+    top = Math.min(...fits.map((n) => n.y)),
+    r = $("viewport").getBoundingClientRect(),
+    inside =
+      lastPointer &&
+      lastPointer.clientX >= r.left &&
+      lastPointer.clientX <= r.right &&
+      lastPointer.clientY >= r.top &&
+      lastPointer.clientY <= r.bottom,
+    target = inside ? worldPoint(lastPointer) : centerPoint(),
+    shift = pasteCount * 40;
+  pasteCount += 1;
+  const made = new Map();
+  mutate(() => {
+    for (const n of fits) {
+      const copy = clone(n);
+      copy.id = uid();
+      copy.x = Math.round((target.x + (n.x - left) + shift) / 10) * 10;
+      copy.y = Math.round((target.y + (n.y - top) + shift) / 10) * 10;
+      made.set(n.id, copy.id);
+      graph().nodes.push(copy);
+    }
+    for (const e of data.edges || [])
+      if (made.has(e.from?.node) && made.has(e.to?.node))
+        graph().edges.push({
+          id: uid(),
+          from: { node: made.get(e.from.node), pin: e.from.pin },
+          to: { node: made.get(e.to.node), pin: e.to.pin },
+        });
+  });
+  // nodes whose definition no longer exists here (another card's functions) were dropped by the sync
+  const alive = [...made.values()].filter((id) => graph().nodes.some((n) => n.id === id));
+  selection = new Set(alive);
+  renderNodes();
+  renderInspector();
+  drawEdges();
+  updateSelectionStatus();
+  const dropped = skipped + (made.size - alive.length);
+  toast(dropped ? `已粘贴 ${alive.length} 个节点，${dropped} 个不能用，已跳过` : `已粘贴 ${alive.length} 个节点`);
+}
+async function pasteFromButton() {
+  // The copy kept in this app needs no permission; the system clipboard is only asked when there is none.
+  if (readLocalClip()) return pasteNodes("");
+  let text = "";
+  try {
+    text = await Promise.race([
+      navigator.clipboard?.readText?.() ?? "",
+      new Promise((resolve) => setTimeout(() => resolve(""), 2500)),
+    ]);
+  } catch {
+    /* reading the system clipboard was refused */
+  }
+  pasteNodes(String(text).startsWith(CLIP_TAG) ? text : "");
 }
 function duplicate() {
   if (!selection.size) return;
@@ -3301,6 +3428,10 @@ function setInspectorOpen(open) {
 }
 $("bar-details").onclick = () => setInspectorOpen(true);
 $("bar-duplicate").onclick = duplicate;
+$("bar-copy").onclick = copyNodes;
+$("bar-paste").onclick = pasteFromButton;
+$("copy-nodes").onclick = copyNodes;
+$("paste-nodes").onclick = pasteFromButton;
 $("bar-delete").onclick = deleteSelection;
 $("toggle-library").onclick = () =>
   setDrawer(!$("left-panel").classList.contains("open"));
@@ -3399,6 +3530,14 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     duplicate();
   }
+  if (mod && e.key.toLowerCase() === "c") {
+    e.preventDefault();
+    copyNodes();
+  }
+  if (mod && e.key.toLowerCase() === "x") {
+    e.preventDefault();
+    cutNodes();
+  }
   if (mod && e.key.toLowerCase() === "a") {
     e.preventDefault();
     selection = new Set(graph().nodes.map((n) => n.id));
@@ -3407,6 +3546,15 @@ window.addEventListener("keydown", (e) => {
     drawEdges();
     updateSelectionStatus();
   }
+});
+// Ctrl/Cmd+V arrives as a "paste" event, which also carries text copied from another device.
+document.addEventListener("paste", (e) => {
+  if ($("modal").open || editable(e.target)) return;
+  e.preventDefault();
+  pasteNodes(e.clipboardData?.getData("text") || "");
+});
+viewport.addEventListener("pointermove", (e) => {
+  if (e.pointerType === "mouse") lastPointer = { clientX: e.clientX, clientY: e.clientY };
 });
 window.addEventListener("keyup", (e) => {
   if (e.key === " ") space = false;
