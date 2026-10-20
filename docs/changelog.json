@@ -1,5 +1,27 @@
 [
   {
+    "version": "2.10.2",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "卡牌信息:行动花费、稀有度、单位类型",
+      "en": "Card data: operation cost, rarity, unit types"
+    },
+    "items": [
+      {
+        "zh": "新增「行动花费」(单位的行动费用),旧文件默认 1",
+        "en": "New Operation cost field; older files default to 1"
+      },
+      {
+        "zh": "稀有度只留游戏里的四档和无稀有度:普通(铁)、稀有(铜)、特殊(银)、精英(金),卡牌预览的边框颜色跟着变",
+        "en": "Rarity now offers the game's four tiers plus none: Standard (iron), Limited (copper), Special (silver), Elite (gold); the preview frame follows the colour"
+      },
+      {
+        "zh": "卡牌类型补全并加中文:步兵、坦克、炮兵、战斗机、轰炸机、防空炮、反坦克炮、坦克歼击车、指令、反制、地点、万能牌",
+        "en": "Card types are complete and labelled: infantry, tank, artillery, fighter, bomber, anti-air, anti-tank, tank destroyer, order, countermeasure, location, wildcard"
+      }
+    ]
+  },
+  {
     "version": "2.10.1",
     "date": "2026-10-20",
     "title": {

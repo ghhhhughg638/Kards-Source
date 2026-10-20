@@ -180,6 +180,31 @@ const LABELS = {
   ResetUnitOperations: "重置行动",
   ShowNotification: "显示通知",
 };
+// Card type and rarity as the game shows them (the rarity metal is the card frame colour).
+const TYPE_LABELS = {
+  NotAvailable: "无 / None",
+  infantry: "步兵 / Infantry",
+  tank: "坦克 / Tank",
+  artillery: "炮兵 / Artillery",
+  fighter: "战斗机 / Fighter",
+  bomber: "轰炸机 / Bomber",
+  antiair: "防空炮 / Anti-Air",
+  antitank: "反坦克炮 / Anti-Tank",
+  tankdestroyer: "坦克歼击车 / Tank Destroyer",
+  order: "指令 / Order",
+  gotcha: "反制 / Countermeasure",
+  location: "地点 / Location",
+  wildcard: "万能牌 / Wildcard",
+};
+const RARITY_LABELS = {
+  NotAvailable: "无稀有度 / No rarity",
+  Common: "普通（铁） / Standard (Common)",
+  Uncommon: "稀有（铜） / Limited (Uncommon)",
+  Rare: "特殊（银） / Special (Rare)",
+  Unique: "精英（金） / Elite (Unique)",
+  Legendary: "传奇 / Legendary",
+};
+const labelled = (labels, values) => values.map((value) => ({ value, label: labels[value] || value }));
 const FACTIONS = {
   Germany: "德国",
   Britain: "英国",
@@ -1973,7 +1998,7 @@ function field(label, key, value, options) {
 // ---------------------------------------------------------------- class defaults
 // Like Unreal's Class Defaults: the editable properties of the parent class. The basic card data
 // (name, faction, type, rarity, cost, attack, defense, text) already has its own section.
-const CARD_DATA_PROPS = new Set(["title", "Type", "faction", "rarity", "attack", "defense", "kredits", "Text"]);
+const CARD_DATA_PROPS = new Set(["title", "Type", "faction", "rarity", "attack", "defense", "kredits", "operationCost", "Text"]);
 const CD_GROUPS = [
   ["战斗数值", "Combat", /attack|defense|range|heavyArmor|damage|movement|retreat/i],
   ["费用", "Cost", /kredit|operationCost|cost/i],
@@ -2059,7 +2084,7 @@ function cdRows() {
 }
 function classDefaultsSection() {
   const changed = Object.keys(project.classDefaults).length;
-  return `<section class="detail-section" id="class-defaults"><details ${cdOpen ? "open" : ""} id="cd-details"><summary class="detail-heading">${bi2("类默认值", "Class Defaults")} <span>${changed ? bi2(`${changed} 项已修改`, `${changed} changed`) : "CLASS DEFAULTS"}</span></summary><p class="detail-description">${bi2(`${project.asset.parentClass} 的属性默认值。只保存改过的值，其余使用游戏里的默认。名称、阵营、类型、稀有度、费用、攻击、防御和文字在上面的「卡牌信息」里改。`, `Default values of ${project.asset.parentClass} properties. Only changed values are saved. Name, faction, type, rarity, cost, attack, defense and text are in Card Data above.`)}</p><input id="cd-search" class="modal-search" placeholder="搜索属性 / Search properties…" value="${esc(cdQuery)}" autocomplete="off"><div id="cd-rows">${cdRows()}</div></details></section>`;
+  return `<section class="detail-section" id="class-defaults"><details ${cdOpen ? "open" : ""} id="cd-details"><summary class="detail-heading">${bi2("类默认值", "Class Defaults")} <span>${changed ? bi2(`${changed} 项已修改`, `${changed} changed`) : "CLASS DEFAULTS"}</span></summary><p class="detail-description">${bi2(`${project.asset.parentClass} 的属性默认值。只保存改过的值，其余使用游戏里的默认。名称、阵营、类型、稀有度、费用、行动花费、攻击、防御和文字在上面的「卡牌信息」里改。`, `Default values of ${project.asset.parentClass} properties. Only changed values are saved. Name, faction, type, rarity, cost, operation cost, attack, defense and text are in Card Data above.`)}</p><input id="cd-search" class="modal-search" placeholder="搜索属性 / Search properties…" value="${esc(cdQuery)}" autocomplete="off"><div id="cd-rows">${cdRows()}</div></details></section>`;
 }
 function bindClassDefaults() {
   const details = $("cd-details");
@@ -2134,15 +2159,15 @@ function renderInspector() {
     body += `</section>${bpNodeSection(n)}<section class="detail-section"><h3 class="detail-heading">源代码 <span>NATIVE</span></h3><div class="detail-source">${esc(d.signature || d.name)}${d.source ? `<p><a href="https://github.com/ghhhhughg638/KardsSource/blob/main/${encodeURI(d.source)}" target="_blank" rel="noreferrer">${esc(d.source)} ↗</a></p>` : "<p>Studio 自定义节点 · 仅用于可视化设计</p>"}</div><button class="secondary-button" id="duplicate" style="width:100%;margin-top:10px">复制节点 <kbd>Ctrl D</kbd></button><button class="danger-button" id="delete-selection">删除选中节点</button></section>`;
   } else {
     const card = project.card;
-    body = `${assetSection()}<section class="detail-section" id="card-data"><h3 class="detail-heading">卡牌信息 <span>CARD DATA</span></h3><div class="card-preview"><div class="card-emblem">${esc(card.cost)}</div><div><small>${esc(card.faction.toUpperCase())} / ${esc(card.type.toUpperCase())}</small><h3>${esc(card.title)}</h3><p>${esc(FACTIONS[card.faction] || card.faction)} · ${esc(card.rarity)}</p></div></div>${field("卡牌名称", "card.title", card.title)}${field(
+    body = `${assetSection()}<section class="detail-section" id="card-data"><h3 class="detail-heading">卡牌信息 <span>CARD DATA</span></h3><div class="card-preview rarity-${esc(card.rarity)}"><div class="card-emblem">${esc(card.cost)}</div><div><small>${esc(card.faction.toUpperCase())} / ${esc(card.type.toUpperCase())}</small><h3>${esc(card.title)}</h3><p>${FACTIONS[card.faction] ? bi2(esc(FACTIONS[card.faction]), esc(card.faction)) : esc(card.faction)} · ${bi2(...(RARITY_LABELS[card.rarity] || card.rarity).split(" / ").map(esc).concat([esc(card.rarity)]).slice(0, 2))} · ${bi2("行动", "Op")} ${esc(card.operationCost ?? 1)}</p></div></div>${field("卡牌名称", "card.title", card.title)}${field(
       "所属阵营",
       "card.faction",
       card.faction,
       (enums.EFactionEnum || Object.keys(FACTIONS)).map((value) => ({
         value,
-        label: FACTIONS[value] || value,
+        label: FACTIONS[value] ? `${FACTIONS[value]} / ${value}` : value,
       })),
-    )}${field("卡牌类型", "card.type", card.type, enums.ETypeEnum || ["infantry", "tank", "order"])}${field("稀有度", "card.rarity", card.rarity, enums.ERarityEnum || ["Common", "Uncommon", "Rare", "Unique"])}<div class="field-grid">${field("攻击力", "card.attack", card.attack)}${field("防御力", "card.defense", card.defense)}</div><div style="height:12px"></div>${field("指挥点消耗", "card.cost", card.cost)}<div class="field"><label class="detail-label">卡牌效果<textarea data-field="card.text">${esc(card.text)}</textarea></label></div></section>${classDefaultsSection()}${graphSection()}<section class="detail-section"><h3 class="detail-heading">文件格式 <span>v1.0</span></h3><p class="detail-description">.kardsbp.json 包含资源信息、变量、函数、宏、EventGraph、节点定义、参数和连线。导入后可继续编辑。</p></section>`;
+    )}${field("卡牌类型", "card.type", card.type, labelled(TYPE_LABELS, enums.ETypeEnum || Object.keys(TYPE_LABELS)))}${field("稀有度", "card.rarity", card.rarity, labelled(RARITY_LABELS, ["NotAvailable", "Common", "Uncommon", "Rare", "Unique"]))}<div class="field-grid">${field("攻击力", "card.attack", card.attack)}${field("防御力", "card.defense", card.defense)}</div><div style="height:12px"></div><div class="field-grid">${field("指挥点消耗", "card.cost", card.cost)}${field("行动花费", "card.operationCost", card.operationCost ?? 1)}</div><div class="field"><label class="detail-label">卡牌效果<textarea data-field="card.text">${esc(card.text)}</textarea></label></div></section>${classDefaultsSection()}${graphSection()}<section class="detail-section"><h3 class="detail-heading">文件格式 <span>v1.0</span></h3><p class="detail-description">.kardsbp.json 包含资源信息、变量、函数、宏、EventGraph、节点定义、参数和连线。导入后可继续编辑。</p></section>`;
   }
   $("inspector-content").innerHTML = body;
   $("inspector-content")

@@ -383,3 +383,13 @@ test("every reason has a Chinese text and keeps its {0} placeholders", async () 
     assert.equal(r.zh.split("{0}").length, r.text.split("{0}").length, `${r.key} placeholders`);
   }
 });
+
+test("card data has an operation cost; older files get the default of 1", () => {
+  const p = makeProject();
+  assert.equal(p.card.operationCost, 1);
+  const old = JSON.parse(JSON.stringify(p));
+  delete old.card.operationCost;
+  assert.equal(validateProject(old).card.operationCost, 1);
+  old.card.operationCost = "x";
+  assert.throws(() => validateProject(old), /卡牌信息/);
+});
