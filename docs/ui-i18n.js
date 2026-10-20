@@ -143,8 +143,8 @@ const EXACT = {
   "已选中连接 · Delete 删除": "Wire selected · Delete to remove",
   // inspector
   "连接详情": "Wire details",
-  "选中连线后，可按 Delete 删除。每个输入端口只接受一条连接，新的连接会替换原连接。":
-    "Press Delete to remove the selected wire. Each input pin accepts one connection; a new connection replaces the old one.",
+  "选中连线后，可按 Delete 删除。数据输入端口只接受一条连接，新的连接会替换原连接；执行输出只连向一处，但多个执行输出可以接到同一个执行输入。":
+    "Press Delete to remove the selected wire. A data input accepts one connection (a new one replaces it); an execution output leads to one place, but several execution outputs can feed the same execution input.",
   "删除连接": "Delete wire",
   "节点": "Node",
   "自定义": "Custom",

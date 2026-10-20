@@ -215,3 +215,32 @@ test("Cast & Call graph validates with execution and typed target links", () => 
   assert.equal(g.edges.length, 5);
   assert(g.nodes.some((n) => n.definition.kind === "cast"));
 });
+
+test("several execution outputs may feed one execution input; data inputs and exec outputs stay single", () => {
+  const g = makeGraph("t", "event");
+  const exec = (id, direction) => ({ id, name: id, type: direction === "in" ? "exec" : "exec", direction });
+  const def = (id, pins) => ({ id, name: id, label: id, class: "T", kind: "function", pins });
+  const a = makeNode(def("a", [exec("out", "out")]), 0, 0),
+    b = makeNode(def("b", [exec("out", "out")]), 0, 0),
+    c = makeNode(def("c", [exec("in", "in"), exec("out", "out")]), 0, 0),
+    d = makeNode(def("d", [exec("in", "in")]), 0, 0);
+  g.nodes.push(a, b, c, d);
+  connect(g, { node: a.id, pin: "out" }, { node: c.id, pin: "in" });
+  connect(g, { node: b.id, pin: "out" }, { node: c.id, pin: "in" });
+  assert.equal(g.edges.length, 2, "two flows share one exec input (like two branches ending in one Return Node)");
+  // an exec output leads to one place: re-wiring it replaces the old wire
+  connect(g, { node: a.id, pin: "out" }, { node: d.id, pin: "in" });
+  assert.deepEqual(g.edges.map((e) => `${e.from.node === a.id ? "a" : "b"}>${e.to.node === c.id ? "c" : "d"}`).sort(), ["a>d", "b>c"]);
+  // the same wire twice is not added again
+  assert.equal(connect(g, { node: b.id, pin: "out" }, { node: c.id, pin: "in" }), false);
+  // data inputs still take a single wire
+  const num = (id, direction) => ({ id, name: id, type: "int32", direction });
+  const p = makeNode(def("p", [num("o", "out")]), 0, 0),
+    q = makeNode(def("q", [num("o", "out")]), 0, 0),
+    r = makeNode(def("r", [num("i", "in")]), 0, 0);
+  g.nodes.push(p, q, r);
+  connect(g, { node: p.id, pin: "o" }, { node: r.id, pin: "i" });
+  connect(g, { node: q.id, pin: "o" }, { node: r.id, pin: "i" });
+  assert.equal(g.edges.filter((e) => e.to.node === r.id).length, 1);
+  assert.equal(g.edges.find((e) => e.to.node === r.id).from.node, q.id);
+});

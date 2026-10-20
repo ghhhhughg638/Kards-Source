@@ -2229,7 +2229,7 @@ function renderInspector() {
   const n = graph().nodes.find((n) => selection.has(n.id));
   if (selectedEdge) {
     body =
-      '<section class="detail-section"><h3 class="detail-heading">连接详情</h3><p class="detail-description">选中连线后，可按 Delete 删除。每个输入端口只接受一条连接，新的连接会替换原连接。</p><button class="danger-button" id="delete-selection">删除连接</button></section>';
+      '<section class="detail-section"><h3 class="detail-heading">连接详情</h3><p class="detail-description">选中连线后，可按 Delete 删除。数据输入端口只接受一条连接，新的连接会替换原连接；执行输出只连向一处，但多个执行输出可以接到同一个执行输入。</p><button class="danger-button" id="delete-selection">删除连接</button></section>';
   } else if (n) {
     const d = n.definition;
     body = `<section class="detail-section"><h3 class="detail-heading">节点 <span>${selection.size > 1 ? selection.size + " SELECTED" : "NODE"}</span></h3><span class="node-type-badge">${esc(kindLabels[nodeKind(d)] || "自定义")} / ${esc(d.class || "Custom")}</span>${field("显示名称", "title", n.title || nodeChinese(d))}<div class="field"><label class="detail-label">节点注释<textarea data-field="comment" placeholder="描述这段逻辑的意图…">${esc(n.comment)}</textarea></label></div><div class="field-grid">${field("位置 X", "x", n.x)}${field("位置 Y", "y", n.y)}</div></section><section class="detail-section"><h3 class="detail-heading">默认参数 <span>DEFAULTS</span></h3>`;
