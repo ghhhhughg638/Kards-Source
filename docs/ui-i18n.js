@@ -24,6 +24,7 @@ const EXACT = {
   "复制选中的节点 Ctrl/Cmd+C": "Copy the selected nodes Ctrl/Cmd+C",
   "粘贴节点 Ctrl/Cmd+V": "Paste nodes Ctrl/Cmd+V",
   "副本": "Duplicate",
+  "取消": "Clear",
   "取消选择": "Deselect",
   "整理节点布局并拆开重叠的节点": "Tidy the layout and separate overlapping nodes",
   "已整理节点布局": "Layout tidied",
