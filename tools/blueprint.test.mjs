@@ -155,6 +155,23 @@ test("parent-class overrides come from BlueprintNativeEvent/ImplementableEvent f
   assert(sig.inputs.every((x) => x.name !== "target"));
 });
 
+test("an On* function with output (reference) parameters is an override function, not an Event", () => {
+  const find = (n) => catalog.nodes.find((d) => d.name === n);
+  const modify = find("OnCardDealDamage_ModifyDamageDealt");
+  assert.equal(modify.event, false);
+  assert.equal(modify.kind, "function");
+  assert(modify.pins.some((p) => p.id === "exec-in"));
+  const overrides = overridableFunctions(catalog.nodes);
+  const sig = overrideSignature(overrides.find((d) => d.name === modify.name));
+  assert.deepEqual(sig.outputs.map((o) => o.name), ["newDamage"]);
+  assert(!sig.inputs.some((i) => i.name === "newDamage"));
+  // plain notifications stay Events and never get output-only parameters twisted
+  assert.equal(find("OnStartOfTurn").event, true);
+  assert(!overrides.some((d) => d.name === "OnStartOfTurn"));
+  for (const d of catalog.nodes.filter((n) => n.event))
+    assert(!/&\s*\w+\s*[,)]/.test(d.signature.replace(/const [\w:<>*, ]+&/g, "")), `${d.name} has output parameters`);
+});
+
 test("import rejects version 1 files and invalid names", () => {
   const p = makeProject();
   const old = clone(p);
