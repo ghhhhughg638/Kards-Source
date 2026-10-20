@@ -73,9 +73,10 @@ for path in sorted(root.glob('*/Public/*.h')):
             typ,pname=p.groups(); typ=typ.strip()
             out='&' in typ and not typ.startswith('const ') and not refinput
             parsed.append((typ,pname,out))
-        # Unreal turns a void BlueprintImplementableEvent/NativeEvent into an Event only when it has no
-        # output (non-const reference) parameters; with outputs it is an overridable *function*.
-        event=source=='BaseCardObject' and name.startswith('On') and ret.strip()=='void' and not any(o for _,_,o in parsed)
+        # Unreal turns a BlueprintImplementableEvent/NativeEvent into an Event only when it has no Return
+        # Node (void, no output/non-const reference parameters); with outputs it is an overridable function.
+        implementable='BlueprintImplementableEvent' in flags or 'BlueprintNativeEvent' in flags
+        event=source=='BaseCardObject' and implementable and ret.strip()=='void' and not any(o for _,_,o in parsed)
         pins=[]
         if not pure:
             if not event: pins.append({'id':'exec-in','name':'执行','type':'exec','direction':'in'})

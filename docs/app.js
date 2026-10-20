@@ -34,7 +34,6 @@ import {
   makeVariable,
   newParam,
   overridableFunctions,
-  CARD_FUNCTIONS_CLASS,
   overrideSignature,
   syncDefinitions,
   typeChoices,
@@ -903,45 +902,29 @@ function overrideDialog() {
   const text = new Map(
     all.map((d) => [d.id, `${d.name} ${nodeChinese(d)} ${paramText(d)}`.toLowerCase()]),
   );
-  let tab = "all",
-    query = "";
+  let query = "";
   openModal(
     "重载父类函数 / Override",
-    `<input id="ovr-search" class="modal-search" placeholder="搜索重载 / Search overrides…" autocomplete="off" aria-label="搜索重载"><div id="ovr-tabs" class="ovr-tabs"></div><div id="ovr-list" class="ovr-list"></div><p class="detail-description">${bi2("每个重载会新建一个函数图，签名取自父类。事件（如 OnStartOfTurn）不是重载函数，请从节点库的「事件」里添加。", "Each override creates a function graph with the parent's signature. Events (e.g. OnStartOfTurn) are not overrides; add them from the Events category of the palette.")}</p>`,
+    `<input id="ovr-search" class="modal-search" placeholder="搜索重载 / Search overrides…" autocomplete="off" aria-label="搜索重载"><div id="ovr-count" class="ovr-count"></div><div id="ovr-list" class="ovr-list"></div><p class="detail-description">${bi2("每个重载会新建一个函数图，签名取自父类。只有带返回节点（有输出）的才是重载函数；没有输出的（如 OnStartOfTurn）是事件，请从节点库的「事件」里添加。", "Each override creates a function graph with the parent's signature. Only members with a Return Node (outputs) are overrides; those without (e.g. OnStartOfTurn) are Events: add them from the Events category of the palette.")}</p>`,
     parent,
   );
   const used = (d) => project.graphs.some((g) => g.override?.function === d.name);
   const visible = () =>
     all.filter(
       (d) =>
-        (tab === "all" || (tab === "card") === (d.class === CARD_FUNCTIONS_CLASS)) &&
         query.split(/\s+/).every((w) => text.get(d.id).includes(w)),
     );
   function draw() {
-    const cardFns = all.filter((d) => d.class === CARD_FUNCTIONS_CLASS).length,
-      tabs = [
-        ["all", "全部 / All", all.length],
-        ["own", `${parent.replace(/^U/, "")}`, all.length - cardFns],
-        ["card", "CardFunctions", cardFns],
-      ];
-    $("ovr-tabs").innerHTML = tabs
-      .map(
-        ([id, label, n]) =>
-          `<button type="button" class="ovr-tab ${tab === id ? "active" : ""}" data-tab="${id}">${esc(label)} <span>${n}</span></button>`,
-      )
-      .join("");
     const list = visible();
+    $("ovr-count").textContent = `${list.length} / ${all.length}`;
     $("ovr-list").innerHTML = list.length
       ? list
           .map(
             (d) =>
-              `<button type="button" class="ovr-row is-fn" data-ovr="${esc(d.id)}" title="${esc(d.signature || d.name)}"><span class="ovr-icon">ƒ</span><span class="ovr-main"><strong>${esc(d.name)}</strong><small>${esc(nodeChinese(d))} · ${esc(d.class.replace(/^[UA]/, "").replace("Stub", ""))}</small><code>${esc(paramText(d))}</code></span><span class="ovr-state ${used(d) ? "done" : ""}">${used(d) ? bi2("已重载", "Overridden") : bi2("函数", "Function")}</span></button>`,
+              `<button type="button" class="ovr-row is-fn" data-ovr="${esc(d.id)}" title="${esc(d.signature || d.name)}"><span class="ovr-icon">ƒ</span><span class="ovr-main"><strong>${esc(d.name)}</strong><small>${esc(nodeChinese(d))}</small><code>${esc(paramText(d))}</code></span><span class="ovr-state ${used(d) ? "done" : ""}">${used(d) ? bi2("已重载", "Overridden") : bi2("函数", "Function")}</span></button>`,
           )
           .join("")
       : `<p class="detail-description">${bi2("没有匹配的项。", "No matches.")}</p>`;
-    $("ovr-tabs")
-      .querySelectorAll("[data-tab]")
-      .forEach((b) => (b.onclick = () => ((tab = b.dataset.tab), draw())));
     $("ovr-list")
       .querySelectorAll("[data-ovr]")
       .forEach((b) => (b.onclick = () => pick(all.find((d) => d.id === b.dataset.ovr))));

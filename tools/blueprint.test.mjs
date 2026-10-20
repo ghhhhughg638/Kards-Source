@@ -155,13 +155,19 @@ test("parent-class overrides come from BlueprintNativeEvent/ImplementableEvent f
   assert(sig.inputs.every((x) => x.name !== "target"));
 });
 
-test("the override list holds functions only, from the parent class and the CardFunctions library", () => {
+test("override functions are the BaseCardObject members with a Return Node; the rest are Events", () => {
   const list = overridableFunctions(catalog.nodes);
-  assert(list.length > 100, `only ${list.length} overridable functions`);
-  assert(list.every((d) => !d.event));
-  assert(list.some((d) => d.class === "UBaseCardObject") && list.some((d) => d.class === "ACardFunctionsStub"));
-  assert(!list.some((d) => d.name === "OnStartOfTurn"));
-  assert.equal(list[0].class, "UBaseCardObject"); // the parent's own functions come first
+  assert(list.every((d) => d.class === "UBaseCardObject" && !d.event));
+  assert(list.every((d) => d.pins.some((p) => p.direction === "out" && p.type !== "exec")), "every override has an output");
+  const flagged = catalog.nodes.filter((d) => d.class === "UBaseCardObject" && (d.nativeEvent || d.implementable));
+  // every flagged member is either an override function or an Event, never both
+  assert.equal(flagged.filter((d) => d.event).length + list.length, flagged.length);
+  for (const name of ["OnStartOfTurn", "CampaignOnEndOfGame"]) {
+    const d = catalog.nodes.find((n) => n.name === name);
+    assert(d.event && !list.includes(d), `${name} is an Event`);
+  }
+  for (const name of ["CanPlayFromHand", "ShouldHighlightInHand", "OnCardDealDamage_ModifyDamageDealt"])
+    assert(list.some((d) => d.name === name), `${name} is an override function`);
 });
 
 test("an On* function with output (reference) parameters is an override function, not an Event", () => {

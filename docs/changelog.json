@@ -3,21 +3,17 @@
     "version": "2.9.0",
     "date": "2026-10-20",
     "title": {
-      "zh": "重载函数列表:更全、可搜索",
-      "en": "Override list: complete and searchable"
+      "zh": "重载函数列表:按返回节点区分、可搜索",
+      "en": "Override list: split by Return Node, searchable"
     },
     "items": [
       {
-        "zh": "「重载父类函数」现在列出 226 个可重载函数:父类 33 个 + CardFunctions 库 193 个(都是蓝图可实现的函数)",
-        "en": "Override now lists 226 overridable functions: 33 from the parent plus 193 from the CardFunctions library (all Blueprint-implementable)"
+        "zh": "BaseCardObject 里有返回节点(有输出)的才是重载函数,共 32 个;没有输出的(如 OnStartOfTurn、CampaignOnEndOfGame)是事件",
+        "en": "In BaseCardObject only members with a Return Node (outputs) are override functions (32); ones without (e.g. OnStartOfTurn, CampaignOnEndOfGame) are Events"
       },
       {
-        "zh": "事件(如 OnStartOfTurn)不是重载函数,仍从节点库的「事件」里添加",
-        "en": "Events (e.g. OnStartOfTurn) are not overrides and still come from the Events category of the palette"
-      },
-      {
-        "zh": "新增搜索(英文名、中文名、参数都能搜)和按来源分类,已重载的会标出,再选直接跳转",
-        "en": "New search (English name, Chinese name, parameters) and tabs by source; overridden ones are marked and jump to the existing graph"
+        "zh": "重载父类函数窗口新增搜索(英文名、中文名、参数),已重载的会标出,再选直接跳转",
+        "en": "The Override window now has search (English name, Chinese name, parameters); overridden ones are marked and jump to the existing graph"
       }
     ]
   },
