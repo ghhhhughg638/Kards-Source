@@ -68,7 +68,7 @@ export function nodeKind(d) {
 export function nodeEnglish(d) {
   return nodeKind(d) === "event"
     ? `Event ${d.name.replace(/^Event\s+/, "")}`
-    : d.name;
+    : d.english || d.name;
 }
 export function nodeChinese(d) {
   const kind = nodeKind(d);

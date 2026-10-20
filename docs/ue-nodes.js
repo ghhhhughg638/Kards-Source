@@ -305,11 +305,14 @@ export const ueBuiltins = [
   ),
   ...["int32", "UBaseCardObject*", "FString"].flatMap((type) => {
     const array = `TArray<${type}>`,
-      suffix = type.replace(/\W/g, "");
+      suffix = type.replace(/\W/g, ""),
+      short = { int32: "Integer", "UBaseCardObject*": "BaseCardObject", FString: "String" }[type],
+      zh = { int32: "整数", "UBaseCardObject*": "卡牌", FString: "字符串" }[type],
+      en = (name) => ({ english: `${name} (${short})` });
     return [
       node(
         "ForEachLoop_" + suffix,
-        "遍历数组",
+        `遍历数组（${zh}）`,
         [
           execIn(),
           pin("Array", array),
@@ -318,11 +321,11 @@ export const ueBuiltins = [
           pin("ArrayIndex", "int32", "out"),
           execOut("Completed", "Completed"),
         ],
-        { category: "arrays" },
+        { ...en("For Each Loop"), category: "arrays" },
       ),
       node(
         "ForEachLoopWithBreak_" + suffix,
-        "可中断遍历数组",
+        `可中断遍历数组（${zh}）`,
         [
           execIn(),
           pin("Array", array),
@@ -332,29 +335,71 @@ export const ueBuiltins = [
           pin("ArrayIndex", "int32", "out"),
           execOut("Completed", "Completed"),
         ],
-        { category: "arrays" },
+        { ...en("For Each Loop with Break"), category: "arrays" },
       ),
       pure(
         "ArrayLength_" + suffix,
-        "数组长度",
+        `数组长度（${zh}）`,
         [pin("Array", array), pin("return", "int32", "out", "Length")],
-        { category: "arrays" },
+        { ...en("Length"), category: "arrays" },
       ),
       pure(
         "GetArrayItem_" + suffix,
-        "获取数组元素",
+        `获取数组元素（${zh}）`,
         [pin("Array", array), pin("Index", "int32"), pin("Item", type, "out")],
-        { category: "arrays" },
+        { ...en("Get"), category: "arrays" },
       ),
       pure(
         "MakeArray_" + suffix,
-        "构造数组",
+        `构造数组（${zh}）`,
         [pin("Item0", type), pin("Item1", type), pin("Array", array, "out")],
-        { category: "arrays" },
+        { ...en("Make Array"), category: "arrays" },
+      ),
+      pure(
+        "ArrayContains_" + suffix,
+        `数组包含元素（${zh}）`,
+        [pin("Array", array), pin("ItemToFind", type, "in", "Item"), pin("return", "bool", "out", "Return Value")],
+        { ...en("Contains Item"), category: "arrays" },
+      ),
+      pure(
+        "ArrayFind_" + suffix,
+        `查找元素下标（${zh}）`,
+        [pin("Array", array), pin("ItemToFind", type, "in", "Item"), pin("return", "int32", "out", "Index")],
+        { ...en("Find Item"), category: "arrays" },
+      ),
+      pure(
+        "ArrayLastIndex_" + suffix,
+        `最后一个下标（${zh}）`,
+        [pin("Array", array), pin("return", "int32", "out", "Return Value")],
+        { ...en("Last Index"), category: "arrays" },
+      ),
+      pure(
+        "ArrayIsValidIndex_" + suffix,
+        `下标是否有效（${zh}）`,
+        [pin("Array", array), pin("IndexToTest", "int32", "in", "Index"), pin("return", "bool", "out", "Return Value")],
+        { ...en("Is Valid Index"), category: "arrays" },
+      ),
+      node(
+        "AddUniqueArrayItem_" + suffix,
+        `添加不重复元素（${zh}）`,
+        [execIn(), pin("Array", array), pin("NewItem", type, "in", "Item"), execOut(), pin("Index", "int32", "out")],
+        { ...en("Add Unique"), category: "arrays", kind: "function" },
+      ),
+      node(
+        "RemoveArrayItem_" + suffix,
+        `移除数组元素（${zh}）`,
+        [execIn(), pin("Array", array), pin("Item", type), execOut(), pin("return", "bool", "out", "Return Value")],
+        { ...en("Remove Item"), category: "arrays", kind: "function" },
+      ),
+      node(
+        "ClearArray_" + suffix,
+        `清空数组（${zh}）`,
+        [execIn(), pin("Array", array), execOut()],
+        { ...en("Clear"), category: "arrays", kind: "function" },
       ),
       node(
         "AddArrayItem_" + suffix,
-        "添加数组元素",
+        `添加数组元素（${zh}）`,
         [
           execIn(),
           pin("Array", array),
@@ -362,7 +407,7 @@ export const ueBuiltins = [
           execOut(),
           pin("Index", "int32", "out"),
         ],
-        { category: "arrays", kind: "function" },
+        { ...en("Add"), category: "arrays", kind: "function" },
       ),
     ];
   }),

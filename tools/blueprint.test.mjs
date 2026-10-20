@@ -393,3 +393,19 @@ test("card data has an operation cost; older files get the default of 1", () => 
   old.card.operationCost = "x";
   assert.throws(() => validateProject(old), /卡牌信息/);
 });
+
+test("array library has Contains / Find / Remove nodes for BaseCardObject arrays, with English names", async () => {
+  const { ueBuiltins } = await import("../docs/ue-nodes.js");
+  const { nodeEnglish } = await import("../docs/i18n.js");
+  const byId = new Map(ueBuiltins.map((d) => [d.id, d]));
+  for (const name of ["ArrayContains", "ArrayFind", "AddUniqueArrayItem", "RemoveArrayItem", "ClearArray", "ArrayLastIndex", "ArrayIsValidIndex"])
+    for (const type of ["int32", "UBaseCardObject", "FString"])
+      assert(byId.has(`ue.${name}_${type}`), `${name}_${type}`);
+  const contains = byId.get("ue.ArrayContains_UBaseCardObject");
+  assert.equal(nodeEnglish(contains), "Contains Item (BaseCardObject)");
+  assert.equal(contains.pins.find((p) => p.id === "Array").type, "TArray<UBaseCardObject*>");
+  assert.equal(contains.pins.find((p) => p.id === "ItemToFind").type, "UBaseCardObject*");
+  assert.equal(contains.pins.find((p) => p.id === "return").type, "bool");
+  assert(contains.pure);
+  assert.equal(new Set(ueBuiltins.map((d) => d.id)).size, ueBuiltins.length, "ids stay unique");
+});

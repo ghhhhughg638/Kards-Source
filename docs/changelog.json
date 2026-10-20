@@ -1,5 +1,27 @@
 [
   {
+    "version": "2.10.5",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "数组节点:判断元素是否存在",
+      "en": "Array nodes: is this item in the array?"
+    },
+    "items": [
+      {
+        "zh": "新增「数组包含元素」(Contains Item):判断一个 BaseCardObject(或整数、字符串)是否在数组里,返回 true/false",
+        "en": "New Contains Item node: tells whether a BaseCardObject (or integer, string) is in an array and returns true/false"
+      },
+      {
+        "zh": "同时新增:查找元素下标(没有返回 -1)、添加不重复元素、移除数组元素、清空数组、最后一个下标、下标是否有效",
+        "en": "Also new: Find Item (index, -1 when missing), Add Unique, Remove Item, Clear, Last Index, Is Valid Index"
+      },
+      {
+        "zh": "所有数组节点的英文名改成 UE 的叫法,后面带元素类型,例如 Contains Item (BaseCardObject)",
+        "en": "All array nodes now use Unreal's English names with the element type, e.g. Contains Item (BaseCardObject)"
+      }
+    ]
+  },
+  {
     "version": "2.10.4",
     "date": "2026-10-20",
     "title": {
