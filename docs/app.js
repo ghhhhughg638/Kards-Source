@@ -2464,7 +2464,7 @@ function cullSoon() {
       top = (-v.y - pad) / v.zoom,
       right = (r.width - v.x + pad) / v.zoom,
       bottom = (r.height - v.y + pad) / v.zoom;
-    $("viewport").classList.toggle("lod", v.zoom < 0.5);
+    $("viewport").classList.toggle("lod", v.zoom < 0.2);
     for (const el of $("nodes").children) {
       const n = graph().nodes.find((x) => x.id === el.dataset.nodeId);
       if (!n) continue;
