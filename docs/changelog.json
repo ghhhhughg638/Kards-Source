@@ -1,5 +1,27 @@
 [
   {
+    "version": "2.11.2",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "节点多了不再卡",
+      "en": "Smoother with many nodes"
+    },
+    "items": [
+      {
+        "zh": "拖动节点时只更新相连的连线,且不再每帧强制重新布局;连线/小地图每帧最多重画一次",
+        "en": "Dragging nodes only moves the wires attached to them, without forced layouts; wires and minimap redraw at most once per frame"
+      },
+      {
+        "zh": "修改数值、保存时不再每次都滚动并重建左侧卡牌列表(这是最大的卡顿来源)",
+        "en": "Editing a value or saving no longer rebuilds and scrolls the card list every time (the biggest source of lag)"
+      },
+      {
+        "zh": "节点尺寸、端口位置一次性测量并共享;松手后不再整页重绘",
+        "en": "Node sizes and pin positions are measured once per pass; dropping a node no longer re-renders everything"
+      }
+    ]
+  },
+  {
     "version": "2.11.1",
     "date": "2026-10-20",
     "title": {
