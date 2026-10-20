@@ -603,6 +603,19 @@ export function validateBlueprint(project) {
     bad("资源信息不完整");
   if (!Array.isArray(project.variables) || project.variables.length > 500)
     bad("变量列表无效");
+  // Class Defaults: only the values that differ from the type's default are stored.
+  project.classDefaults = project.classDefaults ?? {};
+  const defaults = project.classDefaults,
+    simple = (v) => ["string", "number", "boolean"].includes(typeof v) && (typeof v !== "number" || Number.isFinite(v));
+  if (
+    typeof defaults !== "object" ||
+    Array.isArray(defaults) ||
+    Object.keys(defaults).length > 600 ||
+    Object.entries(defaults).some(
+      ([k, v]) => !/^[A-Za-z_]\w*$/.test(k) || !(simple(v) || (Array.isArray(v) && v.length <= 500 && v.every(simple))),
+    )
+  )
+    bad("类默认值无效");
   project.dispatchers = project.dispatchers ?? [];
   if (!Array.isArray(project.dispatchers) || project.dispatchers.length > 200)
     bad("事件分发器列表无效");
@@ -815,6 +828,10 @@ export function buildExport(project, context = {}) {
       },
     },
     card: project.card,
+    classDefaults: project.classDefaults || {},
+    classDefaultTypes: Object.fromEntries(
+      Object.keys(project.classDefaults || {}).map((k) => [k, context.propertyTypes?.[k] ?? null]),
+    ),
     variables: project.variables,
     dispatchers: project.dispatchers,
     eventGraph: project.graphs[0].id,

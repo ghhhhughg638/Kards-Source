@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.10.0",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "类默认值、Reason 中文",
+      "en": "Class Defaults, Chinese Reason texts"
+    },
+    "items": [
+      {
+        "zh": "新增「类默认值」:在「我的蓝图」顶部点开,或在详情面板里,编辑父类 UBaseCardObject 的上百个属性默认值(开关、数字、枚举、文本、列表),只保存改过的,可一键恢复,会导出",
+        "en": "New Class Defaults: open it at the top of My Blueprint or in the Details panel to edit the default values of the parent's properties (switches, numbers, enums, text, lists); only changed values are saved, can be reset and are exported"
+      },
+      {
+        "zh": "Reason 列表的 125 个键全部加了中文,搜索中文或英文都行",
+        "en": "All 125 Reason keys now have Chinese texts; search works in both languages"
+      }
+    ]
+  },
+  {
     "version": "2.9.1",
     "date": "2026-10-20",
     "title": {

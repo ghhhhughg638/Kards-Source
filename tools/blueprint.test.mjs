@@ -354,3 +354,32 @@ test("reasons.json lists the textNotifications keys used by the Reason outputs",
     assert(d.pins.some((p) => p.id === "Reason" && p.direction === "out"), `${name} has Reason`);
   }
 });
+
+test("class defaults are validated, exported with their types and survive a round trip", () => {
+  const p = makeProject();
+  assert.deepEqual(p.classDefaults, {});
+  p.classDefaults = { hasBlitz: true, heavyArmor: 2, usedTriggers: ["OnStartOfTurn"] };
+  const out = buildExport(p, { classes: {}, enums: {}, propertyTypes: { hasBlitz: "bool", heavyArmor: "int32" } });
+  assert.deepEqual(out.classDefaults, p.classDefaults);
+  assert.equal(out.classDefaultTypes.heavyArmor, "int32");
+  assert.equal(out.classDefaultTypes.usedTriggers, null);
+  const back = validateProject(JSON.parse(JSON.stringify(p)));
+  assert.equal(back.classDefaults.heavyArmor, 2);
+  // older files without the field still load
+  const old = JSON.parse(JSON.stringify(makeProject()));
+  delete old.classDefaults;
+  assert.deepEqual(validateProject(old).classDefaults, {});
+  for (const bad of [[1], { "no way": 1 }, { x: { nested: 1 } }, { x: NaN }]) {
+    const q = JSON.parse(JSON.stringify(makeProject()));
+    q.classDefaults = bad;
+    assert.throws(() => validateProject(q), /类默认值/);
+  }
+});
+
+test("every reason has a Chinese text and keeps its {0} placeholders", async () => {
+  const data = JSON.parse(await readFile(new URL("../docs/reasons.json", import.meta.url), "utf8"));
+  for (const r of data.reasons) {
+    assert(r.zh, `${r.key} has no Chinese text`);
+    assert.equal(r.zh.split("{0}").length, r.text.split("{0}").length, `${r.key} placeholders`);
+  }
+});

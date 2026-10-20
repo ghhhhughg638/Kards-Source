@@ -605,6 +605,7 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 .ovr-row.is-fn .ovr-icon { background: #1f3a52; color: #8cc4f0; font-style: italic; }
 .ovr-main { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .ovr-main strong { font: 12px var(--mono); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ovr-main small .zh + .en { margin-left: 8px; opacity: .8; }
 .ovr-main small { font-size: 11px; color: #98a79e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ovr-main code { font: 10px var(--mono); color: #7f8b84; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ovr-state { flex: none; font-size: 10px; color: #8a8a8a; border: 1px solid #444; border-radius: 9px; padding: 1px 7px; }
@@ -631,3 +632,20 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 .ovr-count { font: 11px var(--mono); color: #8f9c95; margin: 4px 2px; }
 #rs-list { max-height: min(34vh, 300px); }
 @media (max-width: 800px) { #rs-list { max-height: 30vh; } }
+
+/* Class Defaults (parent-class properties) in the details panel */
+#class-defaults summary { cursor: pointer; list-style: none; }
+#class-defaults summary::-webkit-details-marker { display: none; }
+#class-defaults summary::before { content: "▸"; margin-right: 6px; color: #8fa196; }
+#class-defaults details[open] > summary::before { content: "▾"; }
+.cd-group { margin: 12px 0 4px; font-size: 11px; color: #c8d3cc; border-bottom: 1px solid #353535; padding-bottom: 3px; }
+.cd-group span { opacity: .55; font-family: var(--mono); margin-left: 4px; }
+.cd-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid #2a2a2a; }
+.cd-row label { display: grid; min-width: 0; }
+.cd-name { font: 12px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-type { font: 10px var(--mono); color: #7f8b84; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-row.modified .cd-name { color: #ffd43b; }
+.cd-control { display: flex; gap: 4px; align-items: center; min-width: 0; }
+.cd-control input:not([type="checkbox"]), .cd-control select { flex: 1; min-width: 0; width: 100%; }
+.cd-control input[type="checkbox"] { width: 18px; height: 18px; }
+.cd-reset { flex: none; width: 24px; height: 24px; padding: 0; background: #3a2f12; border: 1px solid #6a5328; color: #ffd98a; border-radius: 3px; }

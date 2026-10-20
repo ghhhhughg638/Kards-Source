@@ -212,6 +212,9 @@ let catalog = [],
   placement = null,
   placementAuto = false,
   reasons = [],
+  properties = [],
+  cdQuery = "",
+  cdOpen = false,
   pickerContext = null,
   classes = {};
 const graph = () => project.graphs.find((g) => g.id === project.activeGraph),
@@ -365,6 +368,7 @@ function render() {
     .querySelectorAll("[data-graph]")
     .forEach((b) => (b.onclick = () => switchGraph(b.dataset.graph)));
   $("tab-add").onclick = newItemMenu;
+  document.querySelectorAll("[data-class-defaults]").forEach((b) => (b.onclick = openClassDefaults));
   for (const b of $("tabs").querySelectorAll("[data-graph]")) b.title = b.querySelector(".tab-name").textContent;
   $("tabs")
     .querySelectorAll("[data-graph]")
@@ -663,6 +667,7 @@ function myBlueprintMarkup() {
   const variable = (v) =>
     `<div class="bp-row"><button class="graph-link var-link" data-var="${esc(v.id)}" title="${esc(v.tooltip || v.type)}"><i class="var-dot" style="background:${pinColor(v.type)}"></i>${esc(v.name)}<span class="var-type">${esc(v.type)}</span></button><button class="tiny-button" data-add-var="get:${esc(v.id)}" title="获取">G</button><button class="tiny-button" data-add-var="set:${esc(v.id)}" title="设置">S</button></div>`;
   return (
+    `<div class="bp-row"><button class="graph-link" data-class-defaults title="编辑父类属性的默认值"><span class="graph-icon">⚙</span>${bi2("类默认值", "Class Defaults")}${Object.keys(project.classDefaults).length ? `<em class="bp-tag">${Object.keys(project.classDefaults).length}</em>` : ""}</button></div>` +
     head("图表", "Graphs") +
     row(project.graphs[0]) +
     events
@@ -1710,7 +1715,10 @@ const isReasonPin = (n, p) =>
   REASON_FUNCTIONS.has(graph().override.function) &&
   n.definition.bp?.type === "result" &&
   p.name === "Reason";
-const reasonText = (key) => reasons.find((r) => r.key === key)?.text || "";
+const reasonText = (key) => {
+  const r = reasons.find((x) => x.key === key);
+  return r ? [r.zh, r.text].filter(Boolean).join(" / ") : "";
+};
 function reasonDialog(nodeId, pinId) {
   const n = graph().nodes.find((x) => x.id === nodeId);
   if (!n) return;
@@ -1724,10 +1732,10 @@ function reasonDialog(nodeId, pinId) {
   };
   openModal(
     "选择 Reason / Pick a reason",
-    `<p class="detail-description">${bi2("Reason 是游戏文本表 textNotifications 里的键，玩家看到的是对应的提示文字。推荐从列表里选；也可以自己写一个键。带 {0} 的文字，用 reasonParam1 / reasonParam2 填空。", "Reason is a key of the game's textNotifications table; players see the matching text. Pick one from the list (recommended) or type your own key. Texts with {0} are filled from reasonParam1 / reasonParam2.")}</p><input id="rs-search" class="modal-search" placeholder="搜索键或文字 / Search key or text…" autocomplete="off"><div id="rs-count" class="ovr-count"></div><div id="rs-list" class="ovr-list"></div><div class="field rs-custom"><label class="detail-label" for="rs-custom">${bi2("自定义键", "Custom key")}</label><div class="rs-custom-row"><input id="rs-custom" value="${esc(current)}" placeholder="my_reason_key" maxlength="128"><button id="rs-use" class="primary-button" type="button">${bi2("使用", "Use")}</button><button id="rs-clear" class="secondary-button" type="button">${bi2("清空", "Clear")}</button></div></div>`,
+    `<p class="detail-description">${bi2("Reason 是游戏文本表 textNotifications 里的键，玩家看到的是对应的提示文字。推荐从列表里选；也可以自己写一个键。带 {0} 的文字，用 reasonParam1 / reasonParam2 填空。", "Reason is a key of the game's textNotifications table; players see the matching text. Pick one from the list (recommended) or type your own key. Texts with {0} are filled from reasonParam1 / reasonParam2.")}</p><input id="rs-search" class="modal-search" placeholder="搜索键或文字（中英文都行）/ Search key or text…" autocomplete="off"><div id="rs-count" class="ovr-count"></div><div id="rs-list" class="ovr-list"></div><div class="field rs-custom"><label class="detail-label" for="rs-custom">${bi2("自定义键", "Custom key")}</label><div class="rs-custom-row"><input id="rs-custom" value="${esc(current)}" placeholder="my_reason_key" maxlength="128"><button id="rs-use" class="primary-button" type="button">${bi2("使用", "Use")}</button><button id="rs-clear" class="secondary-button" type="button">${bi2("清空", "Clear")}</button></div></div>`,
   );
   const visible = () =>
-    reasons.filter((r) => `${r.key} ${r.text}`.toLowerCase().includes(query));
+    reasons.filter((r) => `${r.key} ${r.text} ${r.zh || ""}`.toLowerCase().includes(query));
   const draw = () => {
     const list = visible();
     $("rs-count").textContent = `${list.length} / ${reasons.length}`;
@@ -1735,7 +1743,7 @@ function reasonDialog(nodeId, pinId) {
       ? list
           .map(
             (r) =>
-              `<button type="button" class="ovr-row rs-row ${r.key === current ? "current" : ""}" data-key="${esc(r.key)}"><span class="ovr-main"><strong>${esc(r.key)}</strong><small>${esc(r.text)}</small></span>${r.params ? `<span class="ovr-state">{0}</span>` : ""}${r.key === current ? `<span class="ovr-state done">✓</span>` : ""}</button>`,
+              `<button type="button" class="ovr-row rs-row ${r.key === current ? "current" : ""}" data-key="${esc(r.key)}"><span class="ovr-main"><strong>${esc(r.key)}</strong><small>${r.zh ? `<span class="zh">${esc(r.zh)}</span><span class="en">${esc(r.text)}</span>` : esc(r.text)}</small></span>${r.params ? `<span class="ovr-state">{0}</span>` : ""}${r.key === current ? `<span class="ovr-state done">✓</span>` : ""}</button>`,
           )
           .join("")
       : `<p class="detail-description">${bi2("没有匹配的键，可以在下面直接输入。", "No match: type your own key below.")}</p>`;
@@ -1960,6 +1968,139 @@ function field(label, key, value, options) {
     input = `<input data-field="${esc(key)}" value="${esc(value)}" ${typeof value === "number" ? 'type="number"' : ""}>`;
   return `<div class="field"><label class="detail-label">${esc(label)}${input}</label></div>`;
 }
+// ---------------------------------------------------------------- class defaults
+// Like Unreal's Class Defaults: the editable properties of the parent class. The basic card data
+// (name, faction, type, rarity, cost, attack, defense, text) already has its own section.
+const CARD_DATA_PROPS = new Set(["title", "Type", "faction", "rarity", "attack", "defense", "kredits", "Text"]);
+const CD_GROUPS = [
+  ["战斗数值", "Combat", /attack|defense|range|heavyArmor|damage|movement|retreat/i],
+  ["费用", "Cost", /kredit|operationCost|cost/i],
+  ["关键词", "Keywords", /^has[A-Z]|cipher|exile/],
+  ["选牌与抽牌", "Choosing & Drafting", /draft|choose|select|spawn|deck|hand/i],
+  ["文本与战役", "Text & Campaign", /text|name|flavor|campaign|help/i],
+];
+function cdKind(type) {
+  if (enums[type]) return "enum";
+  if (type === "bool") return "bool";
+  if (/^u?int/.test(type)) return "int";
+  if (/^(float|double)$/.test(type)) return "float";
+  if (["FText", "FString", "FName"].includes(type)) return "text";
+  const m = type.match(/^(?:TArray|TSet)<(.+)>$/);
+  if (m && cdKind(m[1]) && cdKind(m[1]) !== "list") return "list";
+  return null;
+}
+const cdProps = () =>
+  properties.filter(
+    (p) => p.class === project.asset.parentClass && p.writable !== false && !CARD_DATA_PROPS.has(p.name),
+  );
+function cdDefault(p) {
+  const kind = cdKind(p.type);
+  return kind === "bool" ? false : kind === "int" || kind === "float" ? 0 : kind === "enum" ? enums[p.type][0] : kind === "list" ? [] : "";
+}
+function cdParse(p, raw) {
+  const kind = cdKind(p.type);
+  if (kind === "list") {
+    const inner = { type: p.type.match(/<(.+)>/)[1] },
+      one = (x) => {
+        const k = cdKind(inner.type);
+        return k === "int" ? Math.trunc(Number(x)) || 0 : k === "float" ? Number(x) || 0 : k === "bool" ? x === "true" : x;
+      };
+    return raw.split(",").map((x) => x.trim()).filter(Boolean).map(one);
+  }
+  if (kind === "int") return Math.trunc(Number(raw)) || 0;
+  if (kind === "float") return Number(raw) || 0;
+  return raw;
+}
+function cdRows() {
+  const list = cdProps(),
+    editable = list.filter((p) => cdKind(p.type)),
+    q = cdQuery.trim().toLowerCase(),
+    shown = editable.filter((p) => !q || p.name.toLowerCase().includes(q) || p.type.toLowerCase().includes(q)),
+    groups = new Map();
+  for (const p of shown) {
+    const g = CD_GROUPS.find(([, , re]) => re.test(p.name));
+    const label = g ? bi2(g[0], g[1]) : bi2("其他", "Other");
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(p);
+  }
+  const order = (label) => {
+    const i = CD_GROUPS.findIndex(([zh]) => label.includes(`>${zh}<`));
+    return i < 0 ? CD_GROUPS.length : i;
+  };
+  const row = (p) => {
+    const kind = cdKind(p.type),
+      has = Object.hasOwn(project.classDefaults, p.name),
+      value = has ? project.classDefaults[p.name] : cdDefault(p),
+      a = `data-cd-input="${esc(p.name)}"`;
+    let control;
+    if (kind === "bool") control = `<input type="checkbox" ${a} ${value ? "checked" : ""}>`;
+    else if (kind === "enum")
+      control = `<select ${a}>${enums[p.type].map((v) => `<option ${v === value ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>`;
+    else if (kind === "int" || kind === "float")
+      control = `<input type="number" step="${kind === "int" ? 1 : "any"}" ${a} value="${esc(value)}">`;
+    else if (kind === "list")
+      control = `<input ${a} value="${esc(value.join(", "))}" placeholder="逗号分隔 / comma separated">`;
+    else control = `<input ${a} value="${esc(value)}">`;
+    return `<div class="cd-row ${has ? "modified" : ""}"><label><span class="cd-name">${esc(p.name)}</span><span class="cd-type">${esc(p.type)}</span></label><div class="cd-control">${control}<button type="button" class="cd-reset" data-cd-reset="${esc(p.name)}" title="恢复默认 / Reset" ${has ? "" : "hidden"}>↺</button></div></div>`;
+  };
+  const skipped = list.length - editable.length;
+  return (
+    [...groups.entries()]
+      .sort((a, b) => order(a[0]) - order(b[0]))
+      .map(([g, ps]) => `<h4 class="cd-group">${g} <span>${ps.length}</span></h4>${ps.map(row).join("")}`)
+      .join("") ||
+    `<p class="detail-description">${bi2("没有匹配的属性。", "No matching properties.")}</p>`
+  ) +
+    (skipped
+      ? `<p class="detail-description">${bi2(`另有 ${skipped} 个结构体/映射类型的属性暂不支持编辑。`, `${skipped} struct / map properties cannot be edited yet.`)}</p>`
+      : "");
+}
+function classDefaultsSection() {
+  const changed = Object.keys(project.classDefaults).length;
+  return `<section class="detail-section" id="class-defaults"><details ${cdOpen ? "open" : ""} id="cd-details"><summary class="detail-heading">${bi2("类默认值", "Class Defaults")} <span>${changed ? bi2(`${changed} 项已修改`, `${changed} changed`) : "CLASS DEFAULTS"}</span></summary><p class="detail-description">${bi2(`${project.asset.parentClass} 的属性默认值。只保存改过的值，其余使用游戏里的默认。名称、阵营、类型、稀有度、费用、攻击、防御和文字在上面的「卡牌信息」里改。`, `Default values of ${project.asset.parentClass} properties. Only changed values are saved. Name, faction, type, rarity, cost, attack, defense and text are in Card Data above.`)}</p><input id="cd-search" class="modal-search" placeholder="搜索属性 / Search properties…" value="${esc(cdQuery)}" autocomplete="off"><div id="cd-rows">${cdRows()}</div></details></section>`;
+}
+function bindClassDefaults() {
+  const details = $("cd-details");
+  if (!details) return;
+  details.ontoggle = () => (cdOpen = details.open);
+  $("cd-search").oninput = (e) => {
+    cdQuery = e.target.value;
+    $("cd-rows").innerHTML = cdRows();
+  };
+  $("cd-rows").onchange = (e) => {
+    const input = e.target.closest("[data-cd-input]");
+    if (!input) return;
+    const p = cdProps().find((x) => x.name === input.dataset.cdInput);
+    if (!p) return;
+    const value = input.type === "checkbox" ? input.checked : cdParse(p, input.value);
+    checkpoint();
+    if (JSON.stringify(value) === JSON.stringify(cdDefault(p))) delete project.classDefaults[p.name];
+    else project.classDefaults[p.name] = value;
+    persist();
+    $("cd-rows").innerHTML = cdRows();
+  };
+  $("cd-rows").onclick = (e) => {
+    const b = e.target.closest("[data-cd-reset]");
+    if (!b) return;
+    checkpoint();
+    delete project.classDefaults[b.dataset.cdReset];
+    persist();
+    $("cd-rows").innerHTML = cdRows();
+  };
+}
+function openClassDefaults() {
+  selection.clear();
+  selectedEdge = null;
+  cdOpen = true;
+  setDrawer(false);
+  if (window.innerWidth <= 1000) setInspectorOpen(true);
+  else $("inspector").hidden = false;
+  renderNodes();
+  renderInspector();
+  drawEdges();
+  updateSelectionStatus();
+  requestAnimationFrame(() => $("class-defaults")?.scrollIntoView({ block: "start" }));
+}
 function renderInspector() {
   let body = "";
   const n = graph().nodes.find((n) => selection.has(n.id));
@@ -1984,7 +2125,7 @@ function renderInspector() {
               );
             const options =
               p.type === "bool" ? ["false", "true"] : enums[p.type];
-            return `<div class="field"><label class="detail-label">${esc(translate(p.name))} / ${esc(p.name)} <span style="opacity:.5">${esc(p.type)}</span>${options ? `<select data-value="${esc(p.id)}" ${isConnected ? "disabled" : ""}>${[...new Set([...options, String(val)])].map((v) => `<option ${String(v) === String(val) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>` : `<input data-value="${esc(p.id)}" value="${esc(val)}" ${["int", "float"].includes(pinKind(p.type)) ? 'type="number" step="any"' : ""} ${isReasonPin(n, p) ? 'list="reason-list" placeholder="选择或输入 Reason 键"' : ""} ${isConnected ? "disabled" : ""}>${isReasonPin(n, p) ? `<datalist id="reason-list">${reasons.map((r) => `<option value="${esc(r.key)}">${esc(r.text)}</option>`).join("")}</datalist>` : ""}`}${isConnected ? '<span class="detail-description">由连接提供值 · 请在来源节点上修改</span>' : ""}</label></div>`;
+            return `<div class="field"><label class="detail-label">${esc(translate(p.name))} / ${esc(p.name)} <span style="opacity:.5">${esc(p.type)}</span>${options ? `<select data-value="${esc(p.id)}" ${isConnected ? "disabled" : ""}>${[...new Set([...options, String(val)])].map((v) => `<option ${String(v) === String(val) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>` : `<input data-value="${esc(p.id)}" value="${esc(val)}" ${["int", "float"].includes(pinKind(p.type)) ? 'type="number" step="any"' : ""} ${isReasonPin(n, p) ? 'list="reason-list" placeholder="选择或输入 Reason 键"' : ""} ${isConnected ? "disabled" : ""}>${isReasonPin(n, p) ? `<datalist id="reason-list">${reasons.map((r) => `<option value="${esc(r.key)}">${esc(r.zh || r.text)}</option>`).join("")}</datalist>` : ""}`}${isConnected ? '<span class="detail-description">由连接提供值 · 请在来源节点上修改</span>' : ""}</label></div>`;
           })
           .join("")
       : '<p class="detail-description">此节点没有可编辑的默认输入。</p>';
@@ -1999,7 +2140,7 @@ function renderInspector() {
         value,
         label: FACTIONS[value] || value,
       })),
-    )}${field("卡牌类型", "card.type", card.type, enums.ETypeEnum || ["infantry", "tank", "order"])}${field("稀有度", "card.rarity", card.rarity, enums.ERarityEnum || ["Common", "Uncommon", "Rare", "Unique"])}<div class="field-grid">${field("攻击力", "card.attack", card.attack)}${field("防御力", "card.defense", card.defense)}</div><div style="height:12px"></div>${field("指挥点消耗", "card.cost", card.cost)}<div class="field"><label class="detail-label">卡牌效果<textarea data-field="card.text">${esc(card.text)}</textarea></label></div></section>${graphSection()}<section class="detail-section"><h3 class="detail-heading">文件格式 <span>v1.0</span></h3><p class="detail-description">.kardsbp.json 包含资源信息、变量、函数、宏、EventGraph、节点定义、参数和连线。导入后可继续编辑。</p></section>`;
+    )}${field("卡牌类型", "card.type", card.type, enums.ETypeEnum || ["infantry", "tank", "order"])}${field("稀有度", "card.rarity", card.rarity, enums.ERarityEnum || ["Common", "Uncommon", "Rare", "Unique"])}<div class="field-grid">${field("攻击力", "card.attack", card.attack)}${field("防御力", "card.defense", card.defense)}</div><div style="height:12px"></div>${field("指挥点消耗", "card.cost", card.cost)}<div class="field"><label class="detail-label">卡牌效果<textarea data-field="card.text">${esc(card.text)}</textarea></label></div></section>${classDefaultsSection()}${graphSection()}<section class="detail-section"><h3 class="detail-heading">文件格式 <span>v1.0</span></h3><p class="detail-description">.kardsbp.json 包含资源信息、变量、函数、宏、EventGraph、节点定义、参数和连线。导入后可继续编辑。</p></section>`;
   }
   $("inspector-content").innerHTML = body;
   $("inspector-content")
@@ -2046,6 +2187,7 @@ function renderInspector() {
           mutate(() => (n.values[p.id] = val));
         }),
     );
+  bindClassDefaults();
   if ($("delete-selection")) $("delete-selection").onclick = deleteSelection;
   if ($("duplicate")) $("duplicate").onclick = duplicate;
   if ($("graph-settings"))
@@ -2612,6 +2754,9 @@ function exportProject() {
     classes: classMap(),
     enums,
     repository,
+    propertyTypes: Object.fromEntries(
+      properties.filter((p) => p.class === project.asset.parentClass).map((p) => [p.name, p.type]),
+    ),
   });
   download(
     (project.name || "blueprint").replace(/[\\/:*?"<>|]/g, "_") +
@@ -3197,6 +3342,7 @@ async function boot() {
       ...data.nodes,
     ];
     enums = data.enums;
+    properties = data.properties || [];
     repository = data.repository || null;
     try {
       const r = await fetch("./reasons.json");

@@ -86,6 +86,7 @@ export function makeProject() {
     },
     variables: [],
     dispatchers: [],
+    classDefaults: {},
     card: {
       title: "未命名卡牌",
       faction: "Soviet",
