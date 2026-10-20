@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.10.3",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "手机上能关闭详情和工作区",
+      "en": "Close buttons for the phone drawers"
+    },
+    "items": [
+      {
+        "zh": "详情面板右上角新增「✕」关闭按钮,滚动时也固定在顶部;左侧工作区抽屉顶部新增「✕ 关闭」;按 Esc 也能关",
+        "en": "The Details panel has a ✕ close button that stays at the top while scrolling; the workspace drawer has a ✕ Close bar; Esc closes both"
+      }
+    ]
+  },
+  {
     "version": "2.10.2",
     "date": "2026-10-20",
     "title": {

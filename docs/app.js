@@ -3192,6 +3192,8 @@ $("bar-duplicate").onclick = duplicate;
 $("bar-delete").onclick = deleteSelection;
 $("toggle-library").onclick = () =>
   setDrawer(!$("left-panel").classList.contains("open"));
+$("close-inspector").onclick = () => setInspectorOpen(false);
+$("close-left").onclick = () => setDrawer(false);
 $("drawer-backdrop").onclick = () => {
   setDrawer(false);
   setInspectorOpen(false);
@@ -3225,6 +3227,10 @@ $("modal").onclick = (e) => {
   }
 };
 window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("modal").open) {
+    setDrawer(false);
+    setInspectorOpen(false);
+  }
   const typing =
     /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) ||
     e.target.isContentEditable;
