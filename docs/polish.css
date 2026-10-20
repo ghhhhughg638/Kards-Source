@@ -670,3 +670,15 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 .card-preview.rarity-Uncommon .card-emblem { border-color: #b87333; color: #e6a46a; }
 .card-preview.rarity-Rare .card-emblem { border-color: #c9d1d9; color: #f2f5f8; box-shadow: 0 0 8px #c9d1d955; }
 .card-preview.rarity-Unique .card-emblem, .card-preview.rarity-Legendary .card-emblem { border-color: #f0c040; color: #ffe08a; box-shadow: 0 0 10px #f0c04066; }
+
+/* Phone drawers need an obvious way out: a close button inside each one */
+.drawer-close { display: none; }
+@media (max-width: 1000px) {
+  .inspector-heading > span { display: none; }
+  #close-inspector { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; margin-left: auto; font-size: 18px; background: #333; border: 1px solid #555; border-radius: 4px; color: #eee; }
+  .inspector-heading { display: flex; align-items: center; position: sticky; top: 0; z-index: 3; background: #1f1f1f; }
+}
+@media (max-width: 800px) {
+  #close-left { display: flex; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 5; width: 100%; padding: 10px 14px; background: #2d2d2d; border: 0; border-bottom: 1px solid #444; color: #eee; font-size: 14px; text-align: left; }
+}
+.card-preview p .zh + .en { margin-left: 4px; opacity: .85; }
