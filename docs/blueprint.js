@@ -169,7 +169,8 @@ export function entryDefinition(g) {
     pins,
   });
 }
-export function resultDefinition(g) {
+// `extra` marks additional Return Nodes of a function (Unreal allows several, one per exit path).
+export function resultDefinition(g, extra = false) {
   const isMacro = g.kind === "macro";
   const pins = isMacro
     ? g.outputs.map((p) =>
@@ -186,8 +187,10 @@ export function resultDefinition(g) {
     name: isMacro ? `${g.name} Outputs` : "Return Node",
     label: isMacro ? `宏输出 · ${g.name}` : `返回节点 · ${g.name}`,
     kind: isMacro ? "macroExit" : "functionResult",
-    fixed: true,
-    bp: { type: isMacro ? "macroExit" : "result", graphId: g.id },
+    fixed: !extra,
+    bp: isMacro
+      ? { type: "macroExit", graphId: g.id }
+      : { type: "result", graphId: g.id, ...(extra ? { extra: true } : {}) },
     signature: `${isMacro ? "macro" : "function"} ${g.name} result`,
     pins,
   });
@@ -390,16 +393,20 @@ export function ensureBoundaryNodes(g) {
   if (isMacro || !g.pure || g.outputs.length)
     want.push([isMacro ? "macroExit" : "result", resultDefinition(g), 760]);
   for (const [type, def, x] of want) {
-    const existing = g.nodes.find(
+    const existing = g.nodes.filter(
       (n) => n.definition.bp?.type === type && n.definition.bp.graphId === g.id,
     );
-    if (existing) {
-      existing.definition = def;
-    } else {
-      const n = makeNode(def, x, 120);
-      g.nodes.push(n);
-    }
+    if (existing.length)
+      for (const n of existing)
+        n.definition =
+          type === "result" ? resultDefinition(g, !!n.definition.bp.extra) : def;
+    else g.nodes.push(makeNode(def, x, 120));
   }
+  // A function without outputs that is pure has no Return Node at all (not even extra ones).
+  if (!isMacro && !want.some(([type]) => type === "result"))
+    g.nodes = g.nodes.filter(
+      (n) => !(n.definition.bp?.type === "result" && n.definition.bp.graphId === g.id),
+    );
   return g;
 }
 
@@ -518,6 +525,7 @@ export function dynamicDefinitions(project, graph) {
     if (g.kind === "function") out.push(callDefinition(g));
     if (g.kind === "macro" && macroFits(project, graph, g)) out.push(macroDefinition(g));
   }
+  if (graph.kind === "function" && !graph.pure) out.push(resultDefinition(graph, true));
   if (!pureFn)
     for (const d of project.dispatchers)
       for (const action of ["call", "bind", "unbind", "unbindAll"])
@@ -538,6 +546,7 @@ export function allowedInGraph(def, graph) {
   if (def.bp?.type === "getLocal" || def.bp?.type === "setLocal")
     return graph.kind === "function" && def.bp.graphId === graph.id;
   if (def.bp?.type === "dispatcher") return !(graph.kind === "function" && graph.pure);
+  if (def.bp?.type === "result") return graph.kind === "function" && !graph.pure && def.bp.graphId === graph.id;
   return true;
 }
 export function referencesGraph(project, graphId) {
@@ -594,6 +603,19 @@ export function validateBlueprint(project) {
     bad("资源信息不完整");
   if (!Array.isArray(project.variables) || project.variables.length > 500)
     bad("变量列表无效");
+  // Class Defaults: only the values that differ from the type's default are stored.
+  project.classDefaults = project.classDefaults ?? {};
+  const defaults = project.classDefaults,
+    simple = (v) => ["string", "number", "boolean"].includes(typeof v) && (typeof v !== "number" || Number.isFinite(v));
+  if (
+    typeof defaults !== "object" ||
+    Array.isArray(defaults) ||
+    Object.keys(defaults).length > 600 ||
+    Object.entries(defaults).some(
+      ([k, v]) => !/^[A-Za-z_]\w*$/.test(k) || !(simple(v) || (Array.isArray(v) && v.length <= 500 && v.every(simple))),
+    )
+  )
+    bad("类默认值无效");
   project.dispatchers = project.dispatchers ?? [];
   if (!Array.isArray(project.dispatchers) || project.dispatchers.length > 200)
     bad("事件分发器列表无效");
@@ -806,6 +828,10 @@ export function buildExport(project, context = {}) {
       },
     },
     card: project.card,
+    classDefaults: project.classDefaults || {},
+    classDefaultTypes: Object.fromEntries(
+      Object.keys(project.classDefaults || {}).map((k) => [k, context.propertyTypes?.[k] ?? null]),
+    ),
     variables: project.variables,
     dispatchers: project.dispatchers,
     eventGraph: project.graphs[0].id,

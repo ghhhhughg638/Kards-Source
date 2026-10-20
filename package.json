@@ -5,7 +5,8 @@
   "scripts": {
     "test": "node --test tools/*.test.mjs",
     "lint": "eslint docs/*.js tools/*.mjs",
-    "catalog": "python3 tools/generate-node-catalog.py"
+    "catalog": "python3 tools/generate-node-catalog.py",
+    "reasons": "python3 tools/generate-reasons.py"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

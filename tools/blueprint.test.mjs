@@ -340,3 +340,46 @@ test("object inputs default to Self only when this blueprint is that type", asyn
   // without a blueprint context the old behaviour is kept
   assert.equal(defaultValue("ACardFunctionsStub*"), "Self");
 });
+
+test("reasons.json lists the textNotifications keys used by the Reason outputs", async () => {
+  const data = JSON.parse(await readFile(new URL("../docs/reasons.json", import.meta.url), "utf8"));
+  const keys = data.reasons.map((r) => r.key);
+  assert(keys.length > 100 && new Set(keys).size === keys.length, "keys are unique");
+  assert(data.reasons.every((r) => r.key && r.text));
+  assert(keys.includes("any_target") && keys.includes("enemy_unit_with_x_or_less_attack"));
+  assert.equal(data.reasons.find((r) => r.key === "enemy_unit_with_x_or_less_attack").params, 1);
+  // the three overrides that report a Reason really have that output
+  for (const name of ["CanPlayFromHand", "CanBeTargetted", "CanOtherCardBeTargetted"]) {
+    const d = catalog.nodes.find((n) => n.class === "UBaseCardObject" && n.name === name);
+    assert(d.pins.some((p) => p.id === "Reason" && p.direction === "out"), `${name} has Reason`);
+  }
+});
+
+test("class defaults are validated, exported with their types and survive a round trip", () => {
+  const p = makeProject();
+  assert.deepEqual(p.classDefaults, {});
+  p.classDefaults = { hasBlitz: true, heavyArmor: 2, usedTriggers: ["OnStartOfTurn"] };
+  const out = buildExport(p, { classes: {}, enums: {}, propertyTypes: { hasBlitz: "bool", heavyArmor: "int32" } });
+  assert.deepEqual(out.classDefaults, p.classDefaults);
+  assert.equal(out.classDefaultTypes.heavyArmor, "int32");
+  assert.equal(out.classDefaultTypes.usedTriggers, null);
+  const back = validateProject(JSON.parse(JSON.stringify(p)));
+  assert.equal(back.classDefaults.heavyArmor, 2);
+  // older files without the field still load
+  const old = JSON.parse(JSON.stringify(makeProject()));
+  delete old.classDefaults;
+  assert.deepEqual(validateProject(old).classDefaults, {});
+  for (const bad of [[1], { "no way": 1 }, { x: { nested: 1 } }, { x: NaN }]) {
+    const q = JSON.parse(JSON.stringify(makeProject()));
+    q.classDefaults = bad;
+    assert.throws(() => validateProject(q), /类默认值/);
+  }
+});
+
+test("every reason has a Chinese text and keeps its {0} placeholders", async () => {
+  const data = JSON.parse(await readFile(new URL("../docs/reasons.json", import.meta.url), "utf8"));
+  for (const r of data.reasons) {
+    assert(r.zh, `${r.key} has no Chinese text`);
+    assert.equal(r.zh.split("{0}").length, r.text.split("{0}").length, `${r.key} placeholders`);
+  }
+});

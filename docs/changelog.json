@@ -1,5 +1,67 @@
 [
   {
+    "version": "2.10.1",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "手机上找到卡牌信息",
+      "en": "Card data is easy to find on phones"
+    },
+    "items": [
+      {
+        "zh": "手机上画布工具栏的最右边按钮不再被挤出屏幕:整理、多选只显示图标,新增带文字的「详情」按钮,点它打开卡牌信息、类默认值",
+        "en": "On phones the right-most canvas buttons no longer fall off the screen: Arrange and Multi show icons only, and a labelled Details button opens card data and class defaults"
+      },
+      {
+        "zh": "左侧抽屉的「我的蓝图」顶部新增「卡牌信息」入口,点一下直接打开并滚到卡牌信息",
+        "en": "The left drawer now has a Card Data entry at the top of My Blueprint that opens the details panel right at the card data"
+      }
+    ]
+  },
+  {
+    "version": "2.10.0",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "类默认值、Reason 中文",
+      "en": "Class Defaults, Chinese Reason texts"
+    },
+    "items": [
+      {
+        "zh": "新增「类默认值」:在「我的蓝图」顶部点开,或在详情面板里,编辑父类 UBaseCardObject 的上百个属性默认值(开关、数字、枚举、文本、列表),只保存改过的,可一键恢复,会导出",
+        "en": "New Class Defaults: open it at the top of My Blueprint or in the Details panel to edit the default values of the parent's properties (switches, numbers, enums, text, lists); only changed values are saved, can be reset and are exported"
+      },
+      {
+        "zh": "Reason 列表的 125 个键全部加了中文,搜索中文或英文都行",
+        "en": "All 125 Reason keys now have Chinese texts; search works in both languages"
+      }
+    ]
+  },
+  {
+    "version": "2.9.1",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "多个返回节点、标签栏修复、Reason 选择器",
+      "en": "Multiple Return Nodes, tab strip fix, Reason picker"
+    },
+    "items": [
+      {
+        "zh": "函数可以有多个返回节点:在函数图里添加「Return Node」,每条执行路径各接一个;额外的可以删除,原来的那个保留",
+        "en": "Functions can have several Return Nodes: add Return Node in a function graph, one per exit path; extra ones can be deleted, the original stays"
+      },
+      {
+        "zh": "重载很多函数时,顶部标签栏不再溢出:长名字显示省略号,可以横向滚动/滚轮滚动,当前标签自动滚到可见位置,「＋」固定在右侧",
+        "en": "With many overrides the tab strip no longer overflows: long names are ellipsised, it scrolls sideways (also with the wheel), the active tab scrolls into view and + stays on the right"
+      },
+      {
+        "zh": "CanPlayFromHand、CanBeTargetted、CanOtherCardBeTargetted 的 Reason:点击后可以从游戏文本表 textNotifications 的 125 个键里搜索选择,也可以自己写键",
+        "en": "Reason of CanPlayFromHand, CanBeTargetted and CanOtherCardBeTargetted: click to search and pick one of the 125 textNotifications keys, or type your own"
+      },
+      {
+        "zh": "新增节点按自身大小找空位,不再压在其他节点上",
+        "en": "New nodes find a free spot using their own size, so they no longer land on other nodes"
+      }
+    ]
+  },
+  {
     "version": "2.9.0",
     "date": "2026-10-20",
     "title": {

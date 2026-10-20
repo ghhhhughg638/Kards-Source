@@ -605,8 +605,62 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 .ovr-row.is-fn .ovr-icon { background: #1f3a52; color: #8cc4f0; font-style: italic; }
 .ovr-main { flex: 1; min-width: 0; display: grid; gap: 1px; }
 .ovr-main strong { font: 12px var(--mono); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ovr-main small .zh + .en { margin-left: 8px; opacity: .8; }
 .ovr-main small { font-size: 11px; color: #98a79e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ovr-main code { font: 10px var(--mono); color: #7f8b84; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ovr-state { flex: none; font-size: 10px; color: #8a8a8a; border: 1px solid #444; border-radius: 9px; padding: 1px 7px; }
 .ovr-state.done { color: #9bd49b; border-color: #3e6a3e; }
 @media (max-width: 800px) { .ovr-list { max-height: 50vh; } .ovr-row { padding: 9px 8px; } }
+
+/* Graph tabs: never overflow their box, scroll when there are many, keep "+" reachable */
+.tabs { scrollbar-width: thin; scrollbar-color: #4a5550 transparent; }
+.tab { flex: none; min-width: 120px; max-width: 220px; overflow: hidden; }
+.tab .tab-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.tab .tab-dot { flex: none; margin-left: 4px; }
+.tab.active { box-shadow: inset 0 -2px 0 #adcbb5; }
+.tab.add-tab { position: sticky; right: 0; z-index: 2; background: #191919; box-shadow: -6px 0 6px #0006; min-width: 36px; }
+@media (max-width: 800px) { .tab { min-width: 104px; } }
+
+/* Reason picker (textNotifications keys) */
+.node .pin-reason { width: auto; max-width: calc(190px * var(--s)); cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ffd98a; }
+.node .pin-reason.empty { color: #8b9a91; font-style: italic; }
+.rs-custom { margin-top: 10px; }
+.rs-custom-row { display: flex; gap: 6px; align-items: center; }
+.rs-custom-row input { flex: 1; min-width: 0; }
+.rs-custom-row button { width: auto; margin: 0; padding: 7px 12px; }
+.rs-row.current { background: #2a3b2c; }
+.ovr-count { font: 11px var(--mono); color: #8f9c95; margin: 4px 2px; }
+#rs-list { max-height: min(34vh, 300px); }
+@media (max-width: 800px) { #rs-list { max-height: 30vh; } }
+
+/* Class Defaults (parent-class properties) in the details panel */
+#class-defaults summary { cursor: pointer; list-style: none; }
+#class-defaults summary::-webkit-details-marker { display: none; }
+#class-defaults summary::before { content: "▸"; margin-right: 6px; color: #8fa196; }
+#class-defaults details[open] > summary::before { content: "▾"; }
+.cd-group { margin: 12px 0 4px; font-size: 11px; color: #c8d3cc; border-bottom: 1px solid #353535; padding-bottom: 3px; }
+.cd-group span { opacity: .55; font-family: var(--mono); margin-left: 4px; }
+.cd-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid #2a2a2a; }
+.cd-row label { display: grid; min-width: 0; }
+.cd-name { font: 12px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-type { font: 10px var(--mono); color: #7f8b84; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cd-row.modified .cd-name { color: #ffd43b; }
+.cd-control { display: flex; gap: 4px; align-items: center; min-width: 0; }
+.cd-control input:not([type="checkbox"]), .cd-control select { flex: 1; min-width: 0; width: 100%; }
+.cd-control input[type="checkbox"] { width: 18px; height: 18px; }
+.cd-reset { flex: none; width: 24px; height: 24px; padding: 0; background: #3a2f12; border: 1px solid #6a5328; color: #ffd98a; border-radius: 3px; }
+.canvas-tools #toggle-inspector { width: auto; padding: 0 9px; white-space: nowrap; }
+@media (max-width: 800px) { .canvas-tools #toggle-inspector { font-size: 12px; } }
+
+/* Phones: every canvas tool must stay on screen (Details used to fall off the right edge) */
+@media (max-width: 520px) {
+  .canvas-toolbar { padding-left: 6px; padding-right: 6px; gap: 6px; }
+  .canvas-tools { gap: 4px; min-width: 0; max-width: 100%; }
+  .canvas-tools > button { padding-left: 7px; padding-right: 7px; min-width: 32px; }
+  #arrange .zh, #arrange .en, #multi-toggle .zh, #multi-toggle .en { display: none; }
+  #toggle-library { max-width: 30vw; }
+  #toggle-inspector .toggle-label.en { display: none; }
+  html[data-lang="en"] #toggle-inspector .toggle-label.zh { display: none; }
+  html[data-lang="en"] #toggle-inspector .toggle-label.en { display: inline; }
+}
+@media (max-width: 340px) { #toggle-library { max-width: 24vw; } .canvas-tools > button { padding-left: 5px; padding-right: 5px; } }
