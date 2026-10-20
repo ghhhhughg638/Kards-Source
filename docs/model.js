@@ -169,14 +169,12 @@ export function connect(graph, a, b) {
     )
   )
     return false;
-  graph.edges = graph.edges.filter(
-    (e) =>
-      !(e.to.node === to.node && e.to.pin === to.pin) &&
-      !(
-        po.type === "exec" &&
-        e.from.node === from.node &&
-        e.from.pin === from.pin
-      ),
+  // A data input keeps one wire (the new one replaces it); an execution output leads to one place
+  // (the new wire replaces it), but any number of execution outputs may share one execution input.
+  graph.edges = graph.edges.filter((e) =>
+    po.type === "exec"
+      ? !(e.from.node === from.node && e.from.pin === from.pin)
+      : !(e.to.node === to.node && e.to.pin === to.pin),
   );
   graph.edges.push({ id: uid(), from: clone(from), to: clone(to) });
   return true;
@@ -269,6 +267,7 @@ export function validateProject(input) {
     }
     const edgeIds = new Set(),
       inputs = new Set(),
+      pairs = new Set(),
       execOutputs = new Set();
     for (const e of g.edges) {
       if (typeof e.id !== "string" || edgeIds.has(e.id))
@@ -291,11 +290,19 @@ export function validateProject(input) {
         e.from.node === e.to.node
       )
         throw new Error("文件含有不存在或类型不匹配的连接");
+      // Like Unreal: a data input takes one wire and an execution output leads to one place, but
+      // an execution input can be the target of any number of execution outputs.
       const key = JSON.stringify(e.to),
-        outkey = JSON.stringify(e.from);
-      if (inputs.has(key) || (out.type === "exec" && execOutputs.has(outkey)))
+        outkey = JSON.stringify(e.from),
+        pair = key + outkey;
+      if (
+        (out.type !== "exec" && inputs.has(key)) ||
+        (out.type === "exec" && execOutputs.has(outkey)) ||
+        pairs.has(pair)
+      )
         throw new Error("文件中有重复的输入或执行连接");
-      inputs.add(key);
+      pairs.add(pair);
+      if (out.type !== "exec") inputs.add(key);
       if (out.type === "exec") execOutputs.add(outkey);
     }
     if (
