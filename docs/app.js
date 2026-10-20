@@ -116,6 +116,8 @@ const CAT = {
     math: bi("运算", "Math"),
     arrays: bi("数组", "Array"),
     conversion: bi("转换", "Cast"),
+    strings: bi("字符串", "String"),
+    random: bi("随机", "Random"),
     functions: bi("函数", "Functions"),
     macros: bi("宏", "Macros"),
   };

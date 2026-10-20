@@ -337,9 +337,168 @@ export const ueBuiltins = [
       wild("RemoveArrayItem", "移除数组元素", "Remove Item", [execIn(), pin("Array", array), pin("Item", T), execOut(), pin("return", "bool", "out", "Return Value")], { kind: "function" }),
       wild("ClearArray", "清空数组", "Clear", [execIn(), pin("Array", array), execOut()], { kind: "function" }),
       wild("AddArrayItem", "添加数组元素", "Add", [execIn(), pin("Array", array), pin("NewItem", T, "in", "New Item"), execOut(), pin("Index", "int32", "out")], { kind: "function" }),
+      wildPure("ArrayRandomItem", "随机元素", "Random Item", [pin("Array", array), pin("Item", T, "out")]),
+      wildPure("ArrayIsEmpty", "数组为空", "Is Empty", [pin("Array", array), pin("return", "bool", "out", "Return Value")]),
+      wildPure("ArrayIsNotEmpty", "数组不为空", "Is Not Empty", [pin("Array", array), pin("return", "bool", "out", "Return Value")]),
+      wildPure("ArrayFirstItem", "第一个元素", "First Item", [pin("Array", array), pin("Item", T, "out")]),
+      wildPure("ArrayLastItem", "最后一个元素", "Last Item", [pin("Array", array), pin("Item", T, "out")]),
+      wild("InsertArrayItem", "插入数组元素", "Insert", [execIn(), pin("Array", array), pin("NewItem", T, "in", "New Item"), pin("Index", "int32"), execOut()], { kind: "function" }),
+      wild("RemoveArrayIndex", "按下标移除", "Remove Index", [execIn(), pin("Array", array), pin("IndexToRemove", "int32", "in", "Index To Remove"), execOut()], { kind: "function" }),
+      wild("SetArrayElem", "设置数组元素", "Set Array Elem", [execIn(), pin("Array", array), pin("Index", "int32"), pin("Item", T), pin("SizeToFit", "bool", "in", "Size to Fit"), execOut()], { kind: "function" }),
+      wild("AppendArray", "追加数组", "Append Array", [execIn(), pin("TargetArray", array, "in", "Target Array"), pin("SourceArray", array, "in", "Source Array"), execOut()], { kind: "function" }),
+      wild("ReverseArray", "反转数组", "Reverse", [execIn(), pin("Array", array), execOut()], { kind: "function" }),
+      wild("ShuffleArray", "打乱数组", "Shuffle", [execIn(), pin("Array", array), execOut()], { kind: "function" }),
+      wild("SwapArrayElements", "交换两个元素", "Swap", [execIn(), pin("Array", array), pin("FirstIndex", "int32", "in", "First Index"), pin("SecondIndex", "int32", "in", "Second Index"), execOut()], { kind: "function" }),
+      wild("ResizeArray", "调整数组长度", "Resize", [execIn(), pin("Array", array), pin("Size", "int32"), execOut()], { kind: "function" }),
     ];
   })(),
 ];
+// ---------------------------------------------------------------- everyday Unreal nodes
+// Math, comparison, string, conversion, random, vector and flow nodes that Blueprint users reach for
+// all the time. `english` is the name Unreal shows for the node.
+ueBuiltins.push(
+  ...(() => {
+    const NUM = [
+        ["int32", "整数", "Integer"],
+        ["float", "浮点", "Float"],
+      ],
+      T = "$T",
+      out = (type, name = "Return Value") => pin("return", type, "out", name),
+      fn = (name, label, english, pins, options = {}) =>
+        pure(name, label, pins, { english, category: "math", ...options }),
+      act = (name, label, english, pins, options = {}) =>
+        node(name, label, pins, { english, category: "flow", ...options }),
+      wildFn = (name, label, english, pins, options = {}) => ({
+        ...fn(name, label, english, pins, options),
+        wild: pins.map((p) => ({ ...p })),
+      }),
+      list = [];
+    // ---- math (integer and float)
+    for (const [type, zh, en] of NUM) {
+      const both = (name, label, english, pins, options) =>
+        list.push(fn(`${name}_${type}`, `${label}（${zh}）`, `${english} (${en})`, pins, options));
+      both("Abs", "绝对值", "Absolute", [pin("A", type), out(type)]);
+      both("Sign", "符号", "Sign", [pin("A", type), out(type)]);
+      both("Modulo", "取余", "Modulo", [pin("A", type), pin("B", type), out(type)]);
+      both("InRange", "是否在范围内", "In Range", [pin("Value", type), pin("Min", type), pin("Max", type), pin("InclusiveMin", "bool"), pin("InclusiveMax", "bool"), out("bool")]);
+    }
+    list.push(
+      fn("Power", "幂", "Power", [pin("Base", "float"), pin("Exp", "float"), out("float")]),
+      fn("Sqrt", "平方根", "Sqrt", [pin("A", "float"), out("float")]),
+      fn("Square", "平方", "Square", [pin("A", "float"), out("float")]),
+      fn("Round", "四舍五入", "Round", [pin("A", "float"), out("int32")]),
+      fn("Floor", "向下取整", "Floor", [pin("A", "float"), out("int32")]),
+      fn("Ceil", "向上取整", "Ceil", [pin("A", "float"), out("int32")]),
+      fn("Truncate", "截断取整", "Truncate", [pin("A", "float"), out("int32")]),
+      fn("Fraction", "小数部分", "Fraction", [pin("A", "float"), out("float")]),
+      fn("Sin", "正弦", "Sin (Radians)", [pin("A", "float"), out("float")]),
+      fn("Cos", "余弦", "Cos (Radians)", [pin("A", "float"), out("float")]),
+      fn("Tan", "正切", "Tan (Radians)", [pin("A", "float"), out("float")]),
+      fn("Lerp", "线性插值", "Lerp", [pin("A", "float"), pin("B", "float"), pin("Alpha", "float"), out("float")]),
+      fn("MapRangeClamped", "区间映射（限制）", "Map Range Clamped", [pin("Value", "float"), pin("InRangeA", "float", "in", "In Range A"), pin("InRangeB", "float", "in", "In Range B"), pin("OutRangeA", "float", "in", "Out Range A"), pin("OutRangeB", "float", "in", "Out Range B"), out("float")]),
+      fn("NearlyEqual", "近似相等", "Nearly Equal", [pin("A", "float"), pin("B", "float"), pin("ErrorTolerance", "float", "in", "Error Tolerance"), out("bool")]),
+      // random
+      fn("RandomInteger", "随机整数", "Random Integer", [pin("Max", "int32"), out("int32")], { category: "random" }),
+      fn("RandomIntegerInRange", "范围内随机整数", "Random Integer in Range", [pin("Min", "int32"), pin("Max", "int32"), out("int32")], { category: "random" }),
+      fn("RandomFloat", "随机浮点", "Random Float", [out("float")], { category: "random" }),
+      fn("RandomFloatInRange", "范围内随机浮点", "Random Float in Range", [pin("Min", "float"), pin("Max", "float"), out("float")], { category: "random" }),
+      fn("RandomBool", "随机布尔", "Random Bool", [out("bool")], { category: "random" }),
+      fn("RandomBoolWithWeight", "按概率随机布尔", "Random Bool with Weight", [pin("Weight", "float"), out("bool")], { category: "random" }),
+      // vectors and rotators
+      fn("Add_FVector", "向量加", "Add (Vector)", [pin("A", "FVector"), pin("B", "FVector"), out("FVector")]),
+      fn("Subtract_FVector", "向量减", "Subtract (Vector)", [pin("A", "FVector"), pin("B", "FVector"), out("FVector")]),
+      fn("Multiply_FVector_float", "向量乘浮点", "Multiply (Vector * Float)", [pin("A", "FVector"), pin("B", "float"), out("FVector")]),
+      fn("VectorLength", "向量长度", "Vector Length", [pin("A", "FVector"), out("float")]),
+      fn("VectorNormalize", "向量归一化", "Normalize", [pin("A", "FVector"), out("FVector")]),
+      fn("VectorDistance", "向量距离", "Distance", [pin("V1", "FVector"), pin("V2", "FVector"), out("float")]),
+      fn("VectorDot", "向量点乘", "Dot Product", [pin("A", "FVector"), pin("B", "FVector"), out("float")]),
+      fn("VectorCross", "向量叉乘", "Cross Product", [pin("A", "FVector"), pin("B", "FVector"), out("FVector")]),
+      fn("MakeRotator", "构造旋转", "Make Rotator", [pin("Roll", "float"), pin("Pitch", "float"), pin("Yaw", "float"), out("FRotator")]),
+      pure("BreakRotator", "拆分旋转", [pin("Rotator", "FRotator"), pin("Roll", "float", "out"), pin("Pitch", "float", "out"), pin("Yaw", "float", "out")], { english: "Break Rotator", category: "math" }),
+    );
+    // ---- comparison of any type (enums, names, strings, booleans, objects: the type comes from the wire)
+    list.push(
+      wildFn("EqualAny", "等于（任意类型）", "Equal (==)", [pin("A", T), pin("B", T), out("bool")]),
+      wildFn("NotEqualAny", "不等于（任意类型）", "Not Equal (!=)", [pin("A", T), pin("B", T), out("bool")]),
+      wildFn("SelectAny", "选择（任意类型）", "Select", [pin("PickA", "bool", "in", "Pick A"), pin("A", T), pin("B", T), out(T)], { category: "flow" }),
+    );
+    // ---- strings
+    const str = (name, label, english, pins) => list.push(fn(name, label, english, pins, { category: "strings" }));
+    str("StringLength", "字符串长度", "Len", [pin("SourceString", "FString", "in", "Source String"), out("int32")]);
+    str("StringToUpper", "转大写", "To Upper", [pin("SourceString", "FString", "in", "Source String"), out("FString")]);
+    str("StringToLower", "转小写", "To Lower", [pin("SourceString", "FString", "in", "Source String"), out("FString")]);
+    str("StringContains", "字符串包含", "Contains", [pin("SearchIn", "FString", "in", "Search In"), pin("Substring", "FString"), pin("UseCase", "bool", "in", "Use Case"), out("bool")]);
+    str("StringStartsWith", "字符串开头是", "Starts With", [pin("SourceString", "FString", "in", "Source String"), pin("InPrefix", "FString", "in", "In Prefix"), out("bool")]);
+    str("StringEndsWith", "字符串结尾是", "Ends With", [pin("SourceString", "FString", "in", "Source String"), pin("InSuffix", "FString", "in", "In Suffix"), out("bool")]);
+    str("StringReplace", "替换字符串", "Replace", [pin("SourceString", "FString", "in", "Source String"), pin("From", "FString"), pin("To", "FString"), out("FString")]);
+    str("StringTrim", "去掉首尾空白", "Trim", [pin("SourceString", "FString", "in", "Source String"), out("FString")]);
+    str("StringLeft", "取左边", "Left", [pin("SourceString", "FString", "in", "Source String"), pin("Count", "int32"), out("FString")]);
+    str("StringRight", "取右边", "Right", [pin("SourceString", "FString", "in", "Source String"), pin("Count", "int32"), out("FString")]);
+    str("StringMid", "取中间", "Mid", [pin("SourceString", "FString", "in", "Source String"), pin("Start", "int32"), pin("Count", "int32"), out("FString")]);
+    str("StringIsEmpty", "字符串为空", "Is Empty (String)", [pin("InString", "FString", "in", "In String"), out("bool")]);
+    str("StringEqualIgnoreCase", "字符串相等（忽略大小写）", "Equal (Case Insensitive)", [pin("A", "FString"), pin("B", "FString"), out("bool")]);
+    str("StringFind", "查找子串", "Find Substring", [pin("SearchIn", "FString", "in", "Search In"), pin("Substring", "FString"), pin("UseCase", "bool", "in", "Use Case"), out("int32", "Index")]);
+    str("StringSplit", "拆分字符串", "Parse Into Array", [pin("SourceString", "FString", "in", "Source String"), pin("Delimiter", "FString"), out("TArray<FString>", "Array")]);
+    str("StringJoin", "合并字符串数组", "Join String Array", [pin("SourceArray", "TArray<FString>", "in", "Source Array"), pin("Separator", "FString"), out("FString")]);
+    // ---- conversions
+    list.push(
+      ...[
+        ["FString", "int32", "字符串转整数", "To Integer (String)"],
+        ["FString", "float", "字符串转浮点", "To Float (String)"],
+        ["bool", "int32", "布尔转整数", "To Integer (Boolean)"],
+        ["int32", "FText", "整数转文本", "To Text (Integer)"],
+        ["float", "FText", "浮点转文本", "To Text (Float)"],
+        ["bool", "FText", "布尔转文本", "To Text (Boolean)"],
+        ["FName", "FText", "名称转文本", "To Text (Name)"],
+        ["FVector", "FString", "向量转字符串", "To String (Vector)"],
+      ].map(([from, to, label, english]) =>
+        pure(`Convert_${from}_To_${to}`, label, [pin("In", from), out(to)], { english, category: "conversion", kind: "conversion" }),
+      ),
+    );
+    // ---- literals and time
+    for (const [type, zh, en] of [
+      ["int32", "整数", "Integer"],
+      ["float", "浮点", "Float"],
+      ["FString", "字符串", "String"],
+      ["bool", "布尔", "Boolean"],
+      ["FName", "名称", "Name"],
+      ["FText", "文本", "Text"],
+    ])
+      list.push(fn(`MakeLiteral_${type}`, `字面值（${zh}）`, `Make Literal ${en}`, [pin("Value", type), out(type)], { category: "utilities" }));
+    list.push(
+      fn("GetGameTimeInSeconds", "游戏时间（秒）", "Get Game Time in Seconds", [out("float")], { category: "utilities" }),
+      fn("GetRealTimeSeconds", "真实时间（秒）", "Get Real Time Seconds", [out("float")], { category: "utilities" }),
+    );
+    // ---- flow
+    list.push(
+      act("Sequence3", "序列（3 路）", "Sequence (3)", [execIn(), execOut("Then0", "Then 0"), execOut("Then1", "Then 1"), execOut("Then2", "Then 2")]),
+      act("Sequence4", "序列（4 路）", "Sequence (4)", [execIn(), execOut("Then0", "Then 0"), execOut("Then1", "Then 1"), execOut("Then2", "Then 2"), execOut("Then3", "Then 3")]),
+      act("MultiGate", "多路门", "MultiGate", [execIn(), pin("Reset", "exec"), pin("IsRandom", "bool", "in", "Is Random"), pin("Loop", "bool"), execOut("Out0", "Out 0"), execOut("Out1", "Out 1"), execOut("Out2", "Out 2")]),
+      act("SwitchOnString", "按字符串分支", "Switch on String", [execIn(), pin("Selection", "FString"), execOut("Default", "Default"), pin("Case0", "FString", "in", "Case 0"), execOut("Out0", "Out 0"), pin("Case1", "FString", "in", "Case 1"), execOut("Out1", "Out 1"), pin("Case2", "FString", "in", "Case 2"), execOut("Out2", "Out 2")]),
+      act("SwitchOnName", "按名称分支", "Switch on Name", [execIn(), pin("Selection", "FName"), execOut("Default", "Default"), pin("Case0", "FName", "in", "Case 0"), execOut("Out0", "Out 0"), pin("Case1", "FName", "in", "Case 1"), execOut("Out1", "Out 1"), pin("Case2", "FName", "in", "Case 2"), execOut("Out2", "Out 2")]),
+    );
+    return list;
+  })(),
+);
+
+// Give every remaining built-in the English name Unreal shows (Add (Integer), To String (Float), ...).
+{
+  const TYPE_NAME = { int32: "Integer", float: "Float", FString: "String", bool: "Boolean", FName: "Name", FText: "Text", FVector: "Vector", "UBaseCardObject*": "BaseCardObject" },
+    words = (name) => name.replace(/([a-z0-9])([A-Z])/g, "$1 $2"),
+    SPECIAL = { EqualObject: "Equal (Object)", AND: "AND Boolean", OR: "OR Boolean", XOR: "XOR Boolean", NOT: "NOT Boolean", IsValidExec: "Is Valid", MakeVector: "Make Vector", BreakVector: "Break Vector", ForLoopWithBreak: "For Loop with Break", SwitchOnInt: "Switch on Int", SetActorLocation: "Set Actor Location", GetActorLocation: "Get Actor Location", PrintString: "Print String", AppendString: "Append" };
+  for (const d of ueBuiltins) {
+    if (d.english || d.class !== "UE" || d.kind === "variable" || d.event) continue;
+    const convert = /^Convert_(.+)_To_(.+)$/.exec(d.name);
+    if (convert) {
+      d.english = `To ${TYPE_NAME[convert[2]] || convert[2]} (${TYPE_NAME[convert[1]] || convert[1]})`;
+      continue;
+    }
+    const typed = /^(.+)_(int32|float|FString|bool|FName|FText|FVector|UBaseCardObject\*)$/.exec(d.name);
+    if (typed) d.english = `${words(typed[1])} (${TYPE_NAME[typed[2]]})`;
+    else if (SPECIAL[d.name]) d.english = SPECIAL[d.name];
+    else if (/[a-z][A-Z]/.test(d.name)) d.english = words(d.name);
+  }
+}
 // Engine accessors make object-to-KARDS casting workflows possible from familiar UE nodes.
 ueBuiltins.push(
   node("ReceiveBeginPlay", "开始游戏", [execOut()], {
