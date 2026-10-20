@@ -368,7 +368,8 @@ function render() {
     .querySelectorAll("[data-graph]")
     .forEach((b) => (b.onclick = () => switchGraph(b.dataset.graph)));
   $("tab-add").onclick = newItemMenu;
-  document.querySelectorAll("[data-class-defaults]").forEach((b) => (b.onclick = openClassDefaults));
+  document.querySelectorAll("[data-class-defaults]").forEach((b) => (b.onclick = () => openClassDefaults("class-defaults")));
+  document.querySelectorAll("[data-open-details]").forEach((b) => (b.onclick = () => openClassDefaults(b.dataset.openDetails)));
   for (const b of $("tabs").querySelectorAll("[data-graph]")) b.title = b.querySelector(".tab-name").textContent;
   $("tabs")
     .querySelectorAll("[data-graph]")
@@ -667,6 +668,7 @@ function myBlueprintMarkup() {
   const variable = (v) =>
     `<div class="bp-row"><button class="graph-link var-link" data-var="${esc(v.id)}" title="${esc(v.tooltip || v.type)}"><i class="var-dot" style="background:${pinColor(v.type)}"></i>${esc(v.name)}<span class="var-type">${esc(v.type)}</span></button><button class="tiny-button" data-add-var="get:${esc(v.id)}" title="获取">G</button><button class="tiny-button" data-add-var="set:${esc(v.id)}" title="设置">S</button></div>`;
   return (
+    `<div class="bp-row"><button class="graph-link" data-open-details="card-data" title="名称、阵营、类型、稀有度、费用、攻击、防御、文字"><span class="graph-icon">▣</span>${bi2("卡牌信息", "Card Data")}</button></div>` +
     `<div class="bp-row"><button class="graph-link" data-class-defaults title="编辑父类属性的默认值"><span class="graph-icon">⚙</span>${bi2("类默认值", "Class Defaults")}${Object.keys(project.classDefaults).length ? `<em class="bp-tag">${Object.keys(project.classDefaults).length}</em>` : ""}</button></div>` +
     head("图表", "Graphs") +
     row(project.graphs[0]) +
@@ -2088,10 +2090,10 @@ function bindClassDefaults() {
     $("cd-rows").innerHTML = cdRows();
   };
 }
-function openClassDefaults() {
+function openClassDefaults(target = "class-defaults") {
   selection.clear();
   selectedEdge = null;
-  cdOpen = true;
+  if (target === "class-defaults") cdOpen = true;
   setDrawer(false);
   if (window.innerWidth <= 1000) setInspectorOpen(true);
   else $("inspector").hidden = false;
@@ -2099,7 +2101,7 @@ function openClassDefaults() {
   renderInspector();
   drawEdges();
   updateSelectionStatus();
-  requestAnimationFrame(() => $("class-defaults")?.scrollIntoView({ block: "start" }));
+  requestAnimationFrame(() => $(target)?.scrollIntoView({ block: "start" }));
 }
 function renderInspector() {
   let body = "";
@@ -2132,7 +2134,7 @@ function renderInspector() {
     body += `</section>${bpNodeSection(n)}<section class="detail-section"><h3 class="detail-heading">源代码 <span>NATIVE</span></h3><div class="detail-source">${esc(d.signature || d.name)}${d.source ? `<p><a href="https://github.com/ghhhhughg638/KardsSource/blob/main/${encodeURI(d.source)}" target="_blank" rel="noreferrer">${esc(d.source)} ↗</a></p>` : "<p>Studio 自定义节点 · 仅用于可视化设计</p>"}</div><button class="secondary-button" id="duplicate" style="width:100%;margin-top:10px">复制节点 <kbd>Ctrl D</kbd></button><button class="danger-button" id="delete-selection">删除选中节点</button></section>`;
   } else {
     const card = project.card;
-    body = `${assetSection()}<section class="detail-section"><h3 class="detail-heading">卡牌信息 <span>CARD DATA</span></h3><div class="card-preview"><div class="card-emblem">${esc(card.cost)}</div><div><small>${esc(card.faction.toUpperCase())} / ${esc(card.type.toUpperCase())}</small><h3>${esc(card.title)}</h3><p>${esc(FACTIONS[card.faction] || card.faction)} · ${esc(card.rarity)}</p></div></div>${field("卡牌名称", "card.title", card.title)}${field(
+    body = `${assetSection()}<section class="detail-section" id="card-data"><h3 class="detail-heading">卡牌信息 <span>CARD DATA</span></h3><div class="card-preview"><div class="card-emblem">${esc(card.cost)}</div><div><small>${esc(card.faction.toUpperCase())} / ${esc(card.type.toUpperCase())}</small><h3>${esc(card.title)}</h3><p>${esc(FACTIONS[card.faction] || card.faction)} · ${esc(card.rarity)}</p></div></div>${field("卡牌名称", "card.title", card.title)}${field(
       "所属阵营",
       "card.faction",
       card.faction,

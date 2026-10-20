@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.10.1",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "手机上找到卡牌信息",
+      "en": "Card data is easy to find on phones"
+    },
+    "items": [
+      {
+        "zh": "手机上画布工具栏的最右边按钮不再被挤出屏幕:整理、多选只显示图标,新增带文字的「详情」按钮,点它打开卡牌信息、类默认值",
+        "en": "On phones the right-most canvas buttons no longer fall off the screen: Arrange and Multi show icons only, and a labelled Details button opens card data and class defaults"
+      },
+      {
+        "zh": "左侧抽屉的「我的蓝图」顶部新增「卡牌信息」入口,点一下直接打开并滚到卡牌信息",
+        "en": "The left drawer now has a Card Data entry at the top of My Blueprint that opens the details panel right at the card data"
+      }
+    ]
+  },
+  {
     "version": "2.10.0",
     "date": "2026-10-20",
     "title": {

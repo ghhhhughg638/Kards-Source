@@ -16,6 +16,8 @@ const EXACT = {
   "恢复默认 / Reset": "Reset",
   "搜索属性 / Search properties…": "Search properties…",
   "逗号分隔 / comma separated": "comma separated",
+  "详情面板：卡牌信息、类默认值、节点属性": "Details: card data, class defaults, node properties",
+  "名称、阵营、类型、稀有度、费用、攻击、防御、文字": "Name, faction, type, rarity, cost, attack, defense, text",
   "取消选择": "Deselect",
   "整理节点布局并拆开重叠的节点": "Tidy the layout and separate overlapping nodes",
   "已整理节点布局": "Layout tidied",

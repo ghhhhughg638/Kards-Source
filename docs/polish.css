@@ -649,3 +649,18 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 .cd-control input:not([type="checkbox"]), .cd-control select { flex: 1; min-width: 0; width: 100%; }
 .cd-control input[type="checkbox"] { width: 18px; height: 18px; }
 .cd-reset { flex: none; width: 24px; height: 24px; padding: 0; background: #3a2f12; border: 1px solid #6a5328; color: #ffd98a; border-radius: 3px; }
+.canvas-tools #toggle-inspector { width: auto; padding: 0 9px; white-space: nowrap; }
+@media (max-width: 800px) { .canvas-tools #toggle-inspector { font-size: 12px; } }
+
+/* Phones: every canvas tool must stay on screen (Details used to fall off the right edge) */
+@media (max-width: 520px) {
+  .canvas-toolbar { padding-left: 6px; padding-right: 6px; gap: 6px; }
+  .canvas-tools { gap: 4px; min-width: 0; max-width: 100%; }
+  .canvas-tools > button { padding-left: 7px; padding-right: 7px; min-width: 32px; }
+  #arrange .zh, #arrange .en, #multi-toggle .zh, #multi-toggle .en { display: none; }
+  #toggle-library { max-width: 30vw; }
+  #toggle-inspector .toggle-label.en { display: none; }
+  html[data-lang="en"] #toggle-inspector .toggle-label.zh { display: none; }
+  html[data-lang="en"] #toggle-inspector .toggle-label.en { display: inline; }
+}
+@media (max-width: 340px) { #toggle-library { max-width: 24vw; } .canvas-tools > button { padding-left: 5px; padding-right: 5px; } }
