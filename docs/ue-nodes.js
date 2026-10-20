@@ -618,6 +618,11 @@ export const engineClasses = {
   UGameInstanceSubsystem: { parent: "USubsystem" },
   UEngineSubsystem: { parent: "USubsystem" },
   UBlueprintFunctionLibrary: { parent: "UObject" },
+  // Blueprint classes shipped with the game (not in the C++ headers). They are what a card's
+  // cardFunction / the local player controller really are, so "Cast To" them is needed to reach
+  // anything the Blueprint adds on top of the C++ parent.
+  BP_CardFunctions: { parent: "ACardFunctionsStub", blueprint: true },
+  BP_PlayerController: { parent: "AKardsPlayerController", blueprint: true },
 };
 export function typeNodes(classes, properties) {
   const casts = Object.keys(classes)
