@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.12.3",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "修复 Switch on Enum 引脚左右错位",
+      "en": "Switch on Enum pins on the right sides"
+    },
+    "items": [
+      {
+        "zh": "枚举下拉框占了节点的一个格子,把执行/选择输入挤到了右边、枚举值输出跑到了左边,看起来像没有可以接的输入引脚;现在下拉框独占一行,输入在左、各枚举值输出在右",
+        "en": "The enum picker used up a grid cell and pushed the Exec/Selection inputs to the right and the case outputs to the left, so there seemed to be no input pin; the picker now has its own row, inputs on the left and one output per value on the right"
+      }
+    ]
+  },
+  {
     "version": "2.12.2",
     "date": "2026-10-20",
     "title": {

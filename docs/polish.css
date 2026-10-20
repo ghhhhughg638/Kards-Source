@@ -726,5 +726,5 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 #install-banner .install-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* Switch on Enum: the enum picker sits on top of the node body */
-.node .switch-enum { padding: 6px 10px 2px; }
+.node .switch-enum { grid-column: 1 / -1; padding: 6px 10px 2px; }
 .node .switch-enum select { width: 100%; }
