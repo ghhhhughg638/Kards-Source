@@ -3,21 +3,21 @@
     "version": "2.9.0",
     "date": "2026-10-20",
     "title": {
-      "zh": "重载列表:全部事件和函数,可搜索",
-      "en": "Override list: every event and function, searchable"
+      "zh": "重载函数列表:更全、可搜索",
+      "en": "Override list: complete and searchable"
     },
     "items": [
       {
-        "zh": "「重载父类函数」现在列出父类全部 128 项可重载成员:95 个事件和 33 个函数",
-        "en": "Override now lists all 128 overridable members of the parent: 95 events and 33 functions"
+        "zh": "「重载父类函数」现在列出 226 个可重载函数:父类 33 个 + CardFunctions 库 193 个(都是蓝图可实现的函数)",
+        "en": "Override now lists 226 overridable functions: 33 from the parent plus 193 from the CardFunctions library (all Blueprint-implementable)"
       },
       {
-        "zh": "新增搜索(英文名、中文名、参数都能搜)和 全部/事件/函数 分类",
-        "en": "New search (English name, Chinese name, parameters) and All / Events / Functions tabs"
+        "zh": "事件(如 OnStartOfTurn)不是重载函数,仍从节点库的「事件」里添加",
+        "en": "Events (e.g. OnStartOfTurn) are not overrides and still come from the Events category of the palette"
       },
       {
-        "zh": "选事件会把它加到事件图,选函数会新建函数图;已添加的会标出,再选一次直接跳转",
-        "en": "Picking an event adds it to the Event Graph, picking a function creates its graph; ones already added are marked and jump to the existing one"
+        "zh": "新增搜索(英文名、中文名、参数都能搜)和按来源分类,已重载的会标出,再选直接跳转",
+        "en": "New search (English name, Chinese name, parameters) and tabs by source; overridden ones are marked and jump to the existing graph"
       }
     ]
   },

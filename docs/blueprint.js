@@ -553,30 +553,25 @@ export function referencesGraph(project, graphId) {
 // ---------------------------------------------------------------- overrides
 // Functions of the parent class that Blueprint can override (BlueprintImplementableEvent /
 // BlueprintNativeEvent with outputs). Void events with no outputs live in the Event Graph.
+export const CARD_FUNCTIONS_CLASS = "ACardFunctionsStub";
 export function overridableFunctions(catalog, parentClass = DEFAULT_PARENT) {
+  // The parent's own overridable functions plus the card-function library, whose functions are
+  // BlueprintImplementableEvents implemented in Blueprint (KARDS' CardFunctions actor).
+  const sources = new Set([parentClass, CARD_FUNCTIONS_CLASS]);
   return catalog
     .filter(
       (d) =>
-        d.class === parentClass &&
+        sources.has(d.class) &&
         (d.nativeEvent || d.implementable) &&
         !d.event &&
         d.kind !== "getter" &&
         d.kind !== "setter",
     )
-    .sort((a, b) => a.name.localeCompare(b.name));
-}
-// Everything the Override menu offers: the functions above plus the parent's overridable events
-// (notifications without outputs). Events go into the Event Graph, functions get their own graph.
-export function overridableMembers(catalog, parentClass = DEFAULT_PARENT) {
-  return catalog
-    .filter(
-      (d) =>
-        d.class === parentClass &&
-        (d.nativeEvent || d.implementable) &&
-        d.kind !== "getter" &&
-        d.kind !== "setter",
-    )
-    .sort((a, b) => Number(!!a.event) - Number(!!b.event) || a.name.localeCompare(b.name));
+    .sort(
+      (a, b) =>
+        Number(a.class !== parentClass) - Number(b.class !== parentClass) ||
+        a.name.localeCompare(b.name),
+    );
 }
 export function overrideSignature(def) {
   const data = def.pins.filter((p) => p.type !== "exec" && p.id !== "target");

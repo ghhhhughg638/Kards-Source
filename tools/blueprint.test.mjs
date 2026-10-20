@@ -22,7 +22,6 @@ import {
   makeVariable,
   newParam,
   overridableFunctions,
-  overridableMembers,
   overrideSignature,
   setDefinition,
   syncDefinitions,
@@ -151,19 +150,18 @@ test("macros keep exec pins and cannot instantiate themselves", () => {
 test("parent-class overrides come from BlueprintNativeEvent/ImplementableEvent functions", () => {
   const list = overridableFunctions(catalog.nodes);
   assert(list.length > 5);
-  assert(list.every((d) => d.class === "UBaseCardObject" && !d.event));
+  assert(list.every((d) => !d.event));
   const sig = overrideSignature(list[0]);
   assert(sig.inputs.every((x) => x.name !== "target"));
 });
 
-test("the override menu offers parent events as well as functions", () => {
-  const members = overridableMembers(catalog.nodes);
-  const events = members.filter((d) => d.event),
-    fns = members.filter((d) => !d.event);
-  assert(events.length > 50 && fns.length > 20);
-  assert.equal(fns.length, overridableFunctions(catalog.nodes).length);
-  assert(members.some((d) => d.name === "OnStartOfTurn" && d.event));
-  assert(members.every((d) => d.class === "UBaseCardObject"));
+test("the override list holds functions only, from the parent class and the CardFunctions library", () => {
+  const list = overridableFunctions(catalog.nodes);
+  assert(list.length > 100, `only ${list.length} overridable functions`);
+  assert(list.every((d) => !d.event));
+  assert(list.some((d) => d.class === "UBaseCardObject") && list.some((d) => d.class === "ACardFunctionsStub"));
+  assert(!list.some((d) => d.name === "OnStartOfTurn"));
+  assert.equal(list[0].class, "UBaseCardObject"); // the parent's own functions come first
 });
 
 test("an On* function with output (reference) parameters is an override function, not an Event", () => {

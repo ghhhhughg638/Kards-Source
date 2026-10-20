@@ -33,7 +33,8 @@ import {
   makeMacroGraph,
   makeVariable,
   newParam,
-  overridableMembers,
+  overridableFunctions,
+  CARD_FUNCTIONS_CLASS,
   overrideSignature,
   syncDefinitions,
   typeChoices,
@@ -891,15 +892,13 @@ function functionDialog(id, kind = "function") {
 }
 function overrideDialog() {
   const parent = project.asset.parentClass,
-    all = overridableMembers(catalog, parent);
+    all = overridableFunctions(catalog, parent);
   if (!all.length)
     return openModal("重载父类函数 / Override", "<p>没有可以重载的父类函数。</p>");
   const paramText = (d) => {
     const s = overrideSignature(d),
       list = (a) => a.map((p) => `${p.type} ${p.name}`).join(", ");
-    return d.event
-      ? `(${d.pins.filter((p) => p.type !== "exec").map((p) => `${p.type} ${p.name}`).join(", ")})`
-      : `${s.pure ? "pure " : ""}(${list(s.inputs)})${s.outputs.length ? ` → (${list(s.outputs)})` : ""}`;
+    return `${s.pure ? "pure " : ""}(${list(s.inputs)})${s.outputs.length ? ` → (${list(s.outputs)})` : ""}`;
   };
   const text = new Map(
     all.map((d) => [d.id, `${d.name} ${nodeChinese(d)} ${paramText(d)}`.toLowerCase()]),
@@ -908,25 +907,22 @@ function overrideDialog() {
     query = "";
   openModal(
     "重载父类函数 / Override",
-    `<input id="ovr-search" class="modal-search" placeholder="搜索重载 / Search overrides…" autocomplete="off" aria-label="搜索重载"><div id="ovr-tabs" class="ovr-tabs"></div><div id="ovr-list" class="ovr-list"></div><p class="detail-description">${bi2("事件会加入事件图；函数会新建一个函数图，签名取自父类。", "Events are added to the Event Graph; functions get their own graph with the parent's signature.")}</p>`,
+    `<input id="ovr-search" class="modal-search" placeholder="搜索重载 / Search overrides…" autocomplete="off" aria-label="搜索重载"><div id="ovr-tabs" class="ovr-tabs"></div><div id="ovr-list" class="ovr-list"></div><p class="detail-description">${bi2("每个重载会新建一个函数图，签名取自父类。事件（如 OnStartOfTurn）不是重载函数，请从节点库的「事件」里添加。", "Each override creates a function graph with the parent's signature. Events (e.g. OnStartOfTurn) are not overrides; add them from the Events category of the palette.")}</p>`,
     parent,
   );
-  const used = (d) =>
-    d.event
-      ? project.graphs[0].nodes.some((n) => n.definition.id === d.id)
-      : project.graphs.some((g) => g.override?.function === d.name);
+  const used = (d) => project.graphs.some((g) => g.override?.function === d.name);
   const visible = () =>
     all.filter(
       (d) =>
-        (tab === "all" || (tab === "event") === !!d.event) &&
+        (tab === "all" || (tab === "card") === (d.class === CARD_FUNCTIONS_CLASS)) &&
         query.split(/\s+/).every((w) => text.get(d.id).includes(w)),
     );
   function draw() {
-    const events = all.filter((d) => d.event).length,
+    const cardFns = all.filter((d) => d.class === CARD_FUNCTIONS_CLASS).length,
       tabs = [
         ["all", "全部 / All", all.length],
-        ["event", "事件 / Events", events],
-        ["function", "函数 / Functions", all.length - events],
+        ["own", `${parent.replace(/^U/, "")}`, all.length - cardFns],
+        ["card", "CardFunctions", cardFns],
       ];
     $("ovr-tabs").innerHTML = tabs
       .map(
@@ -939,7 +935,7 @@ function overrideDialog() {
       ? list
           .map(
             (d) =>
-              `<button type="button" class="ovr-row ${d.event ? "is-event" : "is-fn"}" data-ovr="${esc(d.id)}" title="${esc(d.signature || d.name)}"><span class="ovr-icon">${d.event ? "ϟ" : "ƒ"}</span><span class="ovr-main"><strong>${esc(d.name)}</strong><small>${esc(nodeChinese(d))}</small><code>${esc(paramText(d))}</code></span><span class="ovr-state ${used(d) ? "done" : ""}">${used(d) ? bi2("已添加", "Added") : bi2(d.event ? "事件" : "函数", d.event ? "Event" : "Function")}</span></button>`,
+              `<button type="button" class="ovr-row is-fn" data-ovr="${esc(d.id)}" title="${esc(d.signature || d.name)}"><span class="ovr-icon">ƒ</span><span class="ovr-main"><strong>${esc(d.name)}</strong><small>${esc(nodeChinese(d))} · ${esc(d.class.replace(/^[UA]/, "").replace("Stub", ""))}</small><code>${esc(paramText(d))}</code></span><span class="ovr-state ${used(d) ? "done" : ""}">${used(d) ? bi2("已重载", "Overridden") : bi2("函数", "Function")}</span></button>`,
           )
           .join("")
       : `<p class="detail-description">${bi2("没有匹配的项。", "No matches.")}</p>`;
@@ -952,24 +948,6 @@ function overrideDialog() {
   }
   function pick(def) {
     $("modal").close();
-    if (def.event) {
-      project.activeGraph = project.graphs[0].id;
-      const existing = project.graphs[0].nodes.find((n) => n.definition.id === def.id);
-      if (existing) {
-        selection = new Set([existing.id]);
-        const r = $("viewport").getBoundingClientRect(),
-          v = graph().view;
-        v.x = r.width / 2 - (existing.x + 100) * v.zoom;
-        v.y = r.height / 2 - (existing.y + 40) * v.zoom;
-        render();
-        persist();
-        toast(`${def.name} 已在事件图里`);
-      } else {
-        render();
-        addNode(def.id);
-      }
-      return;
-    }
     const known = project.graphs.find((g) => g.override?.function === def.name);
     if (known) {
       project.activeGraph = known.id;
