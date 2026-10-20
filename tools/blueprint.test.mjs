@@ -444,3 +444,21 @@ test("array library nodes are wildcards: they take the element type of whatever 
   });
   assert.equal(two.pin("Array"), "TArray<FString>");
 });
+
+test("the built-in Unreal library covers everyday math, string, random, conversion and flow nodes", async () => {
+  const { ueBuiltins } = await import("../docs/ue-nodes.js");
+  const { nodeEnglish } = await import("../docs/i18n.js");
+  const ids = new Set(ueBuiltins.map((d) => d.id));
+  assert.equal(ids.size, ueBuiltins.length, "ids are unique");
+  for (const d of ueBuiltins) {
+    assert.equal(new Set(d.pins.map((p) => p.id)).size, d.pins.length, `${d.id} has unique pin ids`);
+    if (!d.wild) assert(!d.pins.some((p) => p.type.includes("$T")), `${d.id} has no stray wildcard`);
+  }
+  const need = ["Abs_int32", "Abs_float", "Modulo_int32", "Power", "Sqrt", "Round", "Floor", "Ceil", "Lerp", "MapRangeClamped", "RandomInteger", "RandomIntegerInRange", "RandomFloat", "RandomBool", "StringLength", "StringToUpper", "StringContains", "StringReplace", "StringSplit", "StringJoin", "EqualAny", "NotEqualAny", "SelectAny", "ArrayRandomItem", "Sequence3", "MultiGate", "SwitchOnString", "MakeLiteral_int32", "VectorLength", "Convert_FString_To_int32"];
+  for (const name of need) assert(ids.has(`ue.${name}`), name);
+  const english = (id) => nodeEnglish(ueBuiltins.find((d) => d.id === id));
+  assert.equal(english("ue.Add_int32"), "Add (Integer)");
+  assert.equal(english("ue.Convert_int32_To_FString"), "To String (Integer)");
+  assert.equal(english("ue.EqualAny"), "Equal (==)");
+  assert.equal(english("ue.GreaterEqual_float"), "Greater Equal (Float)");
+});
