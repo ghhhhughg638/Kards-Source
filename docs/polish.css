@@ -684,16 +684,22 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 .card-preview p .zh + .en { margin-left: 4px; opacity: .85; }
 @media (max-width: 800px) { .edit-only { display: none; } }
 
-/* The selection bar now holds up to six buttons: keep it inside the screen and wrap if needed */
+/* The selection bar holds up to six small buttons: one row on a phone, never wider than the screen */
 @media (max-width: 800px) {
   .selection-bar:not([hidden]) {
-    left: 6px;
-    right: 6px;
-    transform: none;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100vw - 12px);
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
+    padding: 4px;
     bottom: 60px;
   }
-  .selection-bar button { flex: 1 1 auto; min-width: 56px; padding: 0 10px; font-size: 13px; }
+  .selection-bar button { min-width: 40px; min-height: 36px; padding: 0 8px; font-size: 12px; flex: 0 1 auto; }
+  /* just "Paste", tucked into the corner so it never covers the canvas */
+  .selection-bar.paste-only:not([hidden]) { left: 8px; transform: none; padding: 3px; opacity: .92; }
+  .selection-bar.paste-only button { min-height: 32px; }
 }

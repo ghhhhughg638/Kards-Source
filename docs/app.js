@@ -464,6 +464,7 @@ $("tabs").addEventListener(
   { passive: false },
 );
 function switchGraph(id) {
+  hintPaste();
   project.activeGraph = id;
   selection.clear();
   selectedEdge = null;
@@ -500,6 +501,7 @@ function renderWorkspace() {
 }
 // Makes `next` the card on screen (the previous one is saved first).
 function loadProject(next, { fitView = true, save = true } = {}) {
+  if (save) hintPaste();
   project = next;
   project.types = { ...classes, ...project.types };
   history = [];
@@ -2031,8 +2033,12 @@ function setMultiMode(on) {
 function updateSelectionStatus() {
   const bar = $("selection-bar");
   if (bar) {
-    const canPaste = window.innerWidth <= 800 && !!readLocalClip();
-    bar.hidden = !(selection.size || selectedEdge || canPaste);
+    // With nothing selected a small Paste chip shows for a few seconds after a copy or a switch of
+    // graph/card, then gets out of the way.
+    const chip =
+      !selection.size && !selectedEdge && window.innerWidth <= 800 && !!readLocalClip() && Date.now() < pasteHintUntil;
+    bar.hidden = !(selection.size || selectedEdge || chip);
+    bar.classList.toggle("paste-only", chip);
     for (const id of ["bar-duplicate", "bar-copy", "bar-details", "bar-clear"])
       $(id).hidden = !selection.size && !selectedEdge;
     $("bar-copy").hidden = !selection.size;
@@ -2479,7 +2485,12 @@ function deleteSelection() {
 const CLIP_KEY = "kards-blueprint-studio.clipboard",
   CLIP_TAG = "KARDS-BP-NODES:";
 let pasteCount = 0,
+  pasteHintUntil = 0,
   lastPointer = null;
+function hintPaste() {
+  pasteHintUntil = Date.now() + 7000;
+  setTimeout(updateSelectionStatus, 7100);
+}
 const readLocalClip = () => {
   try {
     return localStorage.getItem(CLIP_KEY);
@@ -2509,6 +2520,7 @@ function copyNodes() {
   }
   navigator.clipboard?.writeText(CLIP_TAG + text).catch(() => {});
   pasteCount = 0;
+  hintPaste();
   toast(`已复制 ${nodes.length} 个节点`);
   updateSelectionStatus();
 }

@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.10.8",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "手机选择条变小、粘贴按钮不再一直挡视野",
+      "en": "Smaller phone selection bar, Paste no longer in the way"
+    },
+    "items": [
+      {
+        "zh": "选择操作条恢复成一排小按钮(「取消选择」缩短为「取消」);没选中节点时,「粘贴」只在复制后或切换图表/卡牌后的几秒内以一个小按钮出现在左下角,然后自动消失",
+        "en": "The selection bar is back to one row of small buttons; with nothing selected, Paste shows as a small chip in the corner for a few seconds after copying or switching graph/card, then goes away"
+      }
+    ]
+  },
+  {
     "version": "2.10.7",
     "date": "2026-10-20",
     "title": {
