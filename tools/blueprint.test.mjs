@@ -340,3 +340,17 @@ test("object inputs default to Self only when this blueprint is that type", asyn
   // without a blueprint context the old behaviour is kept
   assert.equal(defaultValue("ACardFunctionsStub*"), "Self");
 });
+
+test("reasons.json lists the textNotifications keys used by the Reason outputs", async () => {
+  const data = JSON.parse(await readFile(new URL("../docs/reasons.json", import.meta.url), "utf8"));
+  const keys = data.reasons.map((r) => r.key);
+  assert(keys.length > 100 && new Set(keys).size === keys.length, "keys are unique");
+  assert(data.reasons.every((r) => r.key && r.text));
+  assert(keys.includes("any_target") && keys.includes("enemy_unit_with_x_or_less_attack"));
+  assert.equal(data.reasons.find((r) => r.key === "enemy_unit_with_x_or_less_attack").params, 1);
+  // the three overrides that report a Reason really have that output
+  for (const name of ["CanPlayFromHand", "CanBeTargetted", "CanOtherCardBeTargetted"]) {
+    const d = catalog.nodes.find((n) => n.class === "UBaseCardObject" && n.name === name);
+    assert(d.pins.some((p) => p.id === "Reason" && p.direction === "out"), `${name} has Reason`);
+  }
+});

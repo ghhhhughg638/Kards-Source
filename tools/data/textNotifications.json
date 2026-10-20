@@ -1,0 +1,1146 @@
+[
+  {
+    "Type": "DataTable",
+    "Name": "textNotifications",
+    "Flags": "RF_Public | RF_Standalone | RF_Transactional | RF_WasLoaded | RF_LoadCompleted",
+    "Class": "UScriptClass'DataTable'",
+    "Package": "kards/Content/Structs/textNotifications",
+    "Properties": {
+      "RowStruct": {
+        "ObjectName": "UserDefinedStruct'textNotificationsStruct'",
+        "ObjectPath": "kards/Content/Structs/textNotificationsStruct.0"
+      }
+    },
+    "Rows": {
+      "MustTarget": {
+        "texts_12_57C9B6784E2CE40B4CC7FAAE3D9145F7": [
+          {
+            "Key": "any_target",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_any_target",
+              "SourceString": "Must select a target",
+              "LocalizedString": "Must select a target"
+            }
+          },
+          {
+            "Key": "enemy",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy",
+              "SourceString": "Must target enemy",
+              "LocalizedString": "Must target enemy"
+            }
+          },
+          {
+            "Key": "enemy_air_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_air_unit",
+              "SourceString": "Must target enemy air unit",
+              "LocalizedString": "Must target enemy air unit"
+            }
+          },
+          {
+            "Key": "enemy_armor_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_armor_unit",
+              "SourceString": "Must target enemy tank unit",
+              "LocalizedString": "Must target enemy tank unit"
+            }
+          },
+          {
+            "Key": "enemy_ground_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_ground_unit",
+              "SourceString": "Must target enemy ground unit",
+              "LocalizedString": "Must target enemy ground unit"
+            }
+          },
+          {
+            "Key": "enemy_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_unit",
+              "SourceString": "Must target enemy unit",
+              "LocalizedString": "Must target enemy unit"
+            }
+          },
+          {
+            "Key": "enemy_unit_in_supply_line",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_unit_in_supply_line",
+              "SourceString": "Must target a unit in the enemy support line",
+              "LocalizedString": "Must target a unit in the enemy support line"
+            }
+          },
+          {
+            "Key": "enemy_unit_with_x_or_less_attack",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_unit_with_x_or_less_attack",
+              "SourceString": "Must target enemy unit with {0} or less attack",
+              "LocalizedString": "Must target enemy unit with {0} or less attack"
+            }
+          },
+          {
+            "Key": "friendly_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_friendly_unit",
+              "SourceString": "Must target a friendly unit",
+              "LocalizedString": "Must target a friendly unit"
+            }
+          },
+          {
+            "Key": "friendly_ground_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_friendly_ground_unit",
+              "SourceString": "Must target a friendly ground unit",
+              "LocalizedString": "Must target a friendly ground unit"
+            }
+          },
+          {
+            "Key": "armor_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_armor_unit",
+              "SourceString": "Must target tank unit",
+              "LocalizedString": "Must target tank unit"
+            }
+          },
+          {
+            "Key": "air_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_air_unit",
+              "SourceString": "Must target an air unit",
+              "LocalizedString": "Must target an air unit"
+            }
+          },
+          {
+            "Key": "unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_unit",
+              "SourceString": "Must target a unit",
+              "LocalizedString": "Must target a unit"
+            }
+          },
+          {
+            "Key": "ground_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_ground_unit",
+              "SourceString": "Must target a ground unit",
+              "LocalizedString": "Must target a ground unit"
+            }
+          },
+          {
+            "Key": "ground_target",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_ground_target",
+              "SourceString": "Must select a ground target",
+              "LocalizedString": "Must select a ground target"
+            }
+          },
+          {
+            "Key": "has_friendly_bomber_in_battlefield",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_has_friendly_bomber_in_battlefield",
+              "SourceString": "You must have a bomber in the battlefield",
+              "LocalizedString": "You must have a bomber in the battlefield"
+            }
+          },
+          {
+            "Key": "enemy_unit_already_attacked_this_turn",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_unit_already_attacked_this_turn",
+              "SourceString": "Must target enemy unit that was attacked this turn",
+              "LocalizedString": "Must target enemy unit that was attacked this turn"
+            }
+          },
+          {
+            "Key": "in_frontline",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_in_frontline",
+              "SourceString": "Target must be in the frontline",
+              "LocalizedString": "Target must be in the frontline"
+            }
+          },
+          {
+            "Key": "damaged_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_damaged_unit",
+              "SourceString": "Must target a damaged unit",
+              "LocalizedString": "Must target a damaged unit"
+            }
+          },
+          {
+            "Key": "soviet_armor_or_infantry",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_soviet_armor_or_infantry",
+              "SourceString": "Must target Soviet tank or infantry",
+              "LocalizedString": "Must target Soviet tank or infantry"
+            }
+          },
+          {
+            "Key": "unit_that_cost_x_or_less_kredits",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_unit_that_cost_x_or_less_kredits",
+              "SourceString": "Must target a unit that costs {0} or less Kredits",
+              "LocalizedString": "Must target a unit that costs {0} or less Kredits"
+            }
+          },
+          {
+            "Key": "enemy_in_supply_line",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_in_supply_line",
+              "SourceString": "Must target enemy in support line",
+              "LocalizedString": "Must target enemy in support line"
+            }
+          },
+          {
+            "Key": "friendly_infantry",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_friendly_infantry",
+              "SourceString": "Must target friendly infantry",
+              "LocalizedString": "Must target friendly infantry"
+            }
+          },
+          {
+            "Key": "enemy_unit_with_x_or_more_defense",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_unit_with_x_or_more_defense",
+              "SourceString": "Must target enemy unit with {0} or more defense",
+              "LocalizedString": "Must target enemy unit with {0} or more defense"
+            }
+          },
+          {
+            "Key": "enemy_air_or_infantry_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_enemy_air_or_infantry_unit",
+              "SourceString": "Must target enemy air or infantry unit",
+              "LocalizedString": "Must target enemy air or infantry unit"
+            }
+          },
+          {
+            "Key": "take_control_supportline_full",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_take_control_supportline_full",
+              "SourceString": "Cannot take control of target because supportline is full",
+              "LocalizedString": "Cannot take control of target because supportline is full"
+            }
+          },
+          {
+            "Key": "friendly_fighter",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_friendly_fighter",
+              "SourceString": "Must target friendly fighter",
+              "LocalizedString": "Must target friendly fighter"
+            }
+          },
+          {
+            "Key": "friendly_air",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_friendly_air",
+              "SourceString": "Must target friendly air unit",
+              "LocalizedString": "Must target friendly air unit"
+            }
+          },
+          {
+            "Key": "friendly_soviet_ground_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_friendly_soviet_ground_unit",
+              "SourceString": "Must target friendly Soviet ground unit",
+              "LocalizedString": "Must target friendly Soviet ground unit"
+            }
+          },
+          {
+            "Key": "soviet_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_soviet_unit",
+              "SourceString": "Must target Soviet unit",
+              "LocalizedString": "Must target Soviet unit"
+            }
+          },
+          {
+            "Key": "friendly_tank",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_friendly_tank",
+              "SourceString": "Must target friendly tank unit",
+              "LocalizedString": "Must target friendly tank unit"
+            }
+          },
+          {
+            "Key": "no_unit_with_cost",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_no_unit_with_cost",
+              "SourceString": "No unit with cost exists",
+              "LocalizedString": "No unit with cost exists"
+            }
+          },
+          {
+            "Key": "no_bomber_in_hand",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_no_bomber_in_hand",
+              "SourceString": "No bomber in hand",
+              "LocalizedString": "No bomber in hand"
+            }
+          },
+          {
+            "Key": "cant_be_pinned",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_cant_be_pinned",
+              "SourceString": "Target unit cannot be pinned",
+              "LocalizedString": "Target unit cannot be pinned"
+            }
+          },
+          {
+            "Key": "tank_or_infantry",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_tank_or_infantry",
+              "SourceString": "Must target a tank or infantry unit",
+              "LocalizedString": "Must target a tank or infantry unit"
+            }
+          },
+          {
+            "Key": "too_few_units",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_too_few_units",
+              "SourceString": "You need to control more units than enemy",
+              "LocalizedString": "You need to control more units than enemy"
+            }
+          },
+          {
+            "Key": "guard_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_guard_unit",
+              "SourceString": "Must target a unit with Guard",
+              "LocalizedString": "Must target a unit with Guard"
+            }
+          },
+          {
+            "Key": "damaged_enemy_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_damaged_enemy_unit",
+              "SourceString": "Must target a damaged enemy unit",
+              "LocalizedString": "Must target a damaged enemy unit"
+            }
+          },
+          {
+            "Key": "0_operation_cost_inf_or_tank",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_0_operation_cost_inf_or_tank",
+              "SourceString": "Must target infantry or tank unit with 0 operation cost",
+              "LocalizedString": "Must target infantry or tank unit with 0 operation cost"
+            }
+          },
+          {
+            "Key": "unit_with_x_or_less_attack",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_unit_with_x_or_less_attack",
+              "SourceString": "Must target a unit with {0} or less attack",
+              "LocalizedString": "Must target a unit with {0} or less attack"
+            }
+          },
+          {
+            "Key": "elite_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_elite_unit",
+              "SourceString": "Must target an elite unit",
+              "LocalizedString": "Must target an elite unit"
+            }
+          },
+          {
+            "Key": "mobilize_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_mobilize_unit",
+              "SourceString": "Must target a unit with Mobilize",
+              "LocalizedString": "Must target a unit with Mobilize"
+            }
+          },
+          {
+            "Key": "alpine_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_alpine_unit",
+              "SourceString": "Must target a unit with Alpine",
+              "LocalizedString": "Must target a unit with Alpine"
+            }
+          },
+          {
+            "Key": "artillery_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_artillery_unit",
+              "SourceString": "Must target an artillery unit",
+              "LocalizedString": "Must target an artillery unit"
+            }
+          },
+          {
+            "Key": "heavy_armor_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_unit_with_heavy_armor",
+              "SourceString": "Must target a unit with Heavy Armor",
+              "LocalizedString": "Must target a unit with Heavy Armor"
+            }
+          },
+          {
+            "Key": "cant_be_targeted_by_enemy_orders",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "cant_be_targeted_by_enemy_orders",
+              "SourceString": "Can't be targeted by enemy orders",
+              "LocalizedString": "Can't be targeted by enemy orders"
+            }
+          },
+          {
+            "Key": "cant_play_orders_this_turn",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "you_cant_play_orders",
+              "SourceString": "You cannot play orders this turn",
+              "LocalizedString": "You cannot play orders this turn"
+            }
+          },
+          {
+            "Key": "cant_deploy_units_this_turn",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "you_cant_deploy_units_this_turn",
+              "SourceString": "You cannot deploy units this turn",
+              "LocalizedString": "You cannot deploy units this turn"
+            }
+          },
+          {
+            "Key": "friendly_non_tank_unit",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_friendly_non_tank_unit",
+              "SourceString": "Must target a friendly non-tank unit",
+              "LocalizedString": "Must target a friendly non-tank unit"
+            }
+          },
+          {
+            "Key": "unit_0_operation_cost",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_unit_with_0_op_cost",
+              "SourceString": "Must target a unit with 0 operation cost",
+              "LocalizedString": "Must target a unit with 0 operation cost"
+            }
+          },
+          {
+            "Key": "no_guard_unit_exists",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "nation_has_no_guard_units",
+              "SourceString": "Nation has no Guard units",
+              "LocalizedString": "Nation has no Guard units"
+            }
+          },
+          {
+            "Key": "unit_must_be_pinned",
+            "Value": {
+              "Namespace": "helpbubbles",
+              "Key": "must_target_a_pinned_unit",
+              "SourceString": "Must target a pinned unit",
+              "LocalizedString": "Must target a pinned unit"
+            }
+          },
+          {
+            "Key": "friendly_guard_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "DDE522AC45A84AB8E06B5EB177F92B4B",
+              "SourceString": "Must target a friendly unit with Guard",
+              "LocalizedString": "Must target a friendly unit with Guard"
+            }
+          },
+          {
+            "Key": "unit_0_or_1_operation_cost",
+            "Value": {
+              "Namespace": "",
+              "Key": "BCD12A314EB0018D161D74952F82B83F",
+              "SourceString": "Must target a unit with operation cost of 1 or less",
+              "LocalizedString": "Must target a unit with operation cost of 1 or less"
+            }
+          },
+          {
+            "Key": "infantry",
+            "Value": {
+              "Namespace": "",
+              "Key": "8596E14D42701768698CD18A2FDCB0B3",
+              "SourceString": "Must target an infantry unit.",
+              "LocalizedString": "Must target an infantry unit."
+            }
+          },
+          {
+            "Key": "japanese_frontline",
+            "Value": {
+              "Namespace": "",
+              "Key": "7B93407C4EC15FF788A27E872667F44E",
+              "SourceString": "Must target a Japanese unit in the frontline",
+              "LocalizedString": "Must target a Japanese unit in the frontline"
+            }
+          },
+          {
+            "Key": "friendly_tank_or_infantry",
+            "Value": {
+              "Namespace": "",
+              "Key": "87B4ADF143767E0C7FEFECB1368937AB",
+              "SourceString": "Must target a friendly tank or infantry unit",
+              "LocalizedString": "Must target a friendly tank or infantry unit"
+            }
+          },
+          {
+            "Key": "enemy_unit_with_x_or_less_attack_or_defense",
+            "Value": {
+              "Namespace": "",
+              "Key": "2F65A1E347D336503A6ED3A65229F36F",
+              "SourceString": "Must target enemy unit with {0} or less attack or defense",
+              "LocalizedString": "Must target enemy unit with {0} or less attack or defense"
+            }
+          },
+          {
+            "Key": "hq",
+            "Value": {
+              "Namespace": "",
+              "Key": "45FC46DC4437194BD559F08D327AD12C",
+              "SourceString": "Must target a HQ",
+              "LocalizedString": "Must target a HQ"
+            }
+          },
+          {
+            "Key": "fighter_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "3F97070A49DD5B4548DB1C86BE6B1FB9",
+              "SourceString": "Must target a fighter",
+              "LocalizedString": "Must target a fighter"
+            }
+          },
+          {
+            "Key": "pincer_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "E6B811F1485546B6FDB50281A3F1C475",
+              "SourceString": "Must target a unit with Pincer",
+              "LocalizedString": "Must target a unit with Pincer"
+            }
+          },
+          {
+            "Key": "unit_with_x_or_more_operation_cost",
+            "Value": {
+              "Namespace": "",
+              "Key": "2DE80A204EE84523A9FA78AC9C1AF02C",
+              "SourceString": "Must target a unit with {0} or more operation cost",
+              "LocalizedString": "Must target a unit with {0} or more operation cost"
+            }
+          },
+          {
+            "Key": "unit_with_x_or_more_attack",
+            "Value": {
+              "Namespace": "",
+              "Key": "D5705ECF465BB8BBA00D49A0D0B9EA48",
+              "SourceString": "Must target a unit with {0} or more attack",
+              "LocalizedString": "Must target a unit with {0} or more attack"
+            }
+          },
+          {
+            "Key": "ground_unit_that_cost_x_or_less_kredits",
+            "Value": {
+              "Namespace": "",
+              "Key": "2853F2D048A15BE083961C9E0BBEF59F",
+              "SourceString": "Must target a ground unit that costs {0} or less Kredits",
+              "LocalizedString": "Must target a ground unit that costs {0} or less Kredits"
+            }
+          },
+          {
+            "Key": "non_guard_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "0D09973241DA8234E17C32B2F62F95AA",
+              "SourceString": "Cannot target a unit with Guard",
+              "LocalizedString": "Cannot target a unit with Guard"
+            }
+          },
+          {
+            "Key": "in_support_line",
+            "Value": {
+              "Namespace": "",
+              "Key": "2BECC330436152B3FB3665B9B63778ED",
+              "SourceString": "Must target a unit in a support line",
+              "LocalizedString": "Must target a unit in a support line"
+            }
+          },
+          {
+            "Key": "play_from_hand_not_enough_kredits_to_target",
+            "Value": {
+              "Namespace": "",
+              "Key": "65B278B341FB7A180F3CC9B7DACF3F38",
+              "SourceString": "Insufficient Kredits to play this card with this target",
+              "LocalizedString": "Insufficient Kredits to play this card with this target"
+            }
+          },
+          {
+            "Key": "must_have_spitfire_in_hand",
+            "Value": {
+              "Namespace": "",
+              "Key": "3A69A01A4C1307EC28ABC78E7BE996DC",
+              "SourceString": "Must have a Spitfire in hand",
+              "LocalizedString": "Must have a Spitfire in hand"
+            }
+          },
+          {
+            "Key": "must_have_countermeasure_in_hand",
+            "Value": {
+              "Namespace": "",
+              "Key": "9609FA1040C09B004669F093595DA7F1",
+              "SourceString": "Must have a Countermeasure in hand",
+              "LocalizedString": "Must have a Countermeasure in hand"
+            }
+          },
+          {
+            "Key": "must_have_given_order",
+            "Value": {
+              "Namespace": "",
+              "Key": "6B0A52FC4249FA9B8CD8E9B43E19103D",
+              "SourceString": "Must have given order this turn",
+              "LocalizedString": "Must have given order this turn"
+            }
+          },
+          {
+            "Key": "must_target_exile_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "14CBEBC44D395CBE73DC76939D0A3490",
+              "SourceString": "Must target a unit with Exile",
+              "LocalizedString": "Must target a unit with Exile"
+            }
+          },
+          {
+            "Key": "unit_with_x_or_less_defense",
+            "Value": {
+              "Namespace": "",
+              "Key": "ABF9E837491493F569965EA9F540F936",
+              "SourceString": "Must target a unit with {0} or less defense",
+              "LocalizedString": "Must target a unit with {0} or less defense"
+            }
+          },
+          {
+            "Key": "unit_with_x_or_more_defense",
+            "Value": {
+              "Namespace": "",
+              "Key": "D9701E834BBD1E0D94BDA08F34170EE9",
+              "SourceString": "Must target a unit with {0} or more defense",
+              "LocalizedString": "Must target a unit with {0} or more defense"
+            }
+          },
+          {
+            "Key": "enemy_infantry",
+            "Value": {
+              "Namespace": "",
+              "Key": "72A1D6E34BE8F194E6EA308E2192E218",
+              "SourceString": "Must target an enemy infantry",
+              "LocalizedString": "Must target an enemy infantry"
+            }
+          },
+          {
+            "Key": "cannot_play_known_cards",
+            "Value": {
+              "Namespace": "",
+              "Key": "5090A97E46A579AE774E4BAB79C4354C",
+              "SourceString": "You cannot play cards seen by the enemy this turn",
+              "LocalizedString": "You cannot play cards seen by the enemy this turn"
+            }
+          },
+          {
+            "Key": "frontline_owned_by_other_side",
+            "Value": {
+              "Namespace": "",
+              "Key": "28364645496991700F4DEABF7B212C2E",
+              "SourceString": "The frontline is controlled by the enemy side",
+              "LocalizedString": "The frontline is controlled by the enemy side"
+            }
+          },
+          {
+            "Key": "frontline_full",
+            "Value": {
+              "Namespace": "",
+              "Key": "F6F25B784DDD6F43EBA85A8BFD3CE529",
+              "SourceString": "The frontline is full",
+              "LocalizedString": "The frontline is full"
+            }
+          },
+          {
+            "Key": "friendly_britain_air_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "38D1B6B543BBB570F388DC9FB96F3C3E",
+              "SourceString": "Must target a friendly British air unit",
+              "LocalizedString": "Must target a friendly British air unit"
+            }
+          },
+          {
+            "Key": "cant_be_targetted_by_enemy_orders_or_deployment",
+            "Value": {
+              "Namespace": "",
+              "Key": "80298A4A464EDAE6FCB3B99765BF76D0",
+              "SourceString": "Enemy orders and deployment effects cannot target card",
+              "LocalizedString": "Enemy orders and deployment effects cannot target card"
+            }
+          },
+          {
+            "Key": "cant_be_targetted_by_enemy_deployment",
+            "Value": {
+              "Namespace": "",
+              "Key": "5A0C58E7436BDC21C290118CA217FCEB",
+              "SourceString": "Enemy deployment effects cannot target unit",
+              "LocalizedString": "Enemy deployment effects cannot target unit"
+            }
+          },
+          {
+            "Key": "soviet_air_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "9A68833E42F9A95C7FB0FB8C2DE3C5B2",
+              "SourceString": "Must target a Soviet air unit",
+              "LocalizedString": "Must target a Soviet air unit"
+            }
+          },
+          {
+            "Key": "has_friendly_mobilize",
+            "Value": {
+              "Namespace": "",
+              "Key": "38F4C93D4BBE696E01FDDCA888B2170B",
+              "SourceString": "You must have a unit with Mobilize on the battlefield",
+              "LocalizedString": "You must have a unit with Mobilize on the battlefield"
+            }
+          },
+          {
+            "Key": "must_have_bomber_in_hand_with_cost_x_or_less",
+            "Value": {
+              "Namespace": "",
+              "Key": "2069BAAE45DA1913FC200BA1DAE3CF04",
+              "SourceString": "Must have a bomber with cost of {0} or less in hand",
+              "LocalizedString": "Must have a bomber with cost of {0} or less in hand"
+            }
+          },
+          {
+            "Key": "unit_has_two_adjacent_units",
+            "Value": {
+              "Namespace": "",
+              "Key": "B6BBBC054F918A123ECBCCBFED09FFA6",
+              "SourceString": "Must target an enemy unit adjacent to two units",
+              "LocalizedString": "Must target an enemy unit adjacent to two units"
+            }
+          },
+          {
+            "Key": "veteran_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "F887F06B4A882E76FEB277BEC0307F04",
+              "SourceString": "Must target a Veteran unit",
+              "LocalizedString": "Must target a Veteran unit"
+            }
+          },
+          {
+            "Key": "cost_extra_to_target",
+            "Value": {
+              "Namespace": "",
+              "Key": "7206B0564DA34829C77688ABB7765896",
+              "SourceString": "Costs {0} extra kredits to target",
+              "LocalizedString": "Costs {0} extra kredits to target"
+            }
+          },
+          {
+            "Key": "undamaged_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "C38ABE974B427722E01D2D97AD93A60C",
+              "SourceString": "Must target undamaged unit",
+              "LocalizedString": "Must target undamaged unit"
+            }
+          },
+          {
+            "Key": "unit_with_destruction",
+            "Value": {
+              "Namespace": "",
+              "Key": "388272544FFF2A30F4594DAB62E6CBCD",
+              "SourceString": "Must target a unit with Destruction",
+              "LocalizedString": "Must target a unit with Destruction"
+            }
+          },
+          {
+            "Key": "spitfire_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "2DBC187C4B5201CAF419078F60A510BC",
+              "SourceString": "Must target a Spitfire",
+              "LocalizedString": "Must target a Spitfire"
+            }
+          },
+          {
+            "Key": "must_have_salvage_in_hand",
+            "Value": {
+              "Namespace": "",
+              "Key": "75797E0B4BE7158FAEA7B0B30508D8C3",
+              "SourceString": "Must target a Salvaged unit in hand",
+              "LocalizedString": "Must target a Salvaged unit in hand"
+            }
+          },
+          {
+            "Key": "pinned_or_suppressed",
+            "Value": {
+              "Namespace": "",
+              "Key": "4BBB85554B0EEC3397307498DCCC6676",
+              "SourceString": "Must target a Pinned or Suppressed unit",
+              "LocalizedString": "Must target a Pinned or Suppressed unit"
+            }
+          },
+          {
+            "Key": "smokescreen_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "F1302EB44CA7A9B896CD9C9B85F52CC3",
+              "SourceString": "Must target a unit with Smokescreen",
+              "LocalizedString": "Must target a unit with Smokescreen"
+            }
+          },
+          {
+            "Key": "salvaged_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "1FAA3C55498DEA9FE271D08C26D5E890",
+              "SourceString": "Must target a Salvaged unit",
+              "LocalizedString": "Must target a Salvaged unit"
+            }
+          },
+          {
+            "Key": "cant_target_suppressed",
+            "Value": {
+              "Namespace": "",
+              "Key": "39CE7B4747DDCB750B2C7697549E5EA6",
+              "SourceString": "The target can't be Suppressed",
+              "LocalizedString": "The target can't be Suppressed"
+            }
+          },
+          {
+            "Key": "must_have_unit_in_hand",
+            "Value": {
+              "Namespace": "",
+              "Key": "10C5352C4975114B276AF1843C22B653",
+              "SourceString": "Must have a unit in hand",
+              "LocalizedString": "Must have a unit in hand"
+            }
+          },
+          {
+            "Key": "must_have_air_unit_in_hand",
+            "Value": {
+              "Namespace": "",
+              "Key": "B38828B444D8068DBE8694857FFC148E",
+              "SourceString": "Must have an air unit in hand",
+              "LocalizedString": "Must have an air unit in hand"
+            }
+          },
+          {
+            "Key": "cantRetreat",
+            "Value": {
+              "Namespace": "",
+              "Key": "FCBC976F4D13F04A2615EB8835585E3D",
+              "SourceString": "Can't retreat",
+              "LocalizedString": "Can't retreat"
+            }
+          },
+          {
+            "Key": "cant_target_unrevealed",
+            "Value": {
+              "Namespace": "",
+              "Key": "2C5EA0784DA64DDFC1237F85CF7882B9",
+              "SourceString": "Can't target Covert card",
+              "LocalizedString": "Can't target Covert card"
+            }
+          },
+          {
+            "Key": "must_have_covert_unit_in_hand",
+            "Value": {
+              "Namespace": "",
+              "Key": "52A06B884C2A7A66270DBC9616C5F572",
+              "SourceString": "Must have a Covert unit in hand",
+              "LocalizedString": "Must have a Covert unit in hand"
+            }
+          },
+          {
+            "Key": "must_target_covert_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "734B33074684623F00644795BC8230F3",
+              "SourceString": "Must target a Covert unit",
+              "LocalizedString": "Must target a Covert unit"
+            }
+          },
+          {
+            "Key": "must_have_at_least_3_cards_in_deck",
+            "Value": {
+              "Namespace": "",
+              "Key": "F693B6904BA42F58A5E68DB2DCAF10F1",
+              "SourceString": "Must have at least 3 cards left in deck",
+              "LocalizedString": "Must have at least 3 cards left in deck"
+            }
+          },
+          {
+            "Key": "must_target_legions_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "CA3235604A267998E26D1F930E10E2C5",
+              "SourceString": "Must target a LEGIONS unit",
+              "LocalizedString": "Must target a LEGIONS unit"
+            }
+          },
+          {
+            "Key": "must_have_at_least_3_cards_in_hand",
+            "Value": {
+              "Namespace": "",
+              "Key": "CBBFCD3F491AE05EC83CD9938B7409A4",
+              "SourceString": "The enemy must have at least 3 cards in hand",
+              "LocalizedString": "The enemy must have at least 3 cards in hand"
+            }
+          },
+          {
+            "Key": "must_target_japanese_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "ADC150CC400533B18AFB5DA2D2C117F7",
+              "SourceString": "Must target a Japanese unit",
+              "LocalizedString": "Must target a Japanese unit"
+            }
+          },
+          {
+            "Key": "must_target_friendly_deployment",
+            "Value": {
+              "Namespace": "",
+              "Key": "CFDC4EE14A2CEAE3FB7F0ABC3ABBF892",
+              "SourceString": "Must target a friendly unit with a non-targeting deployment effect",
+              "LocalizedString": "Must target a friendly unit with a non-targeting deployment effect"
+            }
+          },
+          {
+            "Key": "must_target_british_infantry",
+            "Value": {
+              "Namespace": "",
+              "Key": "51286FC44110A80F149C3F86D7EA3060",
+              "SourceString": "Must target a British infantry unit",
+              "LocalizedString": "Must target a British infantry unit"
+            }
+          },
+          {
+            "Key": "must_target_sherman",
+            "Value": {
+              "Namespace": "",
+              "Key": "4A72CF7446882B926AD945B77770C5D2",
+              "SourceString": "Must target a Sherman tank",
+              "LocalizedString": "Must target a Sherman tank"
+            }
+          },
+          {
+            "Key": "must_target_unit_in_your_support_line",
+            "Value": {
+              "Namespace": "",
+              "Key": "E0A780504CCF40A7822FD099DD63EA7D",
+              "SourceString": "Must target a unit in your support line",
+              "LocalizedString": "Must target a unit in your support line"
+            }
+          },
+          {
+            "Key": "must_target_unit_with_less_attack_defense",
+            "Value": {
+              "Namespace": "",
+              "Key": "DAB1F3FE45D63E0304317BB9FC802011",
+              "SourceString": "Must target a unit with less attack than defense",
+              "LocalizedString": "Must target a unit with less attack than defense"
+            }
+          },
+          {
+            "Key": "cant_play_cards_this_turn",
+            "Value": {
+              "Namespace": "",
+              "Key": "AA7DACA94A0B123CCEE72B84A074DE51",
+              "SourceString": "You cannot play cards this turn",
+              "LocalizedString": "You cannot play cards this turn"
+            }
+          },
+          {
+            "Key": "must_have_min_kredit_slots",
+            "Value": {
+              "Namespace": "",
+              "Key": "618B812B4516413E873D97856E74DB5E",
+              "SourceString": "Must have {0} or more kredit slots to deploy",
+              "LocalizedString": "Must have {0} or more kredit slots to deploy"
+            }
+          },
+          {
+            "Key": "must_be_first_unit_deployed",
+            "Value": {
+              "Namespace": "",
+              "Key": "3CFCDC41492E0477B1981D932F6B591C",
+              "SourceString": "A unit was already deployed this turn",
+              "LocalizedString": "A unit was already deployed this turn"
+            }
+          },
+          {
+            "Key": "must_target_non_exile_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "B69187D54270E873A83E309907F4C9D2",
+              "SourceString": "Must target a unit without Exile",
+              "LocalizedString": "Must target a unit without Exile"
+            }
+          },
+          {
+            "Key": "covert_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "C7AFA4274FEBC3F66D671593564C5D41",
+              "SourceString": "Must target a covert unit",
+              "LocalizedString": "Must target a covert unit"
+            }
+          },
+          {
+            "Key": "any_friendly",
+            "Value": {
+              "Namespace": "",
+              "Key": "D5F9CD1147D19451256062945300201C",
+              "SourceString": "Must target a friendly entity",
+              "LocalizedString": "Must target a friendly entity"
+            }
+          },
+          {
+            "Key": "damaged_soviet_air",
+            "Value": {
+              "Namespace": "",
+              "Key": "009BB0C9424F6A696306B9B5C8460D36",
+              "SourceString": "Must target a damaged Soviet air unit",
+              "LocalizedString": "Must target a damaged Soviet air unit"
+            }
+          },
+          {
+            "Key": "german_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "70F2087B4C831F5890B1D19CC8F737ED",
+              "SourceString": "Must target a German unit",
+              "LocalizedString": "Must target a German unit"
+            }
+          },
+          {
+            "Key": "no_combat_keywords",
+            "Value": {
+              "Namespace": "",
+              "Key": "CEE46613405B96DBBB26A3A3AB923B4D",
+              "SourceString": "Must target a unit with no combat keywords",
+              "LocalizedString": "Must target a unit with no combat keywords"
+            }
+          },
+          {
+            "Key": "two_combat_keywords",
+            "Value": {
+              "Namespace": "",
+              "Key": "5F8812E44D2247BDAF7320B1D8C36235",
+              "SourceString": "Must target a unit with two or more combat keywords",
+              "LocalizedString": "Must target a unit with two or more combat keywords"
+            }
+          },
+          {
+            "Key": "friendly_us_britain_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "B800279C4B5693DF23E6FE8CC8AFA2FA",
+              "SourceString": "Must target a friendly British or US unit",
+              "LocalizedString": "Must target a friendly British or US unit"
+            }
+          },
+          {
+            "Key": "japanese_unit",
+            "Value": {
+              "Namespace": "",
+              "Key": "693C399A4BD78E13B610A9B830CF0785",
+              "SourceString": "Must target a Japanese unit",
+              "LocalizedString": "Must target a Japanese unit"
+            }
+          },
+          {
+            "Key": "must_have_bond",
+            "Value": {
+              "Namespace": "",
+              "Key": "2994EDB140D1BE0FA759A79E25D5EAC9",
+              "SourceString": "Must have a card with Bond in hand",
+              "LocalizedString": "Must have a card with Bond in hand"
+            }
+          },
+          {
+            "Key": "must_have_main_nation_in_hand",
+            "Value": {
+              "Namespace": "",
+              "Key": "5FCBE2394F278235AB87FDBCA75EFE95",
+              "SourceString": "Must have a main nation card in hand",
+              "LocalizedString": "Must have a main nation card in hand"
+            }
+          },
+          {
+            "Key": "must_target_unit_with_x_attack_plus_defense",
+            "Value": {
+              "Namespace": "",
+              "Key": "C832681E4A2718DFE2385DB82622DF52",
+              "SourceString": "Must target a unit with a combined attack and defense of {0} or less. ",
+              "LocalizedString": "Must target a unit with a combined attack and defense of {0} or less. "
+            }
+          },
+          {
+            "Key": "has_played_weather_card",
+            "Value": {
+              "Namespace": "",
+              "Key": "2440EB194F7EA2400223D29453F30BB8",
+              "SourceString": "Only one weather card can be played each turn",
+              "LocalizedString": "Only one weather card can be played each turn"
+            }
+          }
+        ]
+      }
+    }
+  }
+]

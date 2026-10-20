@@ -210,6 +210,8 @@ let catalog = [],
   drag = null,
   space = false,
   placement = null,
+  placementAuto = false,
+  reasons = [],
   pickerContext = null,
   classes = {};
 const graph = () => project.graphs.find((g) => g.id === project.activeGraph),
@@ -342,15 +344,28 @@ function render() {
     project.graphs
       .map(
         (g) =>
-          `<button class="tab ${g.id === project.activeGraph ? "active" : ""}" data-graph="${esc(g.id)}"><span class="graph-icon">${GRAPH_ICON[g.kind]}</span>${esc(g.name)}<span class="tab-dot"></span></button>`,
+          `<button class="tab ${g.id === project.activeGraph ? "active" : ""}" data-graph="${esc(g.id)}"><span class="graph-icon">${GRAPH_ICON[g.kind]}</span><span class="tab-name">${esc(g.name)}</span><span class="tab-dot"></span></button>`,
       )
       .join("") +
     '<button class="tab add-tab" id="tab-add" title="新建函数 / 宏 / 变量">＋</button>';
+  {
+    // keep the active tab in view when many graphs make the strip scroll
+    const strip = $("tabs"),
+      active = strip.querySelector(".tab.active");
+    if (active) {
+      const left = active.offsetLeft,
+        right = left + active.offsetWidth;
+      if (left < strip.scrollLeft) strip.scrollLeft = left - 8;
+      else if (right > strip.scrollLeft + strip.clientWidth - 44)
+        strip.scrollLeft = right - strip.clientWidth + 52;
+    }
+  }
   $("canvas-subtitle").textContent = GRAPH_SUBTITLE[graph().kind];
   document
     .querySelectorAll("[data-graph]")
     .forEach((b) => (b.onclick = () => switchGraph(b.dataset.graph)));
   $("tab-add").onclick = newItemMenu;
+  for (const b of $("tabs").querySelectorAll("[data-graph]")) b.title = b.querySelector(".tab-name").textContent;
   $("tabs")
     .querySelectorAll("[data-graph]")
     .forEach((b) => (b.ondblclick = () => editGraph(b.dataset.graph)));
@@ -369,6 +384,16 @@ function render() {
     drawMinimap();
   });
 }
+$("tabs").addEventListener(
+  "wheel",
+  (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      e.currentTarget.scrollLeft += e.deltaY;
+    }
+  },
+  { passive: false },
+);
 function switchGraph(id) {
   project.activeGraph = id;
   selection.clear();
@@ -1257,7 +1282,20 @@ function bindLibrary(container) {
   });
 }
 // Centre of the view, moved to the nearest spot that does not cover an existing node.
-function freeSpotNearCenter() {
+// On-screen size of a node that is not drawn yet: copy a node of the same kind when there is
+// one, otherwise estimate from its pin rows and the length of its pin names.
+function estimateSize(def) {
+  const twin = graph().nodes.find((n) => n.definition.id === def?.id);
+  const el = twin && document.querySelector(`[data-node-id="${CSS.escape(twin.id)}"]`);
+  if (el) return { w: el.offsetWidth, h: el.offsetHeight };
+  const side = (dir) => (def?.pins || []).filter((p) => p.direction === dir),
+    longest = (list) => Math.max(0, ...list.map((p) => String(p.name).length));
+  return {
+    w: Math.max(240, 210 + 12 * (longest(side("in")) + longest(side("out")))),
+    h: 56 + Math.max(side("in").length, side("out").length, 1) * 30,
+  };
+}
+function freeSpotNearCenter(size = { w: 240, h: 130 }) {
   const base = centerPoint();
   base.x = Math.round(base.x / 10) * 10;
   base.y = Math.round(base.y / 10) * 10;
@@ -1267,14 +1305,14 @@ function freeSpotNearCenter() {
     }),
     free = (x, y) =>
       !boxes.some(
-        (b) => x < b.x + b.w + 20 && b.x < x + 240 && y < b.y + b.h + 20 && b.y < y + 130,
+        (b) => x < b.x + b.w + 20 && b.x < x + size.w && y < b.y + b.h + 20 && b.y < y + size.h,
       );
   for (let ring = 0; ring < 12; ring++)
     for (let dy = -ring; dy <= ring; dy++)
       for (let dx = -ring; dx <= ring; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
-        const x = base.x + dx * 270,
-          y = base.y + dy * 150;
+        const x = base.x + dx * (size.w + 30),
+          y = base.y + dy * (size.h + 20);
         if (free(x, y)) return { x, y };
       }
   return base;
@@ -1486,7 +1524,7 @@ function centerPoint() {
 function addNode(id, point, sourceEndpoint = null) {
   const def = fullCatalog().find((d) => d.id === id);
   if (!def) return;
-  point = point || freeSpotNearCenter();
+  point = point || freeSpotNearCenter(estimateSize(def));
   if (def.action === "newCustomEvent") return customEventDialog(null, point);
   mutate(() => {
     const n = makeNode(
@@ -1533,6 +1571,7 @@ function addNode(id, point, sourceEndpoint = null) {
   });
 }
 function picker(point, sourceEndpoint = null) {
+  placementAuto = !point;
   placement = point || freeSpotNearCenter();
   pickerContext = sourceEndpoint ? clone(sourceEndpoint) : null;
   const sourceNode =
@@ -1594,7 +1633,7 @@ function picker(point, sourceEndpoint = null) {
         b.onclick = () => {
           if (Date.now() < ignoreBackdropUntil) return;
           $("modal").close();
-          addNode(b.dataset.def, placement, pickerContext);
+          addNode(b.dataset.def, placementAuto ? null : placement, pickerContext);
         };
       });
   };
@@ -1664,6 +1703,61 @@ function customNode() {
 }
 // Editable default value shown on the node itself: switch (bool), list (enum / Self-None),
 // number box (int / float) or text box.
+// The Reason output of these overrides is a key of the game's textNotifications table.
+const REASON_FUNCTIONS = new Set(["CanPlayFromHand", "CanBeTargetted", "CanOtherCardBeTargetted"]);
+const isReasonPin = (n, p) =>
+  graph().override &&
+  REASON_FUNCTIONS.has(graph().override.function) &&
+  n.definition.bp?.type === "result" &&
+  p.name === "Reason";
+const reasonText = (key) => reasons.find((r) => r.key === key)?.text || "";
+function reasonDialog(nodeId, pinId) {
+  const n = graph().nodes.find((x) => x.id === nodeId);
+  if (!n) return;
+  const current = String(n.values[pinId] ?? "");
+  let query = "";
+  const apply = (key) => {
+    $("modal").close();
+    mutate(() => {
+      n.values[pinId] = key;
+    });
+  };
+  openModal(
+    "选择 Reason / Pick a reason",
+    `<p class="detail-description">${bi2("Reason 是游戏文本表 textNotifications 里的键，玩家看到的是对应的提示文字。推荐从列表里选；也可以自己写一个键。带 {0} 的文字，用 reasonParam1 / reasonParam2 填空。", "Reason is a key of the game's textNotifications table; players see the matching text. Pick one from the list (recommended) or type your own key. Texts with {0} are filled from reasonParam1 / reasonParam2.")}</p><input id="rs-search" class="modal-search" placeholder="搜索键或文字 / Search key or text…" autocomplete="off"><div id="rs-count" class="ovr-count"></div><div id="rs-list" class="ovr-list"></div><div class="field rs-custom"><label class="detail-label" for="rs-custom">${bi2("自定义键", "Custom key")}</label><div class="rs-custom-row"><input id="rs-custom" value="${esc(current)}" placeholder="my_reason_key" maxlength="128"><button id="rs-use" class="primary-button" type="button">${bi2("使用", "Use")}</button><button id="rs-clear" class="secondary-button" type="button">${bi2("清空", "Clear")}</button></div></div>`,
+  );
+  const visible = () =>
+    reasons.filter((r) => `${r.key} ${r.text}`.toLowerCase().includes(query));
+  const draw = () => {
+    const list = visible();
+    $("rs-count").textContent = `${list.length} / ${reasons.length}`;
+    $("rs-list").innerHTML = list.length
+      ? list
+          .map(
+            (r) =>
+              `<button type="button" class="ovr-row rs-row ${r.key === current ? "current" : ""}" data-key="${esc(r.key)}"><span class="ovr-main"><strong>${esc(r.key)}</strong><small>${esc(r.text)}</small></span>${r.params ? `<span class="ovr-state">{0}</span>` : ""}${r.key === current ? `<span class="ovr-state done">✓</span>` : ""}</button>`,
+          )
+          .join("")
+      : `<p class="detail-description">${bi2("没有匹配的键，可以在下面直接输入。", "No match: type your own key below.")}</p>`;
+    $("rs-list")
+      .querySelectorAll("[data-key]")
+      .forEach((b) => (b.onclick = () => apply(b.dataset.key)));
+  };
+  $("rs-search").oninput = (e) => {
+    query = e.target.value.trim().toLowerCase();
+    draw();
+  };
+  $("rs-search").onkeydown = (e) => {
+    if (e.key === "Enter" && visible().length) apply(visible()[0].key);
+  };
+  $("rs-use").onclick = () => apply($("rs-custom").value.trim());
+  $("rs-custom").onkeydown = (e) => {
+    if (e.key === "Enter") apply($("rs-custom").value.trim());
+  };
+  $("rs-clear").onclick = () => apply("");
+  draw();
+  if (window.innerWidth > 800) $("rs-search").focus();
+}
 function valueControl(n, p, val) {
   const attrs = `data-input="${esc(p.id)}" data-input-node="${esc(n.id)}"`;
   const kind = pinKind(p.type);
@@ -1671,6 +1765,8 @@ function valueControl(n, p, val) {
     return `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>`;
   if (p.id === "target" && val === "None")
     return `<span class="pin-value pin-need" title="${esc(`这个函数属于 ${n.definition.class}，不是本蓝图（${project.asset.parentClass}）的成员，Target 必须连接`)}">None</span>`;
+  if (isReasonPin(n, p))
+    return `<button type="button" class="pin-input pin-reason ${val ? "" : "empty"}" data-reason="${esc(p.id)}" data-reason-node="${esc(n.id)}" title="${esc(reasonText(val) || "点击选择 Reason 键，也可以自己输入")}">${val ? esc(val) : bi2("选择原因…", "Pick a reason…")} ▾</button>`;
   const list = enums[p.type];
   if (list)
     return `<select class="pin-input" ${attrs}>${[...new Set([...list, String(val)])].map((v) => `<option ${String(v) === String(val) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>`;
@@ -1888,7 +1984,7 @@ function renderInspector() {
               );
             const options =
               p.type === "bool" ? ["false", "true"] : enums[p.type];
-            return `<div class="field"><label class="detail-label">${esc(translate(p.name))} / ${esc(p.name)} <span style="opacity:.5">${esc(p.type)}</span>${options ? `<select data-value="${esc(p.id)}" ${isConnected ? "disabled" : ""}>${[...new Set([...options, String(val)])].map((v) => `<option ${String(v) === String(val) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>` : `<input data-value="${esc(p.id)}" value="${esc(val)}" ${["int", "float"].includes(pinKind(p.type)) ? 'type="number" step="any"' : ""} ${isConnected ? "disabled" : ""}>`}${isConnected ? '<span class="detail-description">由连接提供值 · 请在来源节点上修改</span>' : ""}</label></div>`;
+            return `<div class="field"><label class="detail-label">${esc(translate(p.name))} / ${esc(p.name)} <span style="opacity:.5">${esc(p.type)}</span>${options ? `<select data-value="${esc(p.id)}" ${isConnected ? "disabled" : ""}>${[...new Set([...options, String(val)])].map((v) => `<option ${String(v) === String(val) ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>` : `<input data-value="${esc(p.id)}" value="${esc(val)}" ${["int", "float"].includes(pinKind(p.type)) ? 'type="number" step="any"' : ""} ${isReasonPin(n, p) ? 'list="reason-list" placeholder="选择或输入 Reason 键"' : ""} ${isConnected ? "disabled" : ""}>${isReasonPin(n, p) ? `<datalist id="reason-list">${reasons.map((r) => `<option value="${esc(r.key)}">${esc(r.text)}</option>`).join("")}</datalist>` : ""}`}${isConnected ? '<span class="detail-description">由连接提供值 · 请在来源节点上修改</span>' : ""}</label></div>`;
           })
           .join("")
       : '<p class="detail-description">此节点没有可编辑的默认输入。</p>';
@@ -2851,6 +2947,7 @@ const SITE_FILES = [
   "./zip.js",
   "./update.js",
   "./catalog.json",
+  "./reasons.json",
   "./changelog.json",
   "./version.json",
 ];
@@ -2881,6 +2978,10 @@ async function forceRefresh() {
   }
 }
 $("force-refresh").onclick = forceRefresh;
+$("world").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-reason]");
+  if (b) reasonDialog(b.dataset.reasonNode, b.dataset.reason);
+});
 $("help").onclick = help;
 $("settings").onclick = openSettings;
 $("arrange").onclick = arrangeNodes;
@@ -3097,6 +3198,12 @@ async function boot() {
     ];
     enums = data.enums;
     repository = data.repository || null;
+    try {
+      const r = await fetch("./reasons.json");
+      if (r.ok) reasons = (await r.json()).reasons || [];
+    } catch {
+      /* the Reason picker then only accepts typed text */
+    }
     $("catalog-count").textContent = catalog.length;
     $("source-status").textContent =
       `${data.nodes.length} 函数 · ${Object.keys(data.classes || {}).length} 类 · ${builtins.length} UE 节点`;
