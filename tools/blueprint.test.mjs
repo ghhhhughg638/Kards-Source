@@ -150,9 +150,41 @@ test("macros keep exec pins and cannot instantiate themselves", () => {
 test("parent-class overrides come from BlueprintNativeEvent/ImplementableEvent functions", () => {
   const list = overridableFunctions(catalog.nodes);
   assert(list.length > 5);
-  assert(list.every((d) => d.class === "UBaseCardObject" && !d.event));
+  assert(list.every((d) => !d.event));
   const sig = overrideSignature(list[0]);
   assert(sig.inputs.every((x) => x.name !== "target"));
+});
+
+test("override functions are the BaseCardObject members with a Return Node; the rest are Events", () => {
+  const list = overridableFunctions(catalog.nodes);
+  assert(list.every((d) => d.class === "UBaseCardObject" && !d.event));
+  assert(list.every((d) => d.pins.some((p) => p.direction === "out" && p.type !== "exec")), "every override has an output");
+  const flagged = catalog.nodes.filter((d) => d.class === "UBaseCardObject" && (d.nativeEvent || d.implementable));
+  // every flagged member is either an override function or an Event, never both
+  assert.equal(flagged.filter((d) => d.event).length + list.length, flagged.length);
+  for (const name of ["OnStartOfTurn", "CampaignOnEndOfGame"]) {
+    const d = catalog.nodes.find((n) => n.name === name);
+    assert(d.event && !list.includes(d), `${name} is an Event`);
+  }
+  for (const name of ["CanPlayFromHand", "ShouldHighlightInHand", "OnCardDealDamage_ModifyDamageDealt"])
+    assert(list.some((d) => d.name === name), `${name} is an override function`);
+});
+
+test("an On* function with output (reference) parameters is an override function, not an Event", () => {
+  const find = (n) => catalog.nodes.find((d) => d.name === n);
+  const modify = find("OnCardDealDamage_ModifyDamageDealt");
+  assert.equal(modify.event, false);
+  assert.equal(modify.kind, "function");
+  assert(modify.pins.some((p) => p.id === "exec-in"));
+  const overrides = overridableFunctions(catalog.nodes);
+  const sig = overrideSignature(overrides.find((d) => d.name === modify.name));
+  assert.deepEqual(sig.outputs.map((o) => o.name), ["newDamage"]);
+  assert(!sig.inputs.some((i) => i.name === "newDamage"));
+  // plain notifications stay Events and never get output-only parameters twisted
+  assert.equal(find("OnStartOfTurn").event, true);
+  assert(!overrides.some((d) => d.name === "OnStartOfTurn"));
+  for (const d of catalog.nodes.filter((n) => n.event))
+    assert(!/&\s*\w+\s*[,)]/.test(d.signature.replace(/const [\w:<>*, ]+&/g, "")), `${d.name} has output parameters`);
 });
 
 test("import rejects version 1 files and invalid names", () => {

@@ -1,5 +1,41 @@
 [
   {
+    "version": "2.9.0",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "重载函数列表:按返回节点区分、可搜索",
+      "en": "Override list: split by Return Node, searchable"
+    },
+    "items": [
+      {
+        "zh": "BaseCardObject 里有返回节点(有输出)的才是重载函数,共 32 个;没有输出的(如 OnStartOfTurn、CampaignOnEndOfGame)是事件",
+        "en": "In BaseCardObject only members with a Return Node (outputs) are override functions (32); ones without (e.g. OnStartOfTurn, CampaignOnEndOfGame) are Events"
+      },
+      {
+        "zh": "重载父类函数窗口新增搜索(英文名、中文名、参数),已重载的会标出,再选直接跳转",
+        "en": "The Override window now has search (English name, Chinese name, parameters); overridden ones are marked and jump to the existing graph"
+      }
+    ]
+  },
+  {
+    "version": "2.8.3",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "区分重载函数与事件",
+      "en": "Override functions are no longer treated as Events"
+    },
+    "items": [
+      {
+        "zh": "带输出参数的 On… 函数(如 OnCardDealDamage_ModifyDamageDealt、OnBeforeRetreat)现在按 UE 规则是可重载的函数,不再当作事件;输出参数成为函数的返回值",
+        "en": "On… functions that have output parameters (e.g. OnCardDealDamage_ModifyDamageDealt, OnBeforeRetreat) are now overridable functions, as in Unreal, not Events; their outputs become the function's return values"
+      },
+      {
+        "zh": "只有没有输出参数的通知(如 OnStartOfTurn)才是事件,放在事件图里",
+        "en": "Only notifications without outputs (e.g. OnStartOfTurn) stay Events in the Event Graph"
+      }
+    ]
+  },
+  {
     "version": "2.8.2",
     "date": "2026-10-19",
     "title": {

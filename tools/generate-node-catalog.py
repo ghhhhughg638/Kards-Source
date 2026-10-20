@@ -23,8 +23,8 @@ def split_params(s):
     if s[start:].strip(): result.append(s[start:].strip())
     return result
 
-def category(name, source, pure):
-    if source == 'BaseCardObject' and name.startswith('On'): return 'events'
+def category(name, source, pure, event=False):
+    if event: return 'events'
     if pure: return 'queries'
     if re.search('Damage|Combat|Attack|Defense|Destroy|Kill|Repair', name, re.I): return 'combat'
     if re.search('Give|Remove|Buff|Suppress|Pin|Keyword|Ability|Effect', name, re.I): return 'effects'
@@ -64,13 +64,7 @@ for path in sorted(root.glob('*/Public/*.h')):
         if not decl: continue
         ret,name,params=decl.groups()
         pure='BlueprintPure' in flags
-        event=source=='BaseCardObject' and name.startswith('On')
-        pins=[]
-        if not pure:
-            if not event: pins.append({'id':'exec-in','name':'执行','type':'exec','direction':'in'})
-            pins.append({'id':'exec-out','name':'然后','type':'exec','direction':'out'})
-        if not is_static and not event:
-            pins.append({'id':'target','name':'Target','type':cls+'*','direction':'in'})
+        parsed=[]
         for param in split_params(params):
             refinput=bool(re.search(r'UPARAM\s*\(\s*[Rr]ef\s*\)',param))
             param=re.sub(r'UPARAM\s*\([^)]*\)','',param).strip().split('=')[0].strip()
@@ -78,11 +72,23 @@ for path in sorted(root.glob('*/Public/*.h')):
             if not p: continue
             typ,pname=p.groups(); typ=typ.strip()
             out='&' in typ and not typ.startswith('const ') and not refinput
+            parsed.append((typ,pname,out))
+        # Unreal turns a BlueprintImplementableEvent/NativeEvent into an Event only when it has no Return
+        # Node (void, no output/non-const reference parameters); with outputs it is an overridable function.
+        implementable='BlueprintImplementableEvent' in flags or 'BlueprintNativeEvent' in flags
+        event=source=='BaseCardObject' and implementable and ret.strip()=='void' and not any(o for _,_,o in parsed)
+        pins=[]
+        if not pure:
+            if not event: pins.append({'id':'exec-in','name':'执行','type':'exec','direction':'in'})
+            pins.append({'id':'exec-out','name':'然后','type':'exec','direction':'out'})
+        if not is_static and not event:
+            pins.append({'id':'target','name':'Target','type':cls+'*','direction':'in'})
+        for typ,pname,out in parsed:
             direction='out' if event or out else 'in'
             clean=typ.replace('const ','').replace('&','').strip()
             pins.append({'id':pname,'name':pname,'type':clean,'direction':direction})
         if ret.strip()!='void': pins.append({'id':'return','name':'Return Value','type':ret.strip(),'direction':'out'})
-        nodes.append({'id':f'{cls}.{name}','name':name,'class':cls,'category':category(name,source,pure),'pure':pure,'event':event,'static':is_static,'nativeEvent':'BlueprintNativeEvent' in flags,'implementable':'BlueprintImplementableEvent' in flags,'kind':'event' if event else 'pure' if pure else 'function','source':str(path.relative_to(root)),'signature':re.sub(r'\s+',' ',sig),'pins':pins})
+        nodes.append({'id':f'{cls}.{name}','name':name,'class':cls,'category':category(name,source,pure,event),'pure':pure,'event':event,'static':is_static,'nativeEvent':'BlueprintNativeEvent' in flags,'implementable':'BlueprintImplementableEvent' in flags,'kind':'event' if event else 'pure' if pure else 'function','source':str(path.relative_to(root)),'signature':re.sub(r'\s+',' ',sig),'pins':pins})
     for m in re.finditer(r'\bUPROPERTY\s*\(',text):
         enclosing=[c for c in class_matches if c.start()<m.start()]
         if not enclosing: continue

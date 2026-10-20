@@ -890,38 +890,58 @@ function functionDialog(id, kind = "function") {
     };
 }
 function overrideDialog() {
-  const used = new Set(
-      project.graphs.filter((g) => g.override).map((g) => g.override.function),
-    ),
-    list = overridableFunctions(catalog, project.asset.parentClass).filter(
-      (d) => !used.has(d.name),
-    );
-  if (!list.length)
-    return openModal("重载父类函数", "<p>没有可以重载的父类函数了。</p>");
-  const sigText = (d) => {
-    const s = overrideSignature(d);
-    return `${s.pure ? "pure " : ""}${d.name}(${s.inputs.map((p) => `${p.type} ${p.name}`).join(", ")})${s.outputs.length ? ` -> (${s.outputs.map((p) => `${p.type} ${p.name}`).join(", ")})` : ""}`;
+  const parent = project.asset.parentClass,
+    all = overridableFunctions(catalog, parent);
+  if (!all.length)
+    return openModal("重载父类函数 / Override", "<p>没有可以重载的父类函数。</p>");
+  const paramText = (d) => {
+    const s = overrideSignature(d),
+      list = (a) => a.map((p) => `${p.type} ${p.name}`).join(", ");
+    return `${s.pure ? "pure " : ""}(${list(s.inputs)})${s.outputs.length ? ` → (${list(s.outputs)})` : ""}`;
   };
-  openModal(
-    "重载父类函数",
-    `<div class="field"><label class="detail-label" for="ovr-fn">${esc(project.asset.parentClass)}</label><select id="ovr-fn">${list.map((d) => `<option>${esc(d.name)}</option>`).join("")}</select></div><pre id="ovr-sig" class="detail-source"></pre><div class="modal-actions"><button id="ovr-create" class="primary-button">创建重载</button></div>`,
+  const text = new Map(
+    all.map((d) => [d.id, `${d.name} ${nodeChinese(d)} ${paramText(d)}`.toLowerCase()]),
   );
-  const show = () =>
-    ($("ovr-sig").textContent = sigText(
-      list.find((d) => d.name === $("ovr-fn").value),
-    ));
-  $("ovr-fn").onchange = show;
-  show();
-  $("ovr-create").onclick = () => {
-    const def = list.find((d) => d.name === $("ovr-fn").value),
-      sig = overrideSignature(def);
+  let query = "";
+  openModal(
+    "重载父类函数 / Override",
+    `<input id="ovr-search" class="modal-search" placeholder="搜索重载 / Search overrides…" autocomplete="off" aria-label="搜索重载"><div id="ovr-count" class="ovr-count"></div><div id="ovr-list" class="ovr-list"></div><p class="detail-description">${bi2("每个重载会新建一个函数图，签名取自父类。只有带返回节点（有输出）的才是重载函数；没有输出的（如 OnStartOfTurn）是事件，请从节点库的「事件」里添加。", "Each override creates a function graph with the parent's signature. Only members with a Return Node (outputs) are overrides; those without (e.g. OnStartOfTurn) are Events: add them from the Events category of the palette.")}</p>`,
+    parent,
+  );
+  const used = (d) => project.graphs.some((g) => g.override?.function === d.name);
+  const visible = () =>
+    all.filter(
+      (d) =>
+        query.split(/\s+/).every((w) => text.get(d.id).includes(w)),
+    );
+  function draw() {
+    const list = visible();
+    $("ovr-count").textContent = `${list.length} / ${all.length}`;
+    $("ovr-list").innerHTML = list.length
+      ? list
+          .map(
+            (d) =>
+              `<button type="button" class="ovr-row is-fn" data-ovr="${esc(d.id)}" title="${esc(d.signature || d.name)}"><span class="ovr-icon">ƒ</span><span class="ovr-main"><strong>${esc(d.name)}</strong><small>${esc(nodeChinese(d))}</small><code>${esc(paramText(d))}</code></span><span class="ovr-state ${used(d) ? "done" : ""}">${used(d) ? bi2("已重载", "Overridden") : bi2("函数", "Function")}</span></button>`,
+          )
+          .join("")
+      : `<p class="detail-description">${bi2("没有匹配的项。", "No matches.")}</p>`;
+    $("ovr-list")
+      .querySelectorAll("[data-ovr]")
+      .forEach((b) => (b.onclick = () => pick(all.find((d) => d.id === b.dataset.ovr))));
+  }
+  function pick(def) {
+    $("modal").close();
+    const known = project.graphs.find((g) => g.override?.function === def.name);
+    if (known) {
+      project.activeGraph = known.id;
+      render();
+      persist();
+      return;
+    }
+    const sig = overrideSignature(def);
     mutate(() => {
       const g = makeFunctionGraph(def.name, {
-        override: {
-          class: def.class,
-          function: def.name,
-          source: def.source || null,
-        },
+        override: { class: def.class, function: def.name, source: def.source || null },
         pure: sig.pure,
         inputs: sig.inputs,
         outputs: sig.outputs,
@@ -931,8 +951,16 @@ function overrideDialog() {
       project.activeGraph = g.id;
       selection.clear();
     });
-    $("modal").close();
+  }
+  $("ovr-search").oninput = (e) => {
+    query = e.target.value.trim().toLowerCase();
+    draw();
   };
+  $("ovr-search").onkeydown = (e) => {
+    if (e.key === "Enter" && visible().length) pick(visible()[0]);
+  };
+  draw();
+  if (window.innerWidth > 800) $("ovr-search").focus();
 }
 
 // ---- variables
