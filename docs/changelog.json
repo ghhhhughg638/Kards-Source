@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.10.7",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "返回节点可复制粘贴、手机选择条不再溢出",
+      "en": "Return Nodes can be copied, phone selection bar fits the screen"
+    },
+    "items": [
+      {
+        "zh": "返回节点(Return Node)也能复制、剪切、粘贴和 Ctrl+D 复制一份:粘贴出来的是这个函数的额外返回节点;粘贴到另一个函数里会用那个函数自己的输出引脚;原来的返回节点仍然锁定不能删除",
+        "en": "Return Nodes can be copied, cut, pasted and duplicated (Ctrl+D): the paste is an extra Return Node using the target function's own outputs; the original stays locked"
+      },
+      {
+        "zh": "手机底部的选择操作条之前比屏幕还宽,两头的按钮(详情、删除)会被挤出屏幕;现在按屏幕宽度排布,放不下就换行,「复制」「粘贴」一直看得到",
+        "en": "The phone selection bar used to be wider than the screen so the end buttons were cut off; it now fits the width and wraps, so Copy and Paste are always visible"
+      }
+    ]
+  },
+  {
     "version": "2.10.6",
     "date": "2026-10-20",
     "title": {

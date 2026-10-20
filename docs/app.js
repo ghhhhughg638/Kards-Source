@@ -31,6 +31,7 @@ import {
   isArrayType,
   makeFunctionGraph,
   makeMacroGraph,
+  resultDefinition,
   makeVariable,
   newParam,
   overridableFunctions,
@@ -2486,9 +2487,12 @@ const readLocalClip = () => {
     return null;
   }
 };
+// Return Nodes can be copied too (the original one is locked in place, copies are extra Return Nodes).
+const copyable = (n) =>
+  (!n.definition.fixed || n.definition.bp?.type === "result") && n.definition.kind !== "customEvent";
 function copyNodes() {
   const nodes = graph().nodes.filter(
-    (n) => selection.has(n.id) && !n.definition.fixed && n.definition.kind !== "customEvent",
+    (n) => selection.has(n.id) && copyable(n),
   );
   if (!nodes.length) return toast("先选中要复制的节点", true);
   const ids = new Set(nodes.map((n) => n.id)),
@@ -2535,6 +2539,10 @@ function pasteNodes(text) {
     data.nodes.some((n) => !n?.definition || !Array.isArray(n.definition.pins))
   )
     return toast("没有可粘贴的节点：先复制一些节点", true);
+  // A pasted Return Node becomes an extra Return Node of this function (with this function's outputs).
+  for (const n of data.nodes)
+    if (n.definition.bp?.type === "result" && graph().kind === "function" && !graph().pure)
+      n.definition = resultDefinition(graph(), true);
   const fits = data.nodes.filter((n) => allowedInGraph(n.definition, graph())),
     skipped = data.nodes.length - fits.length;
   if (!fits.length) return toast("这些节点不能放进当前图表（例如事件只能放在 EventGraph）", true);
@@ -2596,10 +2604,7 @@ function duplicate() {
   if (!selection.size) return;
   mutate(() => {
     const copied = graph().nodes.filter(
-        (n) =>
-          selection.has(n.id) &&
-          !n.definition.fixed &&
-          n.definition.kind !== "customEvent",
+        (n) => selection.has(n.id) && copyable(n),
       ),
       ids = new Map();
     for (const n of copied) {
