@@ -2045,6 +2045,69 @@ function applySettings() {
     /* settings only last for this visit */
   }
 }
+// ---------------------------------------------------------------- install as a desktop app
+// On Windows (Chrome/Edge) the browser can install this page as its own window with a Start-menu
+// icon. We catch its install prompt and offer it right away; "later" snoozes it for two weeks.
+const INSTALL_KEY = "kards-blueprint-studio.install-snooze";
+let installEvent = null;
+const isStandalone = () =>
+  window.matchMedia("(display-mode: standalone), (display-mode: window-controls-overlay)").matches ||
+  navigator.standalone === true;
+const isWindows = () => /Windows/i.test(navigator.userAgentData?.platform || navigator.userAgent || "");
+function installSnoozed() {
+  try {
+    return Date.now() < Number(localStorage.getItem(INSTALL_KEY) || 0);
+  } catch {
+    return false;
+  }
+}
+function snoozeInstall(days) {
+  try {
+    localStorage.setItem(INSTALL_KEY, String(Date.now() + days * 864e5));
+  } catch {
+    /* only for this visit */
+  }
+}
+function hideInstallBanner() {
+  document.getElementById("install-banner")?.remove();
+}
+async function runInstall() {
+  const ev = installEvent;
+  if (!ev) return;
+  installEvent = null;
+  hideInstallBanner();
+  ev.prompt();
+  const choice = await ev.userChoice.catch(() => null);
+  if (choice?.outcome !== "accepted") snoozeInstall(14);
+}
+function showInstallBanner() {
+  if (!installEvent || document.getElementById("install-banner") || isStandalone()) return;
+  const box = document.createElement("div");
+  box.id = "install-banner";
+  box.setAttribute("role", "dialog");
+  box.innerHTML = `<div class="install-text"><strong>${bi2("安装为 Windows 应用", "Install as a Windows app")}</strong><span>${bi2("独立窗口、开始菜单图标，不再占用浏览器标签页。", "Own window and Start-menu icon, no browser tab.")}</span></div><div class="install-actions"><button type="button" class="primary-button" data-install="yes">${bi2("安装", "Install")}</button><button type="button" class="secondary-button" data-install="later">${bi2("以后再说", "Not now")}</button><button type="button" class="secondary-button" data-install="never">${bi2("不再提示", "Never")}</button></div>`;
+  box.addEventListener("click", (e) => {
+    const act = e.target.closest("[data-install]")?.dataset.install;
+    if (act === "yes") runInstall();
+    else if (act) {
+      snoozeInstall(act === "never" ? 3650 : 14);
+      hideInstallBanner();
+    }
+  });
+  document.body.append(box);
+}
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  installEvent = e;
+  if (isWindows() && !installSnoozed()) setTimeout(showInstallBanner, 1500);
+});
+window.addEventListener("appinstalled", () => {
+  installEvent = null;
+  hideInstallBanner();
+  toast("已安装为应用");
+});
+if ("serviceWorker" in navigator && location.protocol !== "file:")
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
 const editable = (t) =>
   !!t?.closest?.("input,textarea,select,[contenteditable='true']");
 document.addEventListener("selectstart", (e) => {
@@ -2091,7 +2154,7 @@ async function restoreLocalBackup(file) {
 function openSettings() {
   openModal(
     "设置 / Settings",
-    `<label class="check-row"><input type="checkbox" id="set-block" ${settings.blockCopy ? "checked" : ""}> ${bi2("阻止长按选中文字和复制", "Block long-press text selection and copy")}</label><p class="detail-description">${bi2("开启后长按不会再出现蓝色选中框和复制菜单；输入框里仍可正常编辑。", "Stops the blue selection and copy menu on long press. Text boxes still work normally.")}</p><div class="field"><label class="detail-label" for="set-drag">${bi2("鼠标左键拖动空白处", "Mouse: drag on empty canvas")}</label><select id="set-drag"><option value="marquee" ${settings.dragMode === "marquee" ? "selected" : ""}>框选节点 / Box select</option><option value="pan" ${settings.dragMode === "pan" ? "selected" : ""}>平移画布 / Pan</option></select><p class="detail-description">${bi2("框选时：按住空格、鼠标中键或 Alt 拖动可平移。手机上用「多选」按钮进入框选/点选多个节点。", "With box select: hold Space, middle mouse or Alt to pan. On phones use the Multi-select button to box-select or tap several nodes.")}</p></div><label class="check-row"><input type="checkbox" id="set-rpan" ${settings.rightPan ? "checked" : ""}> ${bi2("鼠标右键拖动空白处平移", "Right-drag on empty canvas pans")}</label><p class="detail-description">${bi2("如果浏览器的鼠标手势/画笔/截图工具在右键拖动时被触发，请关闭它；平移仍可用空格+左键、鼠标中键或 Alt+左键。", "Turn this off if your browser's mouse gestures / draw / capture tools react to right-drag. You can still pan with Space+left, middle mouse or Alt+left.")}</p><div class="field"><span class="detail-label">${bi2("本地数据备份", "Local data backup")}</span><p class="detail-description">${bi2("把这个浏览器里保存的全部卡牌原样导出成一个文件（即使有卡牌打不开也能导出）；换设备或清除浏览器数据前先备份。", "Exports everything this browser has saved as one file, even cards that cannot be opened. Do this before switching devices or clearing browser data.")}</p><div class="rs-custom-row"><button id="bk-export" class="secondary-button" type="button">${bi2("导出全部本地数据", "Export all local data")}</button><button id="bk-import" class="secondary-button" type="button">${bi2("恢复备份…", "Restore backup…")}</button></div></div>`,
+    `<label class="check-row"><input type="checkbox" id="set-block" ${settings.blockCopy ? "checked" : ""}> ${bi2("阻止长按选中文字和复制", "Block long-press text selection and copy")}</label><p class="detail-description">${bi2("开启后长按不会再出现蓝色选中框和复制菜单；输入框里仍可正常编辑。", "Stops the blue selection and copy menu on long press. Text boxes still work normally.")}</p><div class="field"><label class="detail-label" for="set-drag">${bi2("鼠标左键拖动空白处", "Mouse: drag on empty canvas")}</label><select id="set-drag"><option value="marquee" ${settings.dragMode === "marquee" ? "selected" : ""}>框选节点 / Box select</option><option value="pan" ${settings.dragMode === "pan" ? "selected" : ""}>平移画布 / Pan</option></select><p class="detail-description">${bi2("框选时：按住空格、鼠标中键或 Alt 拖动可平移。手机上用「多选」按钮进入框选/点选多个节点。", "With box select: hold Space, middle mouse or Alt to pan. On phones use the Multi-select button to box-select or tap several nodes.")}</p></div><label class="check-row"><input type="checkbox" id="set-rpan" ${settings.rightPan ? "checked" : ""}> ${bi2("鼠标右键拖动空白处平移", "Right-drag on empty canvas pans")}</label><p class="detail-description">${bi2("如果浏览器的鼠标手势/画笔/截图工具在右键拖动时被触发，请关闭它；平移仍可用空格+左键、鼠标中键或 Alt+左键。", "Turn this off if your browser's mouse gestures / draw / capture tools react to right-drag. You can still pan with Space+left, middle mouse or Alt+left.")}</p>${installEvent ? `<div class="field"><span class="detail-label">${bi2("桌面应用", "Desktop app")}</span><div class="rs-custom-row"><button id="install-now" class="secondary-button" type="button">${bi2("安装为应用…", "Install as app…")}</button></div></div>` : ""}<div class="field"><span class="detail-label">${bi2("本地数据备份", "Local data backup")}</span><p class="detail-description">${bi2("把这个浏览器里保存的全部卡牌原样导出成一个文件（即使有卡牌打不开也能导出）；换设备或清除浏览器数据前先备份。", "Exports everything this browser has saved as one file, even cards that cannot be opened. Do this before switching devices or clearing browser data.")}</p><div class="rs-custom-row"><button id="bk-export" class="secondary-button" type="button">${bi2("导出全部本地数据", "Export all local data")}</button><button id="bk-import" class="secondary-button" type="button">${bi2("恢复备份…", "Restore backup…")}</button></div></div>`,
   );
   $("bk-export").onclick = exportLocalBackup;
   $("bk-import").onclick = () => $("backup-input").click();
@@ -2099,6 +2162,10 @@ function openSettings() {
     settings.blockCopy = e.target.checked;
     applySettings();
   };
+  $("install-now")?.addEventListener("click", () => {
+    $("modal").close();
+    runInstall();
+  });
   $("set-rpan").onchange = (e) => {
     settings.rightPan = e.target.checked;
     applySettings();

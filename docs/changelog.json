@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.12.0",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "可安装为 Windows 应用",
+      "en": "Install as a Windows app"
+    },
+    "items": [
+      {
+        "zh": "在 Windows 的 Chrome / Edge 上打开时,会主动弹出「安装为 Windows 应用」提示(独立窗口 + 开始菜单图标);可选「以后再说」(两周内不再提示)或「不再提示」",
+        "en": "On Windows Chrome/Edge an \"Install as a Windows app\" offer pops up (own window + Start-menu icon); choose Not now (14 days) or Never"
+      },
+      {
+        "zh": "设置里随时可以点「安装为应用…」;新增网页应用清单、图标和一个不缓存任何内容的最小 service worker",
+        "en": "Settings has an \"Install as app…\" button any time; adds a web app manifest, icons and a minimal service worker that caches nothing"
+      }
+    ]
+  },
+  {
     "version": "2.11.8",
     "date": "2026-10-20",
     "title": {
