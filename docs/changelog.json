@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.11.5",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "缩小到 20% 以下才简化节点",
+      "en": "Simplify nodes only below 20% zoom"
+    },
+    "items": [
+      {
+        "zh": "节点的文字和输入框改为缩放低于 20% 时才隐藏,这样 20%–50% 之间仍能看清引脚",
+        "en": "Labels and inputs are now hidden only below 20% zoom, so pins stay readable between 20% and 50%"
+      }
+    ]
+  },
+  {
     "version": "2.11.4",
     "date": "2026-10-20",
     "title": {
