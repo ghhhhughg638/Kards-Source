@@ -623,6 +623,9 @@ export const engineClasses = {
   // anything the Blueprint adds on top of the C++ parent.
   BP_CardFunctions: { parent: "ACardFunctionsStub", blueprint: true },
   BP_PlayerController: { parent: "AKardsPlayerController", blueprint: true },
+  BP_Logic: { parent: "AkardsGameMode", blueprint: true },
+  BP_GameState_Battle: { parent: "AkardsGameState", blueprint: true },
+  BP_KardsGameInstance: { parent: "UKardsGameInstance2", blueprint: true },
 };
 export function typeNodes(classes, properties) {
   const casts = Object.keys(classes)

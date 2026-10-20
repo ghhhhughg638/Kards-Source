@@ -3,13 +3,13 @@
     "version": "2.11.7",
     "date": "2026-10-20",
     "title": {
-      "zh": "新增 Cast To BP_CardFunctions 等蓝图类转换",
-      "en": "Cast To BP_CardFunctions and other game Blueprint classes"
+      "zh": "新增 Cast To BP_CardFunctions 等 5 个蓝图类转换",
+      "en": "Cast To BP_CardFunctions and 4 more game Blueprint classes"
     },
     "items": [
       {
-        "zh": "节点库新增「Cast To BP_CardFunctions」「Cast To BP_PlayerController」(游戏自带的蓝图类,父类分别是 ACardFunctionsStub、AKardsPlayerController),搜索 BP_ 即可找到",
-        "en": "Added Cast To BP_CardFunctions and Cast To BP_PlayerController (the game's own Blueprint classes, parented to ACardFunctionsStub and AKardsPlayerController); search for BP_"
+        "zh": "节点库新增 Cast To:BP_CardFunctions、BP_PlayerController、BP_Logic、BP_GameState_Battle、BP_KardsGameInstance(游戏自带的蓝图类,父类分别是 ACardFunctionsStub、AKardsPlayerController、AkardsGameMode、AkardsGameState、UKardsGameInstance2),搜索 BP_ 即可找到",
+        "en": "Added Cast To BP_CardFunctions, BP_PlayerController, BP_Logic, BP_GameState_Battle and BP_KardsGameInstance (the game's own Blueprint classes; parents ACardFunctionsStub, AKardsPlayerController, AkardsGameMode, AkardsGameState, UKardsGameInstance2); search for BP_"
       }
     ]
   },
