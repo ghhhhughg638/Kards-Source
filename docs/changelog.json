@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.11.6",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "电脑上鼠标右键拖动平移",
+      "en": "Right-drag pans on desktop"
+    },
+    "items": [
+      {
+        "zh": "鼠标右键在空白处按住拖动即可平移画布(显示抓手);原地单击右键仍然打开节点菜单",
+        "en": "Dragging with the right mouse button on empty canvas pans it (grab cursor); a plain right-click still opens the node menu"
+      },
+      {
+        "zh": "左键在空白处拖动是框选;画布上禁止浏览器自带的文字选中和拖拽,不再抢手势",
+        "en": "Left-drag on empty canvas is box select; the browser's own text selection and dragging no longer steal the gesture"
+      }
+    ]
+  },
+  {
     "version": "2.11.5",
     "date": "2026-10-20",
     "title": {

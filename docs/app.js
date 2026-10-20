@@ -2889,8 +2889,34 @@ const endTouch = (e) => {
 };
 window.addEventListener("pointerup", endTouch, true);
 window.addEventListener("pointercancel", endTouch, true);
+viewport.addEventListener("selectstart", (e) => e.preventDefault());
+viewport.addEventListener("dragstart", (e) => {
+  if (!e.target.closest(".library-node")) e.preventDefault();
+});
+// Right mouse button: drag on empty canvas pans (hand cursor); a plain click still opens the node menu.
+let rightDragged = false,
+  rightDownAt = 0;
 viewport.addEventListener("pointerdown", (e) => {
-  if (e.button === 2) return;
+  if (e.button === 2) {
+    rightDragged = false;
+    rightDownAt = e.pointerType === "mouse" ? Date.now() : 0;
+    if (
+      e.pointerType === "mouse" &&
+      !e.target.closest(".node,.pin,[data-edge],.canvas-bottom,.minimap-wrap,.empty-state,.selection-bar")
+    ) {
+      drag = {
+        type: "pan",
+        right: true,
+        startX: e.clientX,
+        startY: e.clientY,
+        x: graph().view.x,
+        y: graph().view.y,
+      };
+      viewport.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    }
+    return;
+  }
   if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state,.selection-bar"))
     return;
   if (e.target.closest(".pin-input")) return;
@@ -3040,6 +3066,11 @@ viewport.addEventListener("pointermove", (e) => {
     });
     updateSelectionStatus();
   } else if (drag.type === "pan") {
+    if (drag.right) {
+      if (!rightDragged && Math.hypot(dx, dy) < 5) return;
+      rightDragged = true;
+      viewport.classList.add("panning");
+    }
     graph().view.x = drag.x + dx;
     graph().view.y = drag.y + dy;
     updateView();
@@ -3122,6 +3153,15 @@ viewport.addEventListener(
 viewport.addEventListener("contextmenu", (e) => {
   if (e.target.closest(".minimap-wrap")) return;
   e.preventDefault();
+  // A mouse right-click opens the menu on button release (below), once we know it was not a pan.
+  if (Date.now() - rightDownAt < 1500) return;
+  picker(worldPoint(e), pending);
+});
+window.addEventListener("pointerup", (e) => {
+  if (e.button !== 2 || Date.now() - rightDownAt > 1500 || rightDragged) return;
+  rightDownAt = 0;
+  const t = document.elementFromPoint(e.clientX, e.clientY);
+  if (!t || !viewport.contains(t) || t.closest(".minimap-wrap,.canvas-bottom,.selection-bar")) return;
   picker(worldPoint(e), pending);
 });
 viewport.addEventListener("dblclick", (e) => {
