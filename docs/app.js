@@ -3623,6 +3623,28 @@ $("zoom-out").onclick = () => zoomAt(1 / 1.15);
 $("zoom-label").onclick = () => zoomAt(1 / graph().view.zoom);
 // Re-download every site file from the server (bypassing the HTTP cache), then reload.
 // Every file the page loads; Refresh / Update re-download all of them from the server.
+// Unreal's ExpandEnumAsExecs: a function whose output is an enum named "Branches" (WhichChooseOne,
+// EnumCompareFaction, ...) is shown with one execution output per enumerator instead of a data pin.
+// Every node also gets its name split into words as a search alias ("Which Choose One").
+const SEARCH_ALIASES = {
+  GetOppositeSide: "获取敌方阵营 敌方阵营 敌人阵营 对方阵营 Enemy Side",
+  GetOpponentSide: "敌方阵营 敌人阵营 对方阵营 Enemy Side",
+  GetTheOtherSide: "敌方阵营 敌人阵营 对方阵营 Enemy Side",
+};
+function expandEnumExecs(d, enumTable) {
+  const words = d.name.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+  const out = {
+    ...d,
+    aliases: [d.aliases || (words !== d.name ? words : ""), SEARCH_ALIASES[d.name] || ""].filter(Boolean).join(" ") || undefined,
+  };
+  const branches = d.pins.find((p) => p.id === "Branches" && p.direction === "out" && enumTable?.[p.type]);
+  if (!branches) return out;
+  const pins = d.pins.filter((p) => p.id !== "Branches" && !(p.type === "exec" && p.direction === "out"));
+  if (!pins.some((p) => p.type === "exec" && p.direction === "in"))
+    pins.unshift({ id: "exec-in", name: "执行", type: "exec", direction: "in" });
+  for (const v of enumTable[branches.type]) pins.push({ id: "Case_" + v, name: v, type: "exec", direction: "out" });
+  return { ...out, pins, pure: false, kind: "function", expandedEnum: branches.type };
+}
 const SITE_FILES = [
   "./",
   "./style.css",
@@ -3973,7 +3995,7 @@ async function boot() {
     catalog = [
       ...builtins,
       ...typeNodes(classes, data.properties || []),
-      ...data.nodes,
+      ...data.nodes.map((d) => expandEnumExecs(d, data.enums)),
     ];
     enums = data.enums;
     setEnumTable(enums);

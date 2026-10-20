@@ -1,5 +1,27 @@
 [
   {
+    "version": "2.12.4",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "敌方阵营可搜到、枚举分支函数展开成执行输出",
+      "en": "Find the enemy side; enum-branch functions expand into execution outputs"
+    },
+    "items": [
+      {
+        "zh": "「获取相反阵营」改名为「获取敌方阵营」(目标默认 Self 的卡牌函数 GetOppositeSide);搜「敌方阵营」可同时找到 GetOppositeSide、GetOpponentSide、GetTheOtherSide",
+        "en": "GetOppositeSide is now labelled \"获取敌方阵营\" (target defaults to Self); searching 敌方阵营 also lists GetOpponentSide and GetTheOtherSide"
+      },
+      {
+        "zh": "WhichChooseOne、WhichStrategy、BranchOnPlatformType、EnumCompare 系列等输出名为 Branches 的函数,现在像 UE 一样每个枚举值一个执行输出(如 Card_0 / Card_1)",
+        "en": "Functions whose output is an enum named Branches (WhichChooseOne, WhichStrategy, BranchOnPlatformType, the EnumCompare family) now show one execution output per value (e.g. Card_0 / Card_1) like Unreal"
+      },
+      {
+        "zh": "所有节点都能用拆开单词的名字搜索,例如「Which Choose One」",
+        "en": "Every node can be searched by its split-up name, e.g. \"Which Choose One\""
+      }
+    ]
+  },
+  {
     "version": "2.12.3",
     "date": "2026-10-20",
     "title": {
