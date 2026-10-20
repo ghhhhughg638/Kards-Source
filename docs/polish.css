@@ -703,3 +703,5 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
   .selection-bar.paste-only:not([hidden]) { left: 8px; transform: none; padding: 3px; opacity: .92; }
   .selection-bar.paste-only button { min-height: 32px; }
 }
+
+.viewport.moving .world { will-change: transform; }

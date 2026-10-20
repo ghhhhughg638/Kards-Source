@@ -1943,9 +1943,11 @@ $("nodes").addEventListener("change", (e) => {
 // window; undo the scroll and redraw so wires stay on their pins.
 // Pointer events can arrive faster than frames; draw wires/minimap at most once per frame.
 let redrawFrame = 0,
-  redrawMapOnly = true;
-function redrawSoon(mapOnly = false) {
+  redrawMapOnly = true,
+  redrawViewOnly = true;
+function redrawSoon(mapOnly = false, viewOnly = false) {
   redrawMapOnly = redrawMapOnly && mapOnly;
+  redrawViewOnly = redrawViewOnly && viewOnly;
   if (redrawFrame) return;
   redrawFrame = requestAnimationFrame(() => {
     redrawFrame = 0;
@@ -1954,7 +1956,8 @@ function redrawSoon(mapOnly = false) {
       else drawEdges();
     }
     redrawMapOnly = true;
-    drawMinimap();
+    drawMinimap(redrawViewOnly);
+    redrawViewOnly = true;
   });
 }
 // While nodes are dragged only the wires touching them move, and their pin offsets inside the node
@@ -2443,8 +2446,13 @@ function drawEdges(pointer) {
   }
   $("edges").innerHTML = html;
 }
+let movingTimer = 0;
 function updateView() {
   const v = graph().view;
+  // promote the canvas to its own layer only while it is being panned/zoomed
+  $("viewport").classList.add("moving");
+  clearTimeout(movingTimer);
+  movingTimer = setTimeout(() => $("viewport").classList.remove("moving"), 250);
   $("world").style.transform = `translate(${v.x}px,${v.y}px) scale(${v.zoom})`;
   $("viewport").style.backgroundSize =
     `${16 * v.zoom}px ${16 * v.zoom}px, ${16 * v.zoom}px ${16 * v.zoom}px, ${128 * v.zoom}px ${128 * v.zoom}px, ${128 * v.zoom}px ${128 * v.zoom}px`;
@@ -2469,7 +2477,7 @@ function zoomAt(factor, cx, cy) {
   v.y = cy - ((cy - v.y) * z) / v.zoom;
   v.zoom = z;
   updateView();
-  drawMinimap();
+  redrawSoon(true, true);
   scheduleSave();
 }
 // Node sizes, measured in one pass and shared until the current task ends.
@@ -2536,7 +2544,18 @@ function fit() {
 }
 let miniBounds;
 let miniHeights = null;
-function drawMinimap() {
+// Panning/zooming only moves the "you are here" frame; the node rectangles stay as they are.
+function drawMinimap(viewOnly = false) {
+  const frame = viewOnly && $("minimap").lastElementChild;
+  if (frame && miniBounds) {
+    const v = graph().view,
+      r = $("viewport").getBoundingClientRect();
+    frame.setAttribute("x", -v.x / v.zoom);
+    frame.setAttribute("y", -v.y / v.zoom);
+    frame.setAttribute("width", r.width / v.zoom);
+    frame.setAttribute("height", r.height / v.zoom);
+    return;
+  }
   const b = bounds();
   miniBounds = { x: b.x - 50, y: b.y - 50, w: b.w + 100, h: b.h + 100 };
   const m = miniBounds,
@@ -2796,7 +2815,7 @@ viewport.addEventListener(
     graph().view.x += now.x - pinch.x;
     graph().view.y += now.y - pinch.y;
     updateView();
-    drawMinimap();
+    redrawSoon(true, true);
     pinch = now;
   },
   true,
@@ -2995,7 +3014,7 @@ viewport.addEventListener("pointermove", (e) => {
     graph().view.x = drag.x + dx;
     graph().view.y = drag.y + dy;
     updateView();
-    redrawSoon(true);
+    redrawSoon(true, true);
   } else if (
     drag.type === "nodes" &&
     (drag.changed || Math.abs(dx) + Math.abs(dy) > 3)

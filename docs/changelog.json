@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.11.3",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "平移/缩放更跟手",
+      "en": "Smoother pan and zoom"
+    },
+    "items": [
+      {
+        "zh": "平移、缩放、双指捏合时,小地图只移动视野框,不再每帧重建全部节点方块;每帧最多重画一次",
+        "en": "Panning, zooming and pinching only move the minimap's view frame instead of rebuilding every node rectangle, at most once per frame"
+      },
+      {
+        "zh": "手势期间把画布提升为独立图层",
+        "en": "The canvas gets its own layer while a gesture is in progress"
+      }
+    ]
+  },
+  {
     "version": "2.11.2",
     "date": "2026-10-20",
     "title": {
