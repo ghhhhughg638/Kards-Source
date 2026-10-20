@@ -15,10 +15,11 @@ import {
   connect,
   validateProject,
   setTypeHierarchy,
+  setEnumTable,
   matchingPin,
   compatible,
 } from "./model.js";
-import { typeNodes, enumNodes, engineClasses } from "./ue-nodes.js";
+import { typeNodes, engineClasses } from "./ue-nodes.js";
 import {
   allowedInGraph,
   arrayOf,
@@ -1907,7 +1908,12 @@ function nodeBody(n) {
       (p) => p.direction === "in" && !targetHidden(n, p),
     ),
     outs = n.definition.pins.filter((p) => p.direction === "out");
-  return Array.from(
+  const enumPicker = n.definition.switchEnum
+    ? `<div class="switch-enum"><select data-switch-enum="${esc(n.id)}" aria-label="枚举 / Enum"><option value="">${langMode === "en" ? "Choose enum…" : "选择枚举…"}</option>${Object.keys(enums)
+        .map((k) => `<option ${k === n.definition.enumType ? "selected" : ""}>${esc(k)}</option>`)
+        .join("")}</select></div>`
+    : "";
+  return enumPicker + Array.from(
     { length: Math.max(ins.length, outs.length) },
     (_, i) =>
       `<div class="pin-pair">${ins[i] ? pinMarkup(n, ins[i]) : '<div class="pin-row"></div>'}${outs[i] ? pinMarkup(n, outs[i]) : '<div class="pin-row output"></div>'}</div>`,
@@ -1927,6 +1933,12 @@ function nodeTier(d) {
   return "md";
 }
 $("nodes").addEventListener("change", (e) => {
+  const sw = e.target.closest("[data-switch-enum]");
+  if (sw) {
+    const n = graph().nodes.find((x) => x.id === sw.dataset.switchEnum);
+    if (n) mutate(() => (n.definition.enumType = sw.value || null));
+    return;
+  }
   const el = e.target.closest("[data-input]");
   if (!el) return;
   const n = graph().nodes.find((x) => x.id === el.dataset.inputNode),
@@ -3961,10 +3973,10 @@ async function boot() {
     catalog = [
       ...builtins,
       ...typeNodes(classes, data.properties || []),
-      ...enumNodes(data.enums),
       ...data.nodes,
     ];
     enums = data.enums;
+    setEnumTable(enums);
     properties = data.properties || [];
     repository = data.repository || null;
     try {

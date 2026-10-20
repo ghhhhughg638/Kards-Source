@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.12.2",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "只保留一个「Switch on Enum」",
+      "en": "One Switch on Enum, like Unreal"
+    },
+    "items": [
+      {
+        "zh": "节点库里只有一个「按枚举切换 / Switch on Enum」;放下后在节点上选枚举(或把枚举连到 Selection 自动识别),执行输出随枚举值变化。去掉了上一版按枚举各生成一个的 37 个节点",
+        "en": "The palette has a single Switch on Enum. Pick the enum on the node (or wire an enum into Selection) and its execution outputs follow the values. The 37 per-enum nodes of the previous version are gone"
+      }
+    ]
+  },
+  {
     "version": "2.12.1",
     "date": "2026-10-20",
     "title": {

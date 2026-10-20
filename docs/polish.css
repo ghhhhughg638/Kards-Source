@@ -724,3 +724,7 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 #install-banner .install-text { display: grid; gap: 4px; }
 #install-banner .install-text span { font-size: 12px; color: #9fb3a6; }
 #install-banner .install-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Switch on Enum: the enum picker sits on top of the node body */
+.node .switch-enum { padding: 6px 10px 2px; }
+.node .switch-enum select { width: 100%; }
