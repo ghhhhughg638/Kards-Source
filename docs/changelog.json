@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.11.8",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "设置里可关闭右键拖动平移",
+      "en": "Setting to turn off right-drag panning"
+    },
+    "items": [
+      {
+        "zh": "设置里新增「鼠标右键拖动空白处平移」开关;浏览器的鼠标手势/画笔/截图工具和右键拖动冲突时可关闭,仍可用空格+左键、中键或 Alt+左键平移",
+        "en": "New setting \"Right-drag on empty canvas pans\". Turn it off if browser mouse gestures / draw / capture tools react to right-drag; Space+left, middle mouse or Alt+left still pan"
+      },
+      {
+        "zh": "右键按下时尽量阻止浏览器自己的手势",
+        "en": "Right-button press now asks the browser not to start its own gestures"
+      }
+    ]
+  },
+  {
     "version": "2.11.7",
     "date": "2026-10-20",
     "title": {
