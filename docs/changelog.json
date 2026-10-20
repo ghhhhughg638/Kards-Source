@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.11.1",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "修复改数值后连线错位",
+      "en": "Wires stay on their pins after editing a value"
+    },
+    "items": [
+      {
+        "zh": "连线位置改为相对画布本身测量,不再受手机键盘/焦点造成的画布滚动影响",
+        "en": "Wire positions are measured against the canvas itself, so keyboard- or focus-induced scrolling no longer misplaces them"
+      },
+      {
+        "zh": "输入框确认、失焦、窗口或键盘尺寸变化后自动重画连线",
+        "en": "Wires are redrawn after confirming/leaving an input and when the window or keyboard resizes"
+      }
+    ]
+  },
+  {
     "version": "2.11.0",
     "date": "2026-10-20",
     "title": {

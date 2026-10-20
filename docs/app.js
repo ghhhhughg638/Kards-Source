@@ -1930,6 +1930,24 @@ $("nodes").addEventListener("change", (e) => {
   mutate(() => (n.values[p.id] = kind === "int" ? Math.trunc(val) : val));
 });
 // Nodes size themselves to their content, so redraw wires whenever one changes size.
+// A soft keyboard (or focus) can scroll the clipped canvas or resize the
+// window; undo the scroll and redraw so wires stay on their pins.
+function relayoutSoon() {
+  const vp = $("viewport");
+  if (vp.scrollLeft || vp.scrollTop) {
+    vp.scrollLeft = 0;
+    vp.scrollTop = 0;
+  }
+  cancelAnimationFrame(relayoutFrame);
+  relayoutFrame = requestAnimationFrame(() => {
+    drawEdges();
+    drawMinimap();
+  });
+}
+$("viewport").addEventListener("scroll", relayoutSoon);
+$("nodes").addEventListener("focusout", () => setTimeout(relayoutSoon, 120));
+window.addEventListener("resize", relayoutSoon);
+window.visualViewport?.addEventListener("resize", relayoutSoon);
 let relayoutFrame = 0;
 const nodeObserver = new ResizeObserver(() => {
   cancelAnimationFrame(relayoutFrame);
@@ -2332,11 +2350,11 @@ function pinPosition(endpoint) {
   const pin = node?.querySelector(`[data-pin="${CSS.escape(endpoint.pin)}"]`);
   if (!pin) return null;
   const r = pin.getBoundingClientRect(),
-    v = $("viewport").getBoundingClientRect(),
-    view = graph().view;
+    w = $("world").getBoundingClientRect(),
+    zoom = graph().view.zoom;
   return {
-    x: (r.x + r.width / 2 - v.x - view.x) / view.zoom,
-    y: (r.y + r.height / 2 - v.y - view.y) / view.zoom,
+    x: (r.x + r.width / 2 - w.x) / zoom,
+    y: (r.y + r.height / 2 - w.y) / zoom,
   };
 }
 function curve(a, b) {
