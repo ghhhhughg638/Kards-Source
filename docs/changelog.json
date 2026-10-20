@@ -1,5 +1,27 @@
 [
   {
+    "version": "2.10.5",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "数组节点支持任意类型",
+      "en": "Array nodes work with any element type"
+    },
+    "items": [
+      {
+        "zh": "数组节点改成通配符:接上任意类型的数组或元素后,所有引脚自动变成那个类型(整数、字符串、BaseCardObject、枚举、任意对象都行),断开后恢复成通配符",
+        "en": "Array nodes are now wildcards: wire any array or element and every pin takes that type (integers, strings, BaseCardObject, enums, any object); unplug and they go back to wildcard"
+      },
+      {
+        "zh": "新增「数组包含元素」(Contains Item):判断一个 BaseCardObject 是否在数组里,返回 true/false;还有查找元素下标(没有返回 -1)、添加不重复元素、移除数组元素、清空数组、最后一个下标、下标是否有效",
+        "en": "New Contains Item (true/false), Find Item (index, -1 when missing), Add Unique, Remove Item, Clear, Last Index and Is Valid Index"
+      },
+      {
+        "zh": "从数组引脚拖线到空白处,会列出这些数组节点;英文名改成 UE 的叫法(Contains Item、For Each Loop 等)",
+        "en": "Dragging a wire from an array pin to empty space lists these array nodes; English names follow Unreal (Contains Item, For Each Loop, …)"
+      }
+    ]
+  },
+  {
     "version": "2.10.4",
     "date": "2026-10-20",
     "title": {

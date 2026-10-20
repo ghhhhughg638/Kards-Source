@@ -9,6 +9,7 @@ import {
   makeGraph,
   makeNode,
   pinKind,
+  resolveWildcards,
 } from "./model.js";
 
 export const APP_NAME = "KARDS Blueprint Studio";
@@ -451,6 +452,7 @@ export function syncDefinitions(project) {
       else n.definition = next;
     }
     g.nodes = g.nodes.filter((n) => !removed.has(n.id));
+    resolveWildcards(g);
     const byId = new Map(g.nodes.map((n) => [n.id, n]));
     g.edges = g.edges.filter((e) => {
       const a = byId.get(e.from.node),
@@ -744,7 +746,7 @@ export function buildExport(project, context = {}) {
   const { classes = {}, enums = {}, exportedAt = new Date().toISOString() } = context;
   const typeMentions = new Set();
   const noteType = (t) => {
-    if (!t || t === "exec") return;
+    if (!t || t === "exec" || t.includes("$T")) return;
     const inner = elementType(t);
     typeMentions.add(inner.replace(/\*$/, ""));
   };

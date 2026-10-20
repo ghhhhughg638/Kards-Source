@@ -303,69 +303,42 @@ export const ueBuiltins = [
       { category: "conversion", kind: "conversion" },
     ),
   ),
-  ...["int32", "UBaseCardObject*", "FString"].flatMap((type) => {
-    const array = `TArray<${type}>`,
-      suffix = type.replace(/\W/g, "");
+  // Array library: one set of nodes for any element type ("$T" resolves when something is wired).
+  ...(() => {
+    const T = "$T",
+      array = `TArray<${T}>`,
+      wild = (name, label, english, pins, options = {}) => {
+        const def = node(name, label, pins, { english, category: "arrays", ...options });
+        return { ...def, wild: pins.map((p) => ({ ...p })) };
+      },
+      wildPure = (name, label, english, pins) =>
+        wild(name, label, english, pins, { kind: "pure", pure: true });
     return [
-      node(
-        "ForEachLoop_" + suffix,
+      wild(
+        "ForEachLoop",
         "遍历数组",
-        [
-          execIn(),
-          pin("Array", array),
-          execOut("LoopBody", "Loop Body"),
-          pin("ArrayElement", type, "out"),
-          pin("ArrayIndex", "int32", "out"),
-          execOut("Completed", "Completed"),
-        ],
-        { category: "arrays" },
+        "For Each Loop",
+        [execIn(), pin("Array", array), execOut("LoopBody", "Loop Body"), pin("ArrayElement", T, "out", "Array Element"), pin("ArrayIndex", "int32", "out", "Array Index"), execOut("Completed", "Completed")],
       ),
-      node(
-        "ForEachLoopWithBreak_" + suffix,
+      wild(
+        "ForEachLoopWithBreak",
         "可中断遍历数组",
-        [
-          execIn(),
-          pin("Array", array),
-          pin("Break", "exec"),
-          execOut("LoopBody", "Loop Body"),
-          pin("ArrayElement", type, "out"),
-          pin("ArrayIndex", "int32", "out"),
-          execOut("Completed", "Completed"),
-        ],
-        { category: "arrays" },
+        "For Each Loop with Break",
+        [execIn(), pin("Array", array), pin("Break", "exec"), execOut("LoopBody", "Loop Body"), pin("ArrayElement", T, "out", "Array Element"), pin("ArrayIndex", "int32", "out", "Array Index"), execOut("Completed", "Completed")],
       ),
-      pure(
-        "ArrayLength_" + suffix,
-        "数组长度",
-        [pin("Array", array), pin("return", "int32", "out", "Length")],
-        { category: "arrays" },
-      ),
-      pure(
-        "GetArrayItem_" + suffix,
-        "获取数组元素",
-        [pin("Array", array), pin("Index", "int32"), pin("Item", type, "out")],
-        { category: "arrays" },
-      ),
-      pure(
-        "MakeArray_" + suffix,
-        "构造数组",
-        [pin("Item0", type), pin("Item1", type), pin("Array", array, "out")],
-        { category: "arrays" },
-      ),
-      node(
-        "AddArrayItem_" + suffix,
-        "添加数组元素",
-        [
-          execIn(),
-          pin("Array", array),
-          pin("Item", type),
-          execOut(),
-          pin("Index", "int32", "out"),
-        ],
-        { category: "arrays", kind: "function" },
-      ),
+      wildPure("ArrayLength", "数组长度", "Length", [pin("Array", array), pin("return", "int32", "out", "Length")]),
+      wildPure("GetArrayItem", "获取数组元素", "Get", [pin("Array", array), pin("Index", "int32"), pin("Item", T, "out")]),
+      wildPure("MakeArray", "构造数组", "Make Array", [pin("Item0", T, "in", "0"), pin("Item1", T, "in", "1"), pin("Array", array, "out")]),
+      wildPure("ArrayContains", "数组包含元素", "Contains Item", [pin("Array", array), pin("ItemToFind", T, "in", "Item To Find"), pin("return", "bool", "out", "Return Value")]),
+      wildPure("ArrayFind", "查找元素下标", "Find Item", [pin("Array", array), pin("ItemToFind", T, "in", "Item To Find"), pin("return", "int32", "out", "Index")]),
+      wildPure("ArrayLastIndex", "最后一个下标", "Last Index", [pin("Array", array), pin("return", "int32", "out", "Return Value")]),
+      wildPure("ArrayIsValidIndex", "下标是否有效", "Is Valid Index", [pin("Array", array), pin("IndexToTest", "int32", "in", "Index To Test"), pin("return", "bool", "out", "Return Value")]),
+      wild("AddUniqueArrayItem", "添加不重复元素", "Add Unique", [execIn(), pin("Array", array), pin("NewItem", T, "in", "New Item"), execOut(), pin("Index", "int32", "out")], { kind: "function" }),
+      wild("RemoveArrayItem", "移除数组元素", "Remove Item", [execIn(), pin("Array", array), pin("Item", T), execOut(), pin("return", "bool", "out", "Return Value")], { kind: "function" }),
+      wild("ClearArray", "清空数组", "Clear", [execIn(), pin("Array", array), execOut()], { kind: "function" }),
+      wild("AddArrayItem", "添加数组元素", "Add", [execIn(), pin("Array", array), pin("NewItem", T, "in", "New Item"), execOut(), pin("Index", "int32", "out")], { kind: "function" }),
     ];
-  }),
+  })(),
 ];
 // Engine accessors make object-to-KARDS casting workflows possible from familiar UE nodes.
 ueBuiltins.push(
