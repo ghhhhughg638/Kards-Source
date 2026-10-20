@@ -399,7 +399,7 @@ test("array library nodes are wildcards: they take the element type of whatever 
   const { nodeEnglish } = await import("../docs/i18n.js");
   const { compatible, resolveWildcards, makeGraph } = await import("../docs/model.js");
   const byId = new Map(ueBuiltins.map((d) => [d.id, d]));
-  for (const name of ["ArrayContains", "ArrayFind", "AddUniqueArrayItem", "RemoveArrayItem", "ClearArray", "ArrayLastIndex", "ArrayIsValidIndex", "ForEachLoop", "ArrayLength", "GetArrayItem", "MakeArray", "AddArrayItem"])
+  for (const name of ["ArrayContains", "ArrayFind", "AddUniqueArrayItem", "RemoveArrayItem", "ClearArray", "ArrayLastIndex", "ArrayIsValidIndex", "ForEachLoop", "ArrayLength", "GetArrayItem", "MakeArray", "AddArrayItem", "ArrayIsEmpty", "ArrayIsNotEmpty", "ArrayFirstItem", "ArrayLastItem", "InsertArrayItem", "RemoveArrayIndex", "SetArrayElem", "AppendArray", "ReverseArray", "ShuffleArray", "SwapArrayElements", "ResizeArray"])
     assert(byId.has(`ue.${name}`), name);
   assert.equal(nodeEnglish(byId.get("ue.ArrayContains")), "Contains Item");
   assert.equal(new Set(ueBuiltins.map((d) => d.id)).size, ueBuiltins.length, "ids stay unique");

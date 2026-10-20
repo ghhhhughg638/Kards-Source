@@ -337,6 +337,18 @@ export const ueBuiltins = [
       wild("RemoveArrayItem", "移除数组元素", "Remove Item", [execIn(), pin("Array", array), pin("Item", T), execOut(), pin("return", "bool", "out", "Return Value")], { kind: "function" }),
       wild("ClearArray", "清空数组", "Clear", [execIn(), pin("Array", array), execOut()], { kind: "function" }),
       wild("AddArrayItem", "添加数组元素", "Add", [execIn(), pin("Array", array), pin("NewItem", T, "in", "New Item"), execOut(), pin("Index", "int32", "out")], { kind: "function" }),
+      wildPure("ArrayIsEmpty", "数组为空", "Is Empty", [pin("Array", array), pin("return", "bool", "out", "Return Value")]),
+      wildPure("ArrayIsNotEmpty", "数组不为空", "Is Not Empty", [pin("Array", array), pin("return", "bool", "out", "Return Value")]),
+      wildPure("ArrayFirstItem", "第一个元素", "First Item", [pin("Array", array), pin("Item", T, "out")]),
+      wildPure("ArrayLastItem", "最后一个元素", "Last Item", [pin("Array", array), pin("Item", T, "out")]),
+      wild("InsertArrayItem", "插入数组元素", "Insert", [execIn(), pin("Array", array), pin("NewItem", T, "in", "New Item"), pin("Index", "int32"), execOut()], { kind: "function" }),
+      wild("RemoveArrayIndex", "按下标移除", "Remove Index", [execIn(), pin("Array", array), pin("IndexToRemove", "int32", "in", "Index To Remove"), execOut()], { kind: "function" }),
+      wild("SetArrayElem", "设置数组元素", "Set Array Elem", [execIn(), pin("Array", array), pin("Index", "int32"), pin("Item", T), pin("SizeToFit", "bool", "in", "Size to Fit"), execOut()], { kind: "function" }),
+      wild("AppendArray", "追加数组", "Append Array", [execIn(), pin("TargetArray", array, "in", "Target Array"), pin("SourceArray", array, "in", "Source Array"), execOut()], { kind: "function" }),
+      wild("ReverseArray", "反转数组", "Reverse", [execIn(), pin("Array", array), execOut()], { kind: "function" }),
+      wild("ShuffleArray", "打乱数组", "Shuffle", [execIn(), pin("Array", array), execOut()], { kind: "function" }),
+      wild("SwapArrayElements", "交换两个元素", "Swap", [execIn(), pin("Array", array), pin("FirstIndex", "int32", "in", "First Index"), pin("SecondIndex", "int32", "in", "Second Index"), execOut()], { kind: "function" }),
+      wild("ResizeArray", "调整数组长度", "Resize", [execIn(), pin("Array", array), pin("Size", "int32"), execOut()], { kind: "function" }),
     ];
   })(),
 ];
