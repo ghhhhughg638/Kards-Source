@@ -93,6 +93,7 @@ export function makeProject() {
       type: "infantry",
       rarity: "Common",
       cost: 3,
+      operationCost: 1,
       attack: 3,
       defense: 4,
       text: "在这里描述卡牌效果。",
@@ -188,6 +189,10 @@ export function validateProject(input) {
         typeof input.card[k] !== "number" || !Number.isFinite(input.card[k]),
     )
   )
+    throw new Error("卡牌信息不完整");
+  // operation cost was added later: older files get the usual 1
+  if (input.card.operationCost === undefined) input.card.operationCost = 1;
+  if (typeof input.card.operationCost !== "number" || !Number.isFinite(input.card.operationCost))
     throw new Error("卡牌信息不完整");
   const graphIds = new Set();
   for (const g of input.graphs) {

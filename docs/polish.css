@@ -664,3 +664,9 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
   html[data-lang="en"] #toggle-inspector .toggle-label.en { display: inline; }
 }
 @media (max-width: 340px) { #toggle-library { max-width: 24vw; } .canvas-tools > button { padding-left: 5px; padding-right: 5px; } }
+
+/* Rarity frame: iron, copper, silver, gold */
+.card-preview.rarity-Common .card-emblem { border-color: #8a9096; color: #cfd5da; }
+.card-preview.rarity-Uncommon .card-emblem { border-color: #b87333; color: #e6a46a; }
+.card-preview.rarity-Rare .card-emblem { border-color: #c9d1d9; color: #f2f5f8; box-shadow: 0 0 8px #c9d1d955; }
+.card-preview.rarity-Unique .card-emblem, .card-preview.rarity-Legendary .card-emblem { border-color: #f0c040; color: #ffe08a; box-shadow: 0 0 10px #f0c04066; }
