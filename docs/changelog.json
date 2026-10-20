@@ -1,5 +1,27 @@
 [
   {
+    "version": "2.9.0",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "重载列表:全部事件和函数,可搜索",
+      "en": "Override list: every event and function, searchable"
+    },
+    "items": [
+      {
+        "zh": "「重载父类函数」现在列出父类全部 128 项可重载成员:95 个事件和 33 个函数",
+        "en": "Override now lists all 128 overridable members of the parent: 95 events and 33 functions"
+      },
+      {
+        "zh": "新增搜索(英文名、中文名、参数都能搜)和 全部/事件/函数 分类",
+        "en": "New search (English name, Chinese name, parameters) and All / Events / Functions tabs"
+      },
+      {
+        "zh": "选事件会把它加到事件图,选函数会新建函数图;已添加的会标出,再选一次直接跳转",
+        "en": "Picking an event adds it to the Event Graph, picking a function creates its graph; ones already added are marked and jump to the existing one"
+      }
+    ]
+  },
+  {
     "version": "2.8.3",
     "date": "2026-10-20",
     "title": {

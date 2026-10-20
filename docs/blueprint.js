@@ -565,6 +565,19 @@ export function overridableFunctions(catalog, parentClass = DEFAULT_PARENT) {
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 }
+// Everything the Override menu offers: the functions above plus the parent's overridable events
+// (notifications without outputs). Events go into the Event Graph, functions get their own graph.
+export function overridableMembers(catalog, parentClass = DEFAULT_PARENT) {
+  return catalog
+    .filter(
+      (d) =>
+        d.class === parentClass &&
+        (d.nativeEvent || d.implementable) &&
+        d.kind !== "getter" &&
+        d.kind !== "setter",
+    )
+    .sort((a, b) => Number(!!a.event) - Number(!!b.event) || a.name.localeCompare(b.name));
+}
 export function overrideSignature(def) {
   const data = def.pins.filter((p) => p.type !== "exec" && p.id !== "target");
   return {

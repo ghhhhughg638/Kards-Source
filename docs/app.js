@@ -33,7 +33,7 @@ import {
   makeMacroGraph,
   makeVariable,
   newParam,
-  overridableFunctions,
+  overridableMembers,
   overrideSignature,
   syncDefinitions,
   typeChoices,
@@ -890,38 +890,97 @@ function functionDialog(id, kind = "function") {
     };
 }
 function overrideDialog() {
-  const used = new Set(
-      project.graphs.filter((g) => g.override).map((g) => g.override.function),
-    ),
-    list = overridableFunctions(catalog, project.asset.parentClass).filter(
-      (d) => !used.has(d.name),
-    );
-  if (!list.length)
-    return openModal("重载父类函数", "<p>没有可以重载的父类函数了。</p>");
-  const sigText = (d) => {
-    const s = overrideSignature(d);
-    return `${s.pure ? "pure " : ""}${d.name}(${s.inputs.map((p) => `${p.type} ${p.name}`).join(", ")})${s.outputs.length ? ` -> (${s.outputs.map((p) => `${p.type} ${p.name}`).join(", ")})` : ""}`;
+  const parent = project.asset.parentClass,
+    all = overridableMembers(catalog, parent);
+  if (!all.length)
+    return openModal("重载父类函数 / Override", "<p>没有可以重载的父类函数。</p>");
+  const paramText = (d) => {
+    const s = overrideSignature(d),
+      list = (a) => a.map((p) => `${p.type} ${p.name}`).join(", ");
+    return d.event
+      ? `(${d.pins.filter((p) => p.type !== "exec").map((p) => `${p.type} ${p.name}`).join(", ")})`
+      : `${s.pure ? "pure " : ""}(${list(s.inputs)})${s.outputs.length ? ` → (${list(s.outputs)})` : ""}`;
   };
-  openModal(
-    "重载父类函数",
-    `<div class="field"><label class="detail-label" for="ovr-fn">${esc(project.asset.parentClass)}</label><select id="ovr-fn">${list.map((d) => `<option>${esc(d.name)}</option>`).join("")}</select></div><pre id="ovr-sig" class="detail-source"></pre><div class="modal-actions"><button id="ovr-create" class="primary-button">创建重载</button></div>`,
+  const text = new Map(
+    all.map((d) => [d.id, `${d.name} ${nodeChinese(d)} ${paramText(d)}`.toLowerCase()]),
   );
-  const show = () =>
-    ($("ovr-sig").textContent = sigText(
-      list.find((d) => d.name === $("ovr-fn").value),
-    ));
-  $("ovr-fn").onchange = show;
-  show();
-  $("ovr-create").onclick = () => {
-    const def = list.find((d) => d.name === $("ovr-fn").value),
-      sig = overrideSignature(def);
+  let tab = "all",
+    query = "";
+  openModal(
+    "重载父类函数 / Override",
+    `<input id="ovr-search" class="modal-search" placeholder="搜索重载 / Search overrides…" autocomplete="off" aria-label="搜索重载"><div id="ovr-tabs" class="ovr-tabs"></div><div id="ovr-list" class="ovr-list"></div><p class="detail-description">${bi2("事件会加入事件图；函数会新建一个函数图，签名取自父类。", "Events are added to the Event Graph; functions get their own graph with the parent's signature.")}</p>`,
+    parent,
+  );
+  const used = (d) =>
+    d.event
+      ? project.graphs[0].nodes.some((n) => n.definition.id === d.id)
+      : project.graphs.some((g) => g.override?.function === d.name);
+  const visible = () =>
+    all.filter(
+      (d) =>
+        (tab === "all" || (tab === "event") === !!d.event) &&
+        query.split(/\s+/).every((w) => text.get(d.id).includes(w)),
+    );
+  function draw() {
+    const events = all.filter((d) => d.event).length,
+      tabs = [
+        ["all", "全部 / All", all.length],
+        ["event", "事件 / Events", events],
+        ["function", "函数 / Functions", all.length - events],
+      ];
+    $("ovr-tabs").innerHTML = tabs
+      .map(
+        ([id, label, n]) =>
+          `<button type="button" class="ovr-tab ${tab === id ? "active" : ""}" data-tab="${id}">${esc(label)} <span>${n}</span></button>`,
+      )
+      .join("");
+    const list = visible();
+    $("ovr-list").innerHTML = list.length
+      ? list
+          .map(
+            (d) =>
+              `<button type="button" class="ovr-row ${d.event ? "is-event" : "is-fn"}" data-ovr="${esc(d.id)}" title="${esc(d.signature || d.name)}"><span class="ovr-icon">${d.event ? "ϟ" : "ƒ"}</span><span class="ovr-main"><strong>${esc(d.name)}</strong><small>${esc(nodeChinese(d))}</small><code>${esc(paramText(d))}</code></span><span class="ovr-state ${used(d) ? "done" : ""}">${used(d) ? bi2("已添加", "Added") : bi2(d.event ? "事件" : "函数", d.event ? "Event" : "Function")}</span></button>`,
+          )
+          .join("")
+      : `<p class="detail-description">${bi2("没有匹配的项。", "No matches.")}</p>`;
+    $("ovr-tabs")
+      .querySelectorAll("[data-tab]")
+      .forEach((b) => (b.onclick = () => ((tab = b.dataset.tab), draw())));
+    $("ovr-list")
+      .querySelectorAll("[data-ovr]")
+      .forEach((b) => (b.onclick = () => pick(all.find((d) => d.id === b.dataset.ovr))));
+  }
+  function pick(def) {
+    $("modal").close();
+    if (def.event) {
+      project.activeGraph = project.graphs[0].id;
+      const existing = project.graphs[0].nodes.find((n) => n.definition.id === def.id);
+      if (existing) {
+        selection = new Set([existing.id]);
+        const r = $("viewport").getBoundingClientRect(),
+          v = graph().view;
+        v.x = r.width / 2 - (existing.x + 100) * v.zoom;
+        v.y = r.height / 2 - (existing.y + 40) * v.zoom;
+        render();
+        persist();
+        toast(`${def.name} 已在事件图里`);
+      } else {
+        render();
+        addNode(def.id);
+      }
+      return;
+    }
+    const known = project.graphs.find((g) => g.override?.function === def.name);
+    if (known) {
+      project.activeGraph = known.id;
+      render();
+      persist();
+      return;
+    }
+    const sig = overrideSignature(def);
     mutate(() => {
       const g = makeFunctionGraph(def.name, {
-        override: {
-          class: def.class,
-          function: def.name,
-          source: def.source || null,
-        },
+        override: { class: def.class, function: def.name, source: def.source || null },
         pure: sig.pure,
         inputs: sig.inputs,
         outputs: sig.outputs,
@@ -931,8 +990,16 @@ function overrideDialog() {
       project.activeGraph = g.id;
       selection.clear();
     });
-    $("modal").close();
+  }
+  $("ovr-search").oninput = (e) => {
+    query = e.target.value.trim().toLowerCase();
+    draw();
   };
+  $("ovr-search").onkeydown = (e) => {
+    if (e.key === "Enter" && visible().length) pick(visible()[0]);
+  };
+  draw();
+  if (window.innerWidth > 800) $("ovr-search").focus();
 }
 
 // ---- variables
