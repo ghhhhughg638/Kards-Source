@@ -682,3 +682,4 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
   #close-left { display: flex; align-items: center; gap: 6px; position: sticky; top: 0; z-index: 5; width: 100%; padding: 10px 14px; background: #2d2d2d; border: 0; border-bottom: 1px solid #444; color: #eee; font-size: 14px; text-align: left; }
 }
 .card-preview p .zh + .en { margin-left: 4px; opacity: .85; }
+@media (max-width: 800px) { .edit-only { display: none; } }
