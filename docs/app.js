@@ -18,7 +18,7 @@ import {
   matchingPin,
   compatible,
 } from "./model.js";
-import { typeNodes, engineClasses } from "./ue-nodes.js";
+import { typeNodes, enumNodes, engineClasses } from "./ue-nodes.js";
 import {
   allowedInGraph,
   arrayOf,
@@ -1280,7 +1280,7 @@ function filterCatalog(q, cat = "all") {
   const items = fullCatalog().filter(
     (d) =>
       (cat === "all" || d.category === cat) &&
-      `${nodeEnglish(d)} ${d.class} ${nodeChinese(d)} ${d.pins.map((p) => p.name).join(" ")}`
+      `${nodeEnglish(d)} ${d.class} ${nodeChinese(d)} ${d.aliases || ""} ${d.pins.map((p) => p.name).join(" ")}`
         .toLowerCase()
         .includes(q),
   );
@@ -3961,6 +3961,7 @@ async function boot() {
     catalog = [
       ...builtins,
       ...typeNodes(classes, data.properties || []),
+      ...enumNodes(data.enums),
       ...data.nodes,
     ];
     enums = data.enums;

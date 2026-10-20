@@ -627,6 +627,27 @@ export const engineClasses = {
   BP_GameState_Battle: { parent: "AkardsGameState", blueprint: true },
   BP_KardsGameInstance: { parent: "UKardsGameInstance2", blueprint: true },
 };
+// "Switch on <enum>": one execution output per enumerator, like Unreal's per-enum switch node.
+export function enumNodes(enums) {
+  return Object.entries(enums || {}).map(([name, values]) =>
+    node(
+      "SwitchOn" + name,
+      "按枚举切换 " + name,
+      [
+        execIn(),
+        pin("Selection", name),
+        ...values.map((v) => execOut("Case_" + v, v)),
+      ],
+      {
+        id: "ue.switch.enum." + name,
+        english: "Switch on " + name,
+        class: "Enum",
+        aliases: "Switch on Enum 枚举 切换",
+        enumType: name,
+      },
+    ),
+  );
+}
 export function typeNodes(classes, properties) {
   const casts = Object.keys(classes)
     .filter((c) => c !== "UObject")
