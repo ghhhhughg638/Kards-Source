@@ -116,6 +116,14 @@ export const ueBuiltins = [
     [execIn(), pin("Duration", "float"), execOut("Completed", "Completed")],
     { kind: "function", category: "utilities" },
   ),
+  // Like Unreal: one "Switch on Enum" node; its enum is picked on the node (or set by wiring an
+  // enum into Selection) and the execution outputs follow the enumerators.
+  node(
+    "SwitchOnEnum",
+    "按枚举切换",
+    [execIn(), pin("Selection", "$E")],
+    { english: "Switch on Enum", switchEnum: true },
+  ),
   node("SwitchOnInt", "按整数切换", [
     execIn(),
     pin("Selection", "int32"),
@@ -627,27 +635,6 @@ export const engineClasses = {
   BP_GameState_Battle: { parent: "AkardsGameState", blueprint: true },
   BP_KardsGameInstance: { parent: "UKardsGameInstance2", blueprint: true },
 };
-// "Switch on <enum>": one execution output per enumerator, like Unreal's per-enum switch node.
-export function enumNodes(enums) {
-  return Object.entries(enums || {}).map(([name, values]) =>
-    node(
-      "SwitchOn" + name,
-      "按枚举切换 " + name,
-      [
-        execIn(),
-        pin("Selection", name),
-        ...values.map((v) => execOut("Case_" + v, v)),
-      ],
-      {
-        id: "ue.switch.enum." + name,
-        english: "Switch on " + name,
-        class: "Enum",
-        aliases: "Switch on Enum 枚举 切换",
-        enumType: name,
-      },
-    ),
-  );
-}
 export function typeNodes(classes, properties) {
   const casts = Object.keys(classes)
     .filter((c) => c !== "UObject")

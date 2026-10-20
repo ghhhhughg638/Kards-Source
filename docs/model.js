@@ -21,9 +21,19 @@ export function setTypeHierarchy(classes = {}) {
 // Wildcard pins (array library nodes work for any element type): "$T" stands for the element
 // type and is replaced by the real one as soon as something is connected, like Unreal.
 export const WILD = "$T";
+// "Switch on Enum" selection pin: accepts any enum, and takes that enum's type once one is chosen.
+export const WILD_ENUM = "$E";
+let enumTable = {};
+export function setEnumTable(enums = {}) {
+  enumTable = enums;
+}
 const isTypedArray = (t) => /^TArray<.+>$/.test(t);
 export function compatible(a, b) {
   if (a === b) return true;
+  if (a === WILD_ENUM || b === WILD_ENUM) {
+    const other = a === WILD_ENUM ? b : a;
+    return !!enumTable[other] || other === WILD_ENUM;
+  }
   const wa = a.includes(WILD),
     wb = b.includes(WILD);
   if (wa || wb) {
@@ -116,6 +126,7 @@ export function makeProject() {
 }
 export function pinKind(type) {
   if (type === "exec") return "exec";
+  if (type === WILD_ENUM) return "wildcard";
   if (type.includes(WILD)) return type.startsWith("TArray<") ? "array" : "wildcard";
   if (type.startsWith("Delegate<")) return "delegate";
   if (type.includes("TArray") || type.includes("TSet")) return "array";
@@ -322,7 +333,29 @@ export function validateProject(input) {
 
 // Gives every wildcard node (definition.wild holds its pin template) the concrete element type
 // of whatever is wired to it; with nothing wired it goes back to wildcard.
+// "Switch on Enum": its pins follow the chosen enum (or the enum wired into Selection).
+function resolveEnumSwitches(graph) {
+  for (const n of graph.nodes) {
+    const d = n.definition;
+    if (!d.switchEnum) continue;
+    let wired = null;
+    for (const e of graph.edges) {
+      if (e.to.node !== n.id || e.to.pin !== "Selection") continue;
+      const t = graph.nodes.find((x) => x.id === e.from.node)?.definition.pins.find((p) => p.id === e.from.pin)?.type;
+      if (t && enumTable[t]) wired = t;
+    }
+    if (wired) d.enumType = wired;
+    if (d.enumType && !enumTable[d.enumType]) d.enumType = null;
+    const exec = d.pins.find((p) => p.id === "exec-in") || { id: "exec-in", name: "Exec", type: "exec", direction: "in" };
+    d.pins = [
+      exec,
+      { id: "Selection", name: "Selection", type: d.enumType || WILD_ENUM, direction: "in" },
+      ...(d.enumType ? enumTable[d.enumType] : []).map((v) => ({ id: "Case_" + v, name: v, type: "exec", direction: "out" })),
+    ];
+  }
+}
 export function resolveWildcards(graph) {
+  resolveEnumSwitches(graph);
   const wilds = graph.nodes.filter((n) => Array.isArray(n.definition.wild));
   if (!wilds.length) return;
   const typeOf = (id, pin) =>
