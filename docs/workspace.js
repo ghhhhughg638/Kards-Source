@@ -10,6 +10,33 @@ export function createWorkspace(storage) {
   let index = { order: [], active: null, meta: {} };
   const cardKey = (id) => CARD_PREFIX + id;
   const writeIndex = () => storage.setItem(WORKSPACE_KEY, JSON.stringify(index));
+  const storageKeys = () => {
+    try {
+      if (typeof storage.length === "number" && typeof storage.key === "function")
+        return Array.from({ length: storage.length }, (_, i) => storage.key(i)).filter(Boolean);
+      return typeof storage.keys === "function" ? [...storage.keys()] : [];
+    } catch {
+      return [];
+    }
+  };
+  // The index as stored right now: another tab may have changed it since this one last looked.
+  const readIndex = () => {
+    try {
+      const raw = JSON.parse(storage.getItem(WORKSPACE_KEY) || "null");
+      if (!raw || !Array.isArray(raw.order)) return null;
+      return {
+        order: raw.order.filter((id) => typeof id === "string" && storage.getItem(CARD_PREFIX + id) !== null),
+        active: typeof raw.active === "string" ? raw.active : null,
+        meta: raw.meta && typeof raw.meta === "object" ? raw.meta : {},
+      };
+    } catch {
+      return null;
+    }
+  };
+  const refresh = () => {
+    const fresh = readIndex();
+    if (fresh) index = fresh;
+  };
   const metaOf = (p) => ({
     name: p.name,
     title: p.card?.title ?? "",
@@ -20,17 +47,27 @@ export function createWorkspace(storage) {
   const api = {
     // Reads the index; the first time, adopts the pre-workspace single project.
     load() {
-      try {
-        const raw = JSON.parse(storage.getItem(WORKSPACE_KEY) || "null");
-        if (raw && Array.isArray(raw.order))
-          index = {
-            order: raw.order.filter((id) => typeof id === "string" && storage.getItem(cardKey(id)) !== null),
-            active: typeof raw.active === "string" ? raw.active : null,
-            meta: raw.meta && typeof raw.meta === "object" ? raw.meta : {},
-          };
-      } catch {
-        index = { order: [], active: null, meta: {} };
+      const fresh = readIndex();
+      if (fresh) index = fresh;
+      else index = { order: [], active: null, meta: {} };
+      // Cards that exist in storage but fell out of the index (an older version or another tab
+      // overwrote it) are put back, so nothing the browser still holds is ever hidden.
+      api.adopted = 0;
+      for (const key of storageKeys()) {
+        if (!key.startsWith(CARD_PREFIX)) continue;
+        const id = key.slice(CARD_PREFIX.length);
+        if (index.order.includes(id)) continue;
+        try {
+          const found = JSON.parse(storage.getItem(key));
+          if (!found || typeof found.name !== "string") continue;
+          index.order.push(id);
+          index.meta[id] = metaOf(found);
+          api.adopted += 1;
+        } catch {
+          /* unreadable entry: leave it alone, the backup export still includes it */
+        }
       }
+      if (api.adopted) writeIndex();
       if (!index.order.length) {
         try {
           const legacy = JSON.parse(storage.getItem(LEGACY_KEY) || "null");
@@ -59,6 +96,7 @@ export function createWorkspace(storage) {
     },
     // Saves the card and makes it the active one. Throws if storage is full.
     save(project, { activate = true } = {}) {
+      refresh();
       storage.setItem(cardKey(project.id), JSON.stringify(project));
       if (!index.order.includes(project.id)) index.order.push(project.id);
       index.meta[project.id] = metaOf(project);
@@ -66,11 +104,13 @@ export function createWorkspace(storage) {
       writeIndex();
     },
     setActive(id) {
+      refresh();
       if (!index.order.includes(id)) return;
       index.active = id;
       writeIndex();
     },
     remove(id) {
+      refresh();
       const at = index.order.indexOf(id);
       if (at < 0) return;
       storage.removeItem(cardKey(id));

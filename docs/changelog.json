@@ -1,5 +1,35 @@
 [
   {
+    "version": "2.10.4",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "防丢数据加固:多标签页、半更新缓存、本地备份",
+      "en": "Data-safety hardening: several tabs, half-updated caches, local backup"
+    },
+    "items": [
+      {
+        "zh": "修复多个标签页互相覆盖:另一个标签页保存后会自动载入最新内容,空闲或关闭的标签页不再写回旧数据;工作区列表不再因为另一个标签页而丢卡牌,已经掉出列表的卡牌会自动找回",
+        "en": "Fixed tabs overwriting each other: a tab now picks up what another tab saved, idle or closing tabs no longer write old data back, the workspace list no longer drops cards, and cards that fell out of the list are recovered automatically"
+      },
+      {
+        "zh": "防止「新旧文件混用」:每个发布版本的文件都带版本号,页面和脚本对不上时自动重新打开最新版;页面没能启动时 8 秒后自动重试,仍不行会出现「导出本地备份 / 强制刷新」",
+        "en": "No more mixed old and new files: every published file is pinned to its build, a page/script mismatch reopens the latest build, and if the app does not start a Back up / Reload bar appears after 8 seconds"
+      },
+      {
+        "zh": "设置里新增「导出全部本地数据」和「恢复备份」,即使有卡牌打不开也能原样导出",
+        "en": "Settings now has Export all local data and Restore backup, which work even when a card cannot be opened"
+      },
+      {
+        "zh": "启动时某张卡牌读不出来,不再用空白项目盖住它:改为尝试其他卡牌并保留原数据",
+        "en": "If a card cannot be read at start-up it is kept as it is and other cards are tried, instead of being replaced by a blank project"
+      },
+      {
+        "zh": "手机上在详情面板里从一个输入框点到下一个时,不再丢失焦点、键盘不再收起",
+        "en": "On phones, tapping from one field of the Details panel to the next no longer drops focus or closes the keyboard"
+      }
+    ]
+  },
+  {
     "version": "2.10.3",
     "date": "2026-10-20",
     "title": {

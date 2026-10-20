@@ -9,6 +9,7 @@
       content="KARDS Blueprint Studio — 专为 KARDS 打造的可视化蓝图编辑器。浏览原生函数、连接节点、编辑卡牌并导出蓝图。"
     />
     <title>KARDS · Blueprint Studio</title>
+    <meta name="build" content="__BUILD_SHA__" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="./polish.css" />
@@ -242,9 +243,58 @@
         </div>
       </footer>
     </div>
+    <input type="file" id="backup-input" accept=".json" hidden />
     <input type="file" id="file-input" accept=".json,.kardsbp,.zip" multiple hidden />
     <div id="toast" class="toast" role="status" hidden></div>
     <dialog id="modal"><div id="modal-content"></div></dialog>
     <script type="module" src="./app.js"></script>
+    <script>
+      // Watchdog: if the app has not started after a few seconds (a half-updated browser cache, a
+      // blocked script), reopen the page fresh once, and always offer a way to save local data.
+      (function () {
+        var KEY = "kards-blueprint-studio.";
+        function backup() {
+          var entries = {};
+          try {
+            for (var i = 0; i < localStorage.length; i++) {
+              var k = localStorage.key(i);
+              if (k.indexOf(KEY) === 0 && !/\.probe$/.test(k)) entries[k] = localStorage.getItem(k);
+            }
+          } catch (e) {}
+          var blob = new Blob([JSON.stringify({ format: "kards-local-backup", version: 1, exportedAt: new Date().toISOString(), entries: entries })], { type: "application/json" });
+          var a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "kards-local-backup.json";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+        function fresh() {
+          location.replace(location.pathname + "?r=" + Date.now() + location.hash);
+        }
+        setTimeout(function () {
+          if (window.__kardsBooted) return;
+          var tried = false;
+          try {
+            tried = sessionStorage.getItem("kards-watchdog") === "1";
+            sessionStorage.setItem("kards-watchdog", "1");
+          } catch (e) {
+            tried = true;
+          }
+          if (!tried) return fresh();
+          var box = document.createElement("div");
+          box.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#3a1f1f;color:#fff;border:1px solid #a55;border-radius:6px;padding:12px;font:14px system-ui;display:flex;gap:8px;flex-wrap:wrap;align-items:center";
+          box.innerHTML = "<span style='flex:1 1 220px'>页面没有正常启动。你的卡牌还在浏览器里，先备份再刷新。 / The app did not start. Your cards are still in this browser: back up, then reload.</span>";
+          [["导出本地备份 / Back up", backup], ["强制刷新 / Reload", fresh]].forEach(function (b) {
+            var btn = document.createElement("button");
+            btn.textContent = b[0];
+            btn.style.cssText = "padding:8px 12px;font:inherit";
+            btn.onclick = b[1];
+            box.appendChild(btn);
+          });
+          document.body.appendChild(box);
+        }, 8000);
+      })();
+    </script>
   </body>
 </html>

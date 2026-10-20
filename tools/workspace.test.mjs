@@ -107,3 +107,42 @@ test("zip reader also handles deflate entries made by other tools", async () => 
   assert.equal(back[0].text, text);
   await assert.rejects(readZip(new Uint8Array([1, 2, 3])), /ZIP/);
 });
+
+test("two tabs sharing one storage never drop each other's cards", () => {
+  const storage = memory();
+  const tabA = createWorkspace(storage).load();
+  tabA.save(card("a", "BP_A"));
+  const tabB = createWorkspace(storage).load();
+  tabB.save(card("b", "BP_B"));
+  // tab A still holds the old index in memory, then saves again
+  tabA.save(card("a", "BP_A"));
+  tabA.save(card("c", "BP_C"));
+  assert.deepEqual(createWorkspace(storage).load().ids().sort(), ["a", "b", "c"]);
+  tabB.remove("b");
+  assert.deepEqual(createWorkspace(storage).load().ids().sort(), ["a", "c"]);
+});
+
+test("cards that fell out of the index are adopted again on load", () => {
+  const map = new Map();
+  const storage = {
+    get length() {
+      return map.size;
+    },
+    key: (i) => [...map.keys()][i] ?? null,
+    getItem: (k) => (map.has(k) ? map.get(k) : null),
+    setItem: (k, v) => map.set(k, String(v)),
+    removeItem: (k) => map.delete(k),
+  };
+  const one = createWorkspace(storage).load();
+  one.save(card("a", "BP_A"));
+  one.save(card("b", "BP_B"));
+  // an old build rewrites the index and forgets card b
+  storage.setItem("kards-blueprint-studio.workspace", JSON.stringify({ order: ["a"], active: "a", meta: {} }));
+  const two = createWorkspace(storage).load();
+  assert.deepEqual(two.ids().sort(), ["a", "b"]);
+  assert.equal(two.adopted, 1);
+  assert.equal(two.meta("b").name, "BP_B");
+  // a broken entry is skipped, not fatal
+  storage.setItem("kards-blueprint-studio.card.x", "{nope");
+  assert.deepEqual(createWorkspace(storage).load().ids().sort(), ["a", "b"]);
+});
