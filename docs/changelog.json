@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.11.4",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "大图更流畅:屏幕外不绘制、缩小时简化",
+      "en": "Big graphs: off-screen culling and zoomed-out simplification"
+    },
+    "items": [
+      {
+        "zh": "屏幕外的节点不再绘制(保留布局,连线不受影响)",
+        "en": "Nodes outside the screen are not painted (layout is kept, so wires are unaffected)"
+      },
+      {
+        "zh": "缩放低于 50% 时只画节点标题、端口和连线,隐藏文字与输入框",
+        "en": "Below 50% zoom only titles, pins and wires are painted; labels and inputs are hidden"
+      }
+    ]
+  },
+  {
     "version": "2.11.3",
     "date": "2026-10-20",
     "title": {

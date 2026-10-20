@@ -2007,6 +2007,7 @@ window.addEventListener("resize", relayoutSoon);
 window.visualViewport?.addEventListener("resize", relayoutSoon);
 let relayoutFrame = 0;
 const nodeObserver = new ResizeObserver(() => {
+  cullSizes = null;
   cancelAnimationFrame(relayoutFrame);
   relayoutFrame = requestAnimationFrame(() => {
     drawEdges();
@@ -2014,7 +2015,8 @@ const nodeObserver = new ResizeObserver(() => {
   });
 });
 function renderNodes() {
-  sizeCache = pinCache = null;
+  sizeCache = pinCache = cullSizes = null;
+  cullSoon();
   $("nodes").innerHTML = graph()
     .nodes.map(
       (n) =>
@@ -2446,8 +2448,35 @@ function drawEdges(pointer) {
   }
   $("edges").innerHTML = html;
 }
+// Level of detail + culling. Nodes outside the screen are hidden with `visibility` (they keep their
+// layout, so wires still find their pins) and, when zoomed far out, labels/inputs are not painted.
+let cullFrame = 0,
+  cullSizes = null;
+function cullSoon() {
+  if (cullFrame) return;
+  cullFrame = requestAnimationFrame(() => {
+    cullFrame = 0;
+    const v = graph().view,
+      r = $("viewport").getBoundingClientRect(),
+      sizes = (cullSizes ??= nodeSizes()),
+      pad = 160,
+      left = (-v.x - pad) / v.zoom,
+      top = (-v.y - pad) / v.zoom,
+      right = (r.width - v.x + pad) / v.zoom,
+      bottom = (r.height - v.y + pad) / v.zoom;
+    $("viewport").classList.toggle("lod", v.zoom < 0.5);
+    for (const el of $("nodes").children) {
+      const n = graph().nodes.find((x) => x.id === el.dataset.nodeId);
+      if (!n) continue;
+      const z = sizes.get(n.id) || { w: 280, h: 180 },
+        off = n.x > right || n.y > bottom || n.x + z.w < left || n.y + z.h < top;
+      if (off !== el.classList.contains("offscreen")) el.classList.toggle("offscreen", off);
+    }
+  });
+}
 let movingTimer = 0;
 function updateView() {
+  cullSoon();
   const v = graph().view;
   // promote the canvas to its own layer only while it is being panned/zoomed
   $("viewport").classList.add("moving");

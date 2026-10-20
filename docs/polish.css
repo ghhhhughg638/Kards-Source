@@ -705,3 +705,12 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 }
 
 .viewport.moving .world { will-change: transform; }
+
+/* off-screen nodes keep their layout (wires need their pins) but are not painted */
+.node.offscreen { visibility: hidden; }
+/* zoomed far out: skip the expensive paint of text, inputs and shadows; pins stay for the wires */
+.viewport.lod .node { box-shadow: none; }
+.viewport.lod .node-body * { visibility: hidden; }
+.viewport.lod .node-body .pin { visibility: visible; }
+.viewport.lod .node-subtitle, .viewport.lod .node-comment { visibility: hidden; }
+.viewport.lod .node.offscreen .node-body .pin { visibility: hidden; }
