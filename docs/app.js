@@ -45,7 +45,37 @@ import {
   nodeChinese,
   kindLabels,
 } from "./i18n.js";
-const $ = (id) => document.getElementById(id),
+// A missing element (an out-of-date cached index.html next to a newer script) must never take the
+// whole app down: lookups then return an inert stand-in that swallows every call and assignment.
+const inert = (() => {
+  const handler = {
+    get: (_, key) =>
+      key === Symbol.toPrimitive
+        ? () => ""
+        : ["open", "hidden", "disabled", "checked", "length"].includes(key)
+          ? false
+          : ["value", "textContent", "innerHTML", "innerText"].includes(key)
+            ? ""
+            : key === "classList" || key === "style" || key === "dataset"
+              ? inert
+              : key === "getBoundingClientRect"
+                ? () => ({ x: 0, y: 0, left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 })
+                : key === "querySelector" || key === "closest"
+                  ? () => null
+                  : key === "querySelectorAll"
+                    ? () => []
+                    : () => inert,
+    set: () => true,
+    apply: () => inert,
+  };
+  const target = function () {};
+  return new Proxy(target, handler);
+})();
+const $ = (id) => {
+    const el = document.getElementById(id);
+    if (!el) console.warn(`missing #${id}`);
+    return el ?? inert;
+  },
   esc = (v) =>
     String(v ?? "").replace(
       /[&<>"']/g,
@@ -302,7 +332,10 @@ const workspace = createWorkspace(
     }
   })(),
 );
+let dirty = false; // edits waiting for the debounced save
+let inspectorFieldTap = false;
 function persist() {
+  dirty = false;
   try {
     workspace.save(project);
     $("save-state").textContent = "本地已保存";
@@ -312,6 +345,7 @@ function persist() {
   renderWorkspace();
 }
 function scheduleSave() {
+  dirty = true;
   $("save-state").textContent = "正在保存…";
   clearTimeout(saveTimer);
   saveTimer = setTimeout(persist, 300);
@@ -401,7 +435,10 @@ function render() {
     .forEach((b) => (b.ondblclick = () => editGraph(b.dataset.graph)));
   bindMyBlueprint();
   renderNodes();
-  renderInspector();
+  // Tapping from one field of the Details panel to the next fires "change" on the first one just
+  // before focus moves; rebuilding the panel then would swallow the tap and close the keyboard.
+  if (inspectorFieldTap) inspectorFieldTap = false;
+  else renderInspector();
   updateView();
   $("undo").disabled = !history.length;
   $("redo").disabled = !future.length;
@@ -460,7 +497,7 @@ function renderWorkspace() {
   list.querySelector(".ws-row.active")?.scrollIntoView({ block: "nearest" });
 }
 // Makes `next` the card on screen (the previous one is saved first).
-function loadProject(next, { fitView = true } = {}) {
+function loadProject(next, { fitView = true, save = true } = {}) {
   project = next;
   project.types = { ...classes, ...project.types };
   history = [];
@@ -470,7 +507,7 @@ function loadProject(next, { fitView = true } = {}) {
   pending = null;
   setTypeHierarchy(project.types);
   render();
-  persist();
+  if (save) persist();
   if (fitView) requestAnimationFrame(fit);
 }
 function openCard(id) {
@@ -1934,11 +1971,45 @@ document.addEventListener("copy", (e) => {
 document.addEventListener("cut", (e) => {
   if (settings.blockCopy && !editable(e.target)) e.preventDefault();
 });
+const STORE_PREFIX = "kards-blueprint-studio.";
+function exportLocalBackup() {
+  persist();
+  const entries = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(STORE_PREFIX) && !key.endsWith(".probe")) entries[key] = localStorage.getItem(key);
+    }
+  } catch {
+    return toast("这个浏览器不允许读取本地存储", true);
+  }
+  download(
+    `kards-local-backup-${new Date().toISOString().slice(0, 10)}.json`,
+    JSON.stringify({ format: "kards-local-backup", version: 1, exportedAt: new Date().toISOString(), entries }),
+  );
+  toast(`已导出 ${Object.keys(entries).length} 项本地数据`);
+}
+async function restoreLocalBackup(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    if (data?.format !== "kards-local-backup" || typeof data.entries !== "object") throw new Error("不是本地备份文件");
+    const keys = Object.keys(data.entries).filter((k) => k.startsWith(STORE_PREFIX));
+    if (!keys.length) throw new Error("备份里没有数据");
+    if (!confirm(`恢复 ${keys.length} 项数据？同名卡牌会被备份里的版本覆盖。`)) return;
+    persist();
+    for (const k of keys) localStorage.setItem(k, String(data.entries[k]));
+    location.reload();
+  } catch (error) {
+    toast(`恢复失败：${error.message}`, true);
+  }
+}
 function openSettings() {
   openModal(
     "设置 / Settings",
-    `<label class="check-row"><input type="checkbox" id="set-block" ${settings.blockCopy ? "checked" : ""}> ${bi2("阻止长按选中文字和复制", "Block long-press text selection and copy")}</label><p class="detail-description">${bi2("开启后长按不会再出现蓝色选中框和复制菜单；输入框里仍可正常编辑。", "Stops the blue selection and copy menu on long press. Text boxes still work normally.")}</p><div class="field"><label class="detail-label" for="set-drag">${bi2("鼠标左键拖动空白处", "Mouse: drag on empty canvas")}</label><select id="set-drag"><option value="marquee" ${settings.dragMode === "marquee" ? "selected" : ""}>框选节点 / Box select</option><option value="pan" ${settings.dragMode === "pan" ? "selected" : ""}>平移画布 / Pan</option></select><p class="detail-description">${bi2("框选时：按住空格、鼠标中键或 Alt 拖动可平移。手机上用「多选」按钮进入框选/点选多个节点。", "With box select: hold Space, middle mouse or Alt to pan. On phones use the Multi-select button to box-select or tap several nodes.")}</p></div>`,
+    `<label class="check-row"><input type="checkbox" id="set-block" ${settings.blockCopy ? "checked" : ""}> ${bi2("阻止长按选中文字和复制", "Block long-press text selection and copy")}</label><p class="detail-description">${bi2("开启后长按不会再出现蓝色选中框和复制菜单；输入框里仍可正常编辑。", "Stops the blue selection and copy menu on long press. Text boxes still work normally.")}</p><div class="field"><label class="detail-label" for="set-drag">${bi2("鼠标左键拖动空白处", "Mouse: drag on empty canvas")}</label><select id="set-drag"><option value="marquee" ${settings.dragMode === "marquee" ? "selected" : ""}>框选节点 / Box select</option><option value="pan" ${settings.dragMode === "pan" ? "selected" : ""}>平移画布 / Pan</option></select><p class="detail-description">${bi2("框选时：按住空格、鼠标中键或 Alt 拖动可平移。手机上用「多选」按钮进入框选/点选多个节点。", "With box select: hold Space, middle mouse or Alt to pan. On phones use the Multi-select button to box-select or tap several nodes.")}</p></div><div class="field"><span class="detail-label">${bi2("本地数据备份", "Local data backup")}</span><p class="detail-description">${bi2("把这个浏览器里保存的全部卡牌原样导出成一个文件（即使有卡牌打不开也能导出）；换设备或清除浏览器数据前先备份。", "Exports everything this browser has saved as one file, even cards that cannot be opened. Do this before switching devices or clearing browser data.")}</p><div class="rs-custom-row"><button id="bk-export" class="secondary-button" type="button">${bi2("导出全部本地数据", "Export all local data")}</button><button id="bk-import" class="secondary-button" type="button">${bi2("恢复备份…", "Restore backup…")}</button></div></div>`,
   );
+  $("bk-export").onclick = exportLocalBackup;
+  $("bk-import").onclick = () => $("backup-input").click();
   $("set-block").onchange = (e) => {
     settings.blockCopy = e.target.checked;
     applySettings();
@@ -2104,7 +2175,10 @@ function bindClassDefaults() {
     if (JSON.stringify(value) === JSON.stringify(cdDefault(p))) delete project.classDefaults[p.name];
     else project.classDefaults[p.name] = value;
     persist();
-    $("cd-rows").innerHTML = cdRows();
+    // update just this row: rebuilding the list would drop the focus of the field tapped next
+    const row = input.closest(".cd-row");
+    row.classList.toggle("modified", Object.hasOwn(project.classDefaults, p.name));
+    row.querySelector(".cd-reset").hidden = !Object.hasOwn(project.classDefaults, p.name);
   };
   $("cd-rows").onclick = (e) => {
     const b = e.target.closest("[data-cd-reset]");
@@ -2112,7 +2186,14 @@ function bindClassDefaults() {
     checkpoint();
     delete project.classDefaults[b.dataset.cdReset];
     persist();
-    $("cd-rows").innerHTML = cdRows();
+    const p = cdProps().find((x) => x.name === b.dataset.cdReset),
+      row = b.closest(".cd-row"),
+      input = row.querySelector("[data-cd-input]"),
+      value = cdDefault(p);
+    if (input.type === "checkbox") input.checked = !!value;
+    else input.value = Array.isArray(value) ? value.join(", ") : value;
+    row.classList.remove("modified");
+    b.hidden = true;
   };
 }
 function openClassDefaults(target = "class-defaults") {
@@ -2170,6 +2251,12 @@ function renderInspector() {
     )}${field("卡牌类型", "card.type", card.type, labelled(TYPE_LABELS, enums.ETypeEnum || Object.keys(TYPE_LABELS)))}${field("稀有度", "card.rarity", card.rarity, labelled(RARITY_LABELS, ["NotAvailable", "Common", "Uncommon", "Rare", "Unique"]))}<div class="field-grid">${field("攻击力", "card.attack", card.attack)}${field("防御力", "card.defense", card.defense)}</div><div style="height:12px"></div><div class="field-grid">${field("指挥点消耗", "card.cost", card.cost)}${field("行动花费", "card.operationCost", card.operationCost ?? 1)}</div><div class="field"><label class="detail-label">卡牌效果<textarea data-field="card.text">${esc(card.text)}</textarea></label></div></section>${classDefaultsSection()}${graphSection()}<section class="detail-section"><h3 class="detail-heading">文件格式 <span>v1.0</span></h3><p class="detail-description">.kardsbp.json 包含资源信息、变量、函数、宏、EventGraph、节点定义、参数和连线。导入后可继续编辑。</p></section>`;
   }
   $("inspector-content").innerHTML = body;
+  $("inspector-content").onpointerdown = (e) => {
+    if (e.target.closest("input, select, textarea")) {
+      inspectorFieldTap = true;
+      setTimeout(() => (inspectorFieldTap = false), 800);
+    }
+  };
   $("inspector-content")
     .querySelectorAll("[data-field]")
     .forEach(
@@ -3125,11 +3212,28 @@ const SITE_FILES = [
 ];
 // Stamped with the commit and version by the Pages workflow; local copies keep the placeholders.
 const BUILD = { sha: "__BUILD_SHA__", version: "__BUILD_VERSION__" };
-async function forceRefresh() {
+// Published builds pin every file to their commit (?v=sha), so updating means opening the page
+// again under the new commit: nothing from an older build can be mixed in.
+async function reloadFresh(sha) {
+  persist();
+  let next = sha;
+  if (!next)
+    try {
+      next = (await (await fetch(`./version.json?t=${Date.now()}`, { cache: "no-store" })).json()).sha;
+    } catch {
+      next = String(Date.now());
+    }
+  location.replace(`${location.pathname}?r=${encodeURIComponent(next)}${location.hash}`);
+}
+async function forceRefresh(sha = null) {
   const button = $("force-refresh");
   button.disabled = true;
   button.textContent = "⟳ …";
   try {
+    if (isStamped(BUILD)) {
+      toast("正在读取最新版本…");
+      return await reloadFresh(sha);
+    }
     persist();
     const files = SITE_FILES;
     await Promise.all(
@@ -3156,6 +3260,11 @@ $("world").addEventListener("click", (e) => {
 });
 $("help").onclick = help;
 $("settings").onclick = openSettings;
+$("backup-input").onchange = (e) => {
+  const [file] = e.target.files;
+  e.target.value = "";
+  if (file) restoreLocalBackup(file);
+};
 $("arrange").onclick = arrangeNodes;
 $("multi-toggle").onclick = () => setMultiMode(!multiMode);
 $("bar-clear").onclick = () => {
@@ -3306,8 +3415,31 @@ window.addEventListener("resize", () => {
   drawEdges();
   drawMinimap();
 });
+// Only write on the way out when something is still unsaved: an idle tab must never overwrite what
+// another tab (or a restored backup) has stored since.
 window.addEventListener("beforeunload", () => {
-  if (project) persist();
+  if (project && dirty) persist();
+});
+// Several tabs share one workspace: when another tab saves, take over its newer version.
+window.addEventListener("storage", (e) => {
+  if (!project || !e.key || !e.key.startsWith("kards-blueprint-studio.")) return;
+  if (e.key === "kards-blueprint-studio.workspace") {
+    workspace.load();
+    renderWorkspace();
+    return;
+  }
+  if (e.key !== `kards-blueprint-studio.card.${project.id}` || !e.newValue) return;
+  try {
+    const raw = JSON.parse(e.newValue);
+    setTypeHierarchy({ ...classes, ...raw.types });
+    const next = validateProject(raw);
+    clearTimeout(saveTimer);
+    dirty = false;
+    loadProject(next, { fitView: false, save: false });
+    toast("这张卡牌在另一个标签页里被修改了，已载入最新内容");
+  } catch {
+    /* keep what is on screen */
+  }
 });
 // ---- update check: ask before replacing the page with a newer deployed version
 let updateAsked = false;
@@ -3359,10 +3491,26 @@ function showUpdateDialog(latest, entries) {
   $("update-now").onclick = () => {
     $("update-now").disabled = true;
     $("update-now").textContent = "…";
-    forceRefresh();
+    forceRefresh(latest?.sha);
   };
 }
+// index.html carries the build it was published with; if the cached page and the script disagree,
+// reopen the page fresh (once) instead of running a half-updated app.
+function buildMismatch() {
+  const page = document.querySelector('meta[name="build"]')?.content;
+  return isStamped(BUILD) && page && !page.startsWith("__") && page !== BUILD.sha;
+}
 async function boot() {
+  if (buildMismatch()) {
+    let tried = false;
+    try {
+      tried = sessionStorage.getItem("kards-heal") === BUILD.sha;
+      sessionStorage.setItem("kards-heal", BUILD.sha);
+    } catch {
+      tried = true;
+    }
+    if (!tried) return reloadFresh(BUILD.sha);
+  }
   try {
     const response = await fetch("./catalog.json");
     if (!response.ok) throw new Error("节点库载入失败");
@@ -3388,17 +3536,28 @@ async function boot() {
       `${data.nodes.length} 函数 · ${Object.keys(data.classes || {}).length} 类 · ${builtins.length} UE 节点`;
     let restored = false;
     workspace.load();
-    const activeId = workspace.active();
-    if (activeId) {
+    if (workspace.adopted)
+      toast(`找回了 ${workspace.adopted} 张没有出现在工作区列表里的卡牌`);
+    // Try the active card first, then the others; a card that cannot be read is never overwritten.
+    const unreadable = [];
+    for (const id of [workspace.active(), ...workspace.ids()].filter((x, i, a) => x && a.indexOf(x) === i)) {
       try {
-        const raw = workspace.read(activeId);
+        const raw = workspace.read(id);
         setTypeHierarchy({ ...classes, ...raw?.types });
         project = validateProject(raw);
         restored = true;
-      } catch {
-        toast("本地草稿无法读取，已新建空白项目。可导入备份文件恢复。", true);
+        break;
+      } catch (error) {
+        unreadable.push(`${id.slice(0, 8)}：${error.message}`);
       }
     }
+    if (unreadable.length)
+      toast(
+        restored
+          ? `有 ${unreadable.length} 张卡牌无法读取，已保留原数据（设置里可导出备份）。`
+          : "本地卡牌无法读取，已新建空白项目；原数据没有被删除，可在设置里导出备份。",
+        true,
+      );
     if (!project) {
       project = makeProject();
       project.name = workspace.uniqueName(project.name);
@@ -3409,6 +3568,7 @@ async function boot() {
     render();
     if (!restored) requestAnimationFrame(fit);
     persist();
+    window.__kardsBooted = true;
     setTimeout(checkForUpdate, 1500);
   } catch (e) {
     $("source-status").textContent = "节点库载入失败";
