@@ -3624,6 +3624,7 @@ const SITE_FILES = [
   "./workspace.js",
   "./zip.js",
   "./update.js",
+  "./sw.js",
   "./catalog.json",
   "./reasons.json",
   "./changelog.json",
