@@ -23,7 +23,10 @@ test("only stamped builds can be outdated", () => {
 
 test("the dialog lists what changed since the running version", () => {
   const since = entriesSince(changelog, "2.5.0");
-  assert.deepEqual(since.map((e) => e.version), ["2.8.1", "2.8.0", "2.7.2", "2.7.1", "2.7.0", "2.6.0"]);
+  // newest first, capped at the default limit, and nothing at or below the running version
+  assert.equal(since.length, Math.min(6, changelog.filter((e) => compareVersions(e.version, "2.5.0") > 0).length));
+  assert.deepEqual(since.map((e) => e.version), changelog.slice(0, since.length).map((e) => e.version));
+  assert(since.every((e) => compareVersions(e.version, "2.5.0") > 0));
   assert.equal(entriesSince(changelog, "9.9.9").length, 1); // fall back to the newest entry
   assert.deepEqual(entriesSince(null, "1.0.0"), []);
 });
