@@ -475,16 +475,22 @@ function switchGraph(id) {
   persist();
 }
 // ---------------------------------------------------------------- workspace (several cards)
+let wsHtml = "",
+  wsScrolledTo = "";
 function renderWorkspace() {
   const list = $("workspace-list");
   if (!list) return;
-  list.innerHTML = workspace
+  const html = workspace
     .list()
     .map(
       (c) =>
         `<div class="ws-row ${c.id === project?.id ? "active" : ""}"><button class="ws-open" data-card="${esc(c.id)}" title="${esc(c.name)}"><span class="ws-icon">▣</span><span class="ws-text"><strong>${esc(c.name)}</strong><small>${esc(c.title)}${c.faction ? ` · ${esc(FACTIONS[c.faction] || c.faction)}` : ""}</small></span></button><span class="ws-actions"><button class="tiny-button" data-ws="rename" data-card="${esc(c.id)}" title="重命名卡牌">✎</button><button class="tiny-button" data-ws="duplicate" data-card="${esc(c.id)}" title="复制卡牌">⧉</button><button class="tiny-button" data-ws="delete" data-card="${esc(c.id)}" title="删除卡牌">×</button></span></div>`,
     )
     .join("");
+  // Saving re-renders this on every edit: skip identical markup, and only scroll on a card change.
+  if (html === wsHtml) return;
+  wsHtml = html;
+  list.innerHTML = html;
   list.querySelectorAll(".ws-open").forEach(
     (b) =>
       (b.onclick = () => {
@@ -499,7 +505,10 @@ function renderWorkspace() {
           b.dataset.ws
         ](b.dataset.card)),
   );
-  list.querySelector(".ws-row.active")?.scrollIntoView({ block: "nearest" });
+  if (wsScrolledTo !== project?.id) {
+    wsScrolledTo = project?.id;
+    list.querySelector(".ws-row.active")?.scrollIntoView({ block: "nearest" });
+  }
 }
 // Makes `next` the card on screen (the previous one is saved first).
 function loadProject(next, { fitView = true, save = true } = {}) {
@@ -1930,8 +1939,75 @@ $("nodes").addEventListener("change", (e) => {
   mutate(() => (n.values[p.id] = kind === "int" ? Math.trunc(val) : val));
 });
 // Nodes size themselves to their content, so redraw wires whenever one changes size.
+// A soft keyboard (or focus) can scroll the clipped canvas or resize the
+// window; undo the scroll and redraw so wires stay on their pins.
+// Pointer events can arrive faster than frames; draw wires/minimap at most once per frame.
+let redrawFrame = 0,
+  redrawMapOnly = true,
+  redrawViewOnly = true;
+function redrawSoon(mapOnly = false, viewOnly = false) {
+  redrawMapOnly = redrawMapOnly && mapOnly;
+  redrawViewOnly = redrawViewOnly && viewOnly;
+  if (redrawFrame) return;
+  redrawFrame = requestAnimationFrame(() => {
+    redrawFrame = 0;
+    if (!redrawMapOnly) {
+      if (drag?.type === "nodes" && drag.fast) moveFastEdges();
+      else drawEdges();
+    }
+    redrawMapOnly = true;
+    drawMinimap(redrawViewOnly);
+    redrawViewOnly = true;
+  });
+}
+// While nodes are dragged only the wires touching them move, and their pin offsets inside the node
+// are constant, so they are measured once and the wires are rewritten without any layout reads.
+function prepareFastDrag() {
+  const moving = new Set(drag.positions.map((p) => p.id)),
+    nodes = new Map(graph().nodes.map((n) => [n.id, n])),
+    paths = new Map(
+      [...$("edges").querySelectorAll("path.edge[data-edge]")].map((el) => [el.dataset.edge, el]),
+    ),
+    end = (ep) => {
+      const pos = pinPosition(ep),
+        n = nodes.get(ep.node);
+      if (!pos || !n) return null;
+      return moving.has(ep.node)
+        ? { node: n, dx: pos.x - n.x, dy: pos.y - n.y }
+        : { x: pos.x, y: pos.y };
+    };
+  drag.fast = [];
+  for (const e of graph().edges) {
+    if (!moving.has(e.from.node) && !moving.has(e.to.node)) continue;
+    const el = paths.get(e.id),
+      a = end(e.from),
+      b = end(e.to);
+    if (el && a && b) drag.fast.push({ el, a, b });
+  }
+}
+function moveFastEdges() {
+  const at = (q) => (q.node ? { x: q.node.x + q.dx, y: q.node.y + q.dy } : q);
+  for (const w of drag.fast) w.el.setAttribute("d", curve(at(w.a), at(w.b)));
+}
+function relayoutSoon() {
+  const vp = $("viewport");
+  if (vp.scrollLeft || vp.scrollTop) {
+    vp.scrollLeft = 0;
+    vp.scrollTop = 0;
+  }
+  cancelAnimationFrame(relayoutFrame);
+  relayoutFrame = requestAnimationFrame(() => {
+    drawEdges();
+    drawMinimap();
+  });
+}
+$("viewport").addEventListener("scroll", relayoutSoon);
+$("nodes").addEventListener("focusout", () => setTimeout(relayoutSoon, 120));
+window.addEventListener("resize", relayoutSoon);
+window.visualViewport?.addEventListener("resize", relayoutSoon);
 let relayoutFrame = 0;
 const nodeObserver = new ResizeObserver(() => {
+  cullSizes = null;
   cancelAnimationFrame(relayoutFrame);
   relayoutFrame = requestAnimationFrame(() => {
     drawEdges();
@@ -1939,6 +2015,8 @@ const nodeObserver = new ResizeObserver(() => {
   });
 });
 function renderNodes() {
+  sizeCache = pinCache = cullSizes = null;
+  cullSoon();
   $("nodes").innerHTML = graph()
     .nodes.map(
       (n) =>
@@ -2325,19 +2403,25 @@ function renderInspector() {
     $("graph-settings").onclick = () => editGraph(project.activeGraph);
   if ($("bp-edit")) $("bp-edit").onclick = () => editBlueprintNode(n);
 }
+// Pin centres in world units. Rects are read in one pass (no style writes in between) from a
+// per-draw lookup, so a redraw costs a single layout instead of one lookup + layout per wire end.
+let pinCache = null;
 function pinPosition(endpoint) {
-  const node = $("nodes").querySelector(
-    `[data-node-id="${CSS.escape(endpoint.node)}"]`,
-  );
-  const pin = node?.querySelector(`[data-pin="${CSS.escape(endpoint.pin)}"]`);
-  if (!pin) return null;
-  const r = pin.getBoundingClientRect(),
-    v = $("viewport").getBoundingClientRect(),
-    view = graph().view;
-  return {
-    x: (r.x + r.width / 2 - v.x - view.x) / view.zoom,
-    y: (r.y + r.height / 2 - v.y - view.y) / view.zoom,
-  };
+  if (!pinCache) {
+    const w = $("world").getBoundingClientRect(),
+      zoom = graph().view.zoom,
+      map = new Map();
+    for (const pin of $("nodes").querySelectorAll(".pin")) {
+      const r = pin.getBoundingClientRect();
+      map.set(pin.dataset.node + "\u0000" + pin.dataset.pin, {
+        x: (r.x + r.width / 2 - w.x) / zoom,
+        y: (r.y + r.height / 2 - w.y) / zoom,
+      });
+    }
+    pinCache = map;
+    queueMicrotask(() => (pinCache = null));
+  }
+  return pinCache.get(endpoint.node + "\u0000" + endpoint.pin) || null;
 }
 function curve(a, b) {
   const dx = Math.max(65, Math.abs(b.x - a.x) * 0.5);
@@ -2364,8 +2448,40 @@ function drawEdges(pointer) {
   }
   $("edges").innerHTML = html;
 }
+// Level of detail + culling. Nodes outside the screen are hidden with `visibility` (they keep their
+// layout, so wires still find their pins) and, when zoomed far out, labels/inputs are not painted.
+let cullFrame = 0,
+  cullSizes = null;
+function cullSoon() {
+  if (cullFrame) return;
+  cullFrame = requestAnimationFrame(() => {
+    cullFrame = 0;
+    const v = graph().view,
+      r = $("viewport").getBoundingClientRect(),
+      sizes = (cullSizes ??= nodeSizes()),
+      pad = 160,
+      left = (-v.x - pad) / v.zoom,
+      top = (-v.y - pad) / v.zoom,
+      right = (r.width - v.x + pad) / v.zoom,
+      bottom = (r.height - v.y + pad) / v.zoom;
+    $("viewport").classList.toggle("lod", v.zoom < 0.5);
+    for (const el of $("nodes").children) {
+      const n = graph().nodes.find((x) => x.id === el.dataset.nodeId);
+      if (!n) continue;
+      const z = sizes.get(n.id) || { w: 280, h: 180 },
+        off = n.x > right || n.y > bottom || n.x + z.w < left || n.y + z.h < top;
+      if (off !== el.classList.contains("offscreen")) el.classList.toggle("offscreen", off);
+    }
+  });
+}
+let movingTimer = 0;
 function updateView() {
+  cullSoon();
   const v = graph().view;
+  // promote the canvas to its own layer only while it is being panned/zoomed
+  $("viewport").classList.add("moving");
+  clearTimeout(movingTimer);
+  movingTimer = setTimeout(() => $("viewport").classList.remove("moving"), 250);
   $("world").style.transform = `translate(${v.x}px,${v.y}px) scale(${v.zoom})`;
   $("viewport").style.backgroundSize =
     `${16 * v.zoom}px ${16 * v.zoom}px, ${16 * v.zoom}px ${16 * v.zoom}px, ${128 * v.zoom}px ${128 * v.zoom}px, ${128 * v.zoom}px ${128 * v.zoom}px`;
@@ -2390,12 +2506,24 @@ function zoomAt(factor, cx, cy) {
   v.y = cy - ((cy - v.y) * z) / v.zoom;
   v.zoom = z;
   updateView();
-  drawMinimap();
+  redrawSoon(true, true);
   scheduleSave();
 }
-const nodeEl = (n) =>
-  document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`);
-const nodeWidth = (n) => nodeEl(n)?.offsetWidth || 280;
+// Node sizes, measured in one pass and shared until the current task ends.
+let sizeCache = null;
+function nodeSizes() {
+  if (!sizeCache) {
+    sizeCache = new Map(
+      [...$("nodes").querySelectorAll(".node")].map((el) => [
+        el.dataset.nodeId,
+        { w: el.offsetWidth, h: el.offsetHeight },
+      ]),
+    );
+    queueMicrotask(() => (sizeCache = null));
+  }
+  return sizeCache;
+}
+const nodeWidth = (n) => nodeSizes().get(n.id)?.w || 280;
 function bounds() {
   if (!graph().nodes.length) return { x: 0, y: 0, w: 900, h: 600 };
   const ns = graph().nodes;
@@ -2410,8 +2538,7 @@ function bounds() {
         ...ns.map(
           (n) =>
             n.y +
-            (document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`)
-              ?.offsetHeight || 180),
+            (nodeSizes().get(n.id)?.h || 180),
         ),
       ) -
       y +
@@ -2445,18 +2572,34 @@ function fit() {
   scheduleSave();
 }
 let miniBounds;
-function drawMinimap() {
+let miniHeights = null;
+// Panning/zooming only moves the "you are here" frame; the node rectangles stay as they are.
+function drawMinimap(viewOnly = false) {
+  const frame = viewOnly && $("minimap").lastElementChild;
+  if (frame && miniBounds) {
+    const v = graph().view,
+      r = $("viewport").getBoundingClientRect();
+    frame.setAttribute("x", -v.x / v.zoom);
+    frame.setAttribute("y", -v.y / v.zoom);
+    frame.setAttribute("width", r.width / v.zoom);
+    frame.setAttribute("height", r.height / v.zoom);
+    return;
+  }
   const b = bounds();
   miniBounds = { x: b.x - 50, y: b.y - 50, w: b.w + 100, h: b.h + 100 };
   const m = miniBounds,
     v = graph().view,
-    r = $("viewport").getBoundingClientRect();
+    r = $("viewport").getBoundingClientRect(),
+    heights =
+      drag?.type === "nodes" && miniHeights
+        ? miniHeights
+        : (miniHeights = new Map([...nodeSizes()].map(([id, z]) => [id, z.h])));
   $("minimap").setAttribute("viewBox", `${m.x} ${m.y} ${m.w} ${m.h}`);
   $("minimap").innerHTML =
     graph()
       .nodes.map(
         (n) =>
-          `<rect x="${n.x}" y="${n.y}" width="${nodeWidth(n)}" height="${document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`)?.offsetHeight || 150}" rx="5" fill="${color(n.definition)}" fill-opacity=".3" stroke="${color(n.definition)}" stroke-width="2"/>`,
+          `<rect x="${n.x}" y="${n.y}" width="${nodeWidth(n)}" height="${heights.get(n.id) || 150}" rx="5" fill="${color(n.definition)}" fill-opacity=".3" stroke="${color(n.definition)}" stroke-width="2"/>`,
       )
       .join("") +
     `<rect x="${-v.x / v.zoom}" y="${-v.y / v.zoom}" width="${r.width / v.zoom}" height="${r.height / v.zoom}" fill="#dddddd" fill-opacity=".03" stroke="#c7c7c7" stroke-width="3"/>`;
@@ -2701,7 +2844,7 @@ viewport.addEventListener(
     graph().view.x += now.x - pinch.x;
     graph().view.y += now.y - pinch.y;
     updateView();
-    drawMinimap();
+    redrawSoon(true, true);
     pinch = now;
   },
   true,
@@ -2811,6 +2954,9 @@ viewport.addEventListener("pointerdown", (e) => {
           .map((n) => ({ id: n.id, x: n.x, y: n.y })),
         changed: false,
         toggleOff,
+        els: new Map(
+          [...selection].map((id) => [id, document.querySelector(`[data-node-id="${CSS.escape(id)}"]`)]),
+        ),
       };
       viewport.setPointerCapture(e.pointerId);
     }
@@ -2897,7 +3043,7 @@ viewport.addEventListener("pointermove", (e) => {
     graph().view.x = drag.x + dx;
     graph().view.y = drag.y + dy;
     updateView();
-    drawMinimap();
+    redrawSoon(true, true);
   } else if (
     drag.type === "nodes" &&
     (drag.changed || Math.abs(dx) + Math.abs(dy) > 3)
@@ -2905,17 +3051,17 @@ viewport.addEventListener("pointermove", (e) => {
     if (!drag.changed) {
       checkpoint();
       drag.changed = true;
+      prepareFastDrag();
     }
     for (const p of drag.positions) {
       const n = graph().nodes.find((n) => n.id === p.id);
       n.x = p.x + dx / graph().view.zoom;
       n.y = p.y + dy / graph().view.zoom;
-      const el = document.querySelector(`[data-node-id="${CSS.escape(n.id)}"]`);
+      const el = drag.els.get(n.id);
       el.style.left = n.x + "px";
       el.style.top = n.y + "px";
     }
-    drawEdges();
-    drawMinimap();
+    redrawSoon();
   }
 });
 window.addEventListener("pointerup", (e) => {
@@ -2945,8 +3091,13 @@ window.addEventListener("pointerup", (e) => {
       const n = graph().nodes.find((n) => n.id === p.id);
       n.x = Math.round(n.x / 10) * 10;
       n.y = Math.round(n.y / 10) * 10;
+      const el = drag.els.get(n.id);
+      el.style.left = n.x + "px";
+      el.style.top = n.y + "px";
     }
-    render();
+    drag.fast = null;
+    drawEdges();
+    drawMinimap();
     persist();
   } else if (drag.type === "nodes" && drag.toggleOff) {
     selectNode(drag.toggleOff, true);

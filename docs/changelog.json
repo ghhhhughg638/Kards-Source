@@ -1,5 +1,81 @@
 [
   {
+    "version": "2.11.4",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "大图更流畅:屏幕外不绘制、缩小时简化",
+      "en": "Big graphs: off-screen culling and zoomed-out simplification"
+    },
+    "items": [
+      {
+        "zh": "屏幕外的节点不再绘制(保留布局,连线不受影响)",
+        "en": "Nodes outside the screen are not painted (layout is kept, so wires are unaffected)"
+      },
+      {
+        "zh": "缩放低于 50% 时只画节点标题、端口和连线,隐藏文字与输入框",
+        "en": "Below 50% zoom only titles, pins and wires are painted; labels and inputs are hidden"
+      }
+    ]
+  },
+  {
+    "version": "2.11.3",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "平移/缩放更跟手",
+      "en": "Smoother pan and zoom"
+    },
+    "items": [
+      {
+        "zh": "平移、缩放、双指捏合时,小地图只移动视野框,不再每帧重建全部节点方块;每帧最多重画一次",
+        "en": "Panning, zooming and pinching only move the minimap's view frame instead of rebuilding every node rectangle, at most once per frame"
+      },
+      {
+        "zh": "手势期间把画布提升为独立图层",
+        "en": "The canvas gets its own layer while a gesture is in progress"
+      }
+    ]
+  },
+  {
+    "version": "2.11.2",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "节点多了不再卡",
+      "en": "Smoother with many nodes"
+    },
+    "items": [
+      {
+        "zh": "拖动节点时只更新相连的连线,且不再每帧强制重新布局;连线/小地图每帧最多重画一次",
+        "en": "Dragging nodes only moves the wires attached to them, without forced layouts; wires and minimap redraw at most once per frame"
+      },
+      {
+        "zh": "修改数值、保存时不再每次都滚动并重建左侧卡牌列表(这是最大的卡顿来源)",
+        "en": "Editing a value or saving no longer rebuilds and scrolls the card list every time (the biggest source of lag)"
+      },
+      {
+        "zh": "节点尺寸、端口位置一次性测量并共享;松手后不再整页重绘",
+        "en": "Node sizes and pin positions are measured once per pass; dropping a node no longer re-renders everything"
+      }
+    ]
+  },
+  {
+    "version": "2.11.1",
+    "date": "2026-10-20",
+    "title": {
+      "zh": "修复改数值后连线错位",
+      "en": "Wires stay on their pins after editing a value"
+    },
+    "items": [
+      {
+        "zh": "连线位置改为相对画布本身测量,不再受手机键盘/焦点造成的画布滚动影响",
+        "en": "Wire positions are measured against the canvas itself, so keyboard- or focus-induced scrolling no longer misplaces them"
+      },
+      {
+        "zh": "输入框确认、失焦、窗口或键盘尺寸变化后自动重画连线",
+        "en": "Wires are redrawn after confirming/leaving an input and when the window or keyboard resizes"
+      }
+    ]
+  },
+  {
     "version": "2.11.0",
     "date": "2026-10-20",
     "title": {
