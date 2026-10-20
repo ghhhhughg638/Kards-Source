@@ -3,21 +3,21 @@
     "version": "2.10.5",
     "date": "2026-10-20",
     "title": {
-      "zh": "数组节点:判断元素是否存在",
-      "en": "Array nodes: is this item in the array?"
+      "zh": "数组节点支持任意类型",
+      "en": "Array nodes work with any element type"
     },
     "items": [
       {
-        "zh": "新增「数组包含元素」(Contains Item):判断一个 BaseCardObject(或整数、字符串)是否在数组里,返回 true/false",
-        "en": "New Contains Item node: tells whether a BaseCardObject (or integer, string) is in an array and returns true/false"
+        "zh": "数组节点改成通配符:接上任意类型的数组或元素后,所有引脚自动变成那个类型(整数、字符串、BaseCardObject、枚举、任意对象都行),断开后恢复成通配符",
+        "en": "Array nodes are now wildcards: wire any array or element and every pin takes that type (integers, strings, BaseCardObject, enums, any object); unplug and they go back to wildcard"
       },
       {
-        "zh": "同时新增:查找元素下标(没有返回 -1)、添加不重复元素、移除数组元素、清空数组、最后一个下标、下标是否有效",
-        "en": "Also new: Find Item (index, -1 when missing), Add Unique, Remove Item, Clear, Last Index, Is Valid Index"
+        "zh": "新增「数组包含元素」(Contains Item):判断一个 BaseCardObject 是否在数组里,返回 true/false;还有查找元素下标(没有返回 -1)、添加不重复元素、移除数组元素、清空数组、最后一个下标、下标是否有效",
+        "en": "New Contains Item (true/false), Find Item (index, -1 when missing), Add Unique, Remove Item, Clear, Last Index and Is Valid Index"
       },
       {
-        "zh": "所有数组节点的英文名改成 UE 的叫法,后面带元素类型,例如 Contains Item (BaseCardObject)",
-        "en": "All array nodes now use Unreal's English names with the element type, e.g. Contains Item (BaseCardObject)"
+        "zh": "从数组引脚拖线到空白处,会列出这些数组节点;英文名改成 UE 的叫法(Contains Item、For Each Loop 等)",
+        "en": "Dragging a wire from an array pin to empty space lists these array nodes; English names follow Unreal (Contains Item, For Each Loop, …)"
       }
     ]
   },

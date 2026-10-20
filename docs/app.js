@@ -73,7 +73,7 @@ const inert = (() => {
 })();
 const $ = (id) => {
     const el = document.getElementById(id);
-    if (!el) console.warn(`missing #${id}`);
+    if (!el) console.debug(`missing #${id}`);
     return el ?? inert;
   },
   esc = (v) =>
@@ -149,6 +149,7 @@ const PINCOLORS = {
   vector: "#e3bd20",
   rotator: "#aaa0eb",
   delegate: "#ff3838",
+  wildcard: "#8f8f8f",
 };
 // Arrays and sets take the color of their element type, as in Unreal.
 function pinColor(type) {
@@ -1873,7 +1874,7 @@ function targetHidden(n, p) {
 function pinMarkup(n, p) {
   const connected = pinConnected(n, p);
   const val = n.values[p.id] ?? pinDefault(p);
-  const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
+  const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type.split("$T").join("Wildcard"))} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
     raw = pinEnglish(p);
   const label = `<span class="pin-label"><span class="pin-cn zh">${esc(cn)}</span><span class="pin-en en">${esc(raw)}</span></span>`;
@@ -1881,6 +1882,7 @@ function pinMarkup(n, p) {
     !connected &&
     p.type !== "exec" &&
     pinKind(p.type) !== "delegate" &&
+    pinKind(p.type) !== "wildcard" &&
     !(p.id === "target" && val === "Self") &&
     (p.direction === "in" ||
       (n.definition.category === "variables" && n.definition.kind === "variable"));
@@ -2498,6 +2500,7 @@ function tryConnect(a, b) {
   try {
     checkpoint();
     if (!connect(graph(), a, b)) history.pop();
+    syncDefinitions(project); // wildcard (array library) nodes take the element type of the wire
     pending = null;
     render();
     persist();

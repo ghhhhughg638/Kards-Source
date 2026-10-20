@@ -18,8 +18,20 @@ let typeHierarchy = { ...engineClasses };
 export function setTypeHierarchy(classes = {}) {
   typeHierarchy = { ...engineClasses, ...classes };
 }
+// Wildcard pins (array library nodes work for any element type): "$T" stands for the element
+// type and is replaced by the real one as soon as something is connected, like Unreal.
+export const WILD = "$T";
+const isTypedArray = (t) => /^TArray<.+>$/.test(t);
 export function compatible(a, b) {
   if (a === b) return true;
+  const wa = a.includes(WILD),
+    wb = b.includes(WILD);
+  if (wa || wb) {
+    if (wa && wb) return isTypedArray(a) === isTypedArray(b);
+    const [wild, other] = wa ? [a, b] : [b, a];
+    if (other === "exec" || other.startsWith("Delegate<") || other.includes("TSet<")) return false;
+    return isTypedArray(wild) ? isTypedArray(other) : !isTypedArray(other);
+  }
   if (
     !a.endsWith("*") ||
     !b.endsWith("*") ||
@@ -104,6 +116,7 @@ export function makeProject() {
 }
 export function pinKind(type) {
   if (type === "exec") return "exec";
+  if (type.includes(WILD)) return type.startsWith("TArray<") ? "array" : "wildcard";
   if (type.startsWith("Delegate<")) return "delegate";
   if (type.includes("TArray") || type.includes("TSet")) return "array";
   if (type.includes("bool")) return "bool";
@@ -298,4 +311,36 @@ export function validateProject(input) {
   validateBlueprint(input);
   syncDefinitions(input);
   return input;
+}
+
+// Gives every wildcard node (definition.wild holds its pin template) the concrete element type
+// of whatever is wired to it; with nothing wired it goes back to wildcard.
+export function resolveWildcards(graph) {
+  const wilds = graph.nodes.filter((n) => Array.isArray(n.definition.wild));
+  if (!wilds.length) return;
+  const typeOf = (id, pin) =>
+    graph.nodes.find((x) => x.id === id)?.definition.pins.find((p) => p.id === pin)?.type;
+  const resolve = (n) => {
+    const template = n.definition.wild;
+    let found = null;
+    for (const e of graph.edges) {
+      const mine = e.from.node === n.id ? e.from : e.to.node === n.id ? e.to : null;
+      if (!mine) continue;
+      const other = mine === e.from ? e.to : e.from,
+        tpl = template.find((p) => p.id === mine.pin)?.type,
+        theirs = typeOf(other.node, other.pin);
+      if (!tpl?.includes(WILD) || !theirs || theirs.includes(WILD)) continue;
+      const candidate = tpl.startsWith("TArray<") ? /^TArray<(.+)>$/.exec(theirs)?.[1] : theirs;
+      if (candidate && !/^T(Array|Set)</.test(candidate)) {
+        found = candidate;
+        break;
+      }
+    }
+    const pins = template.map((p) => ({ ...p, type: p.type.split(WILD).join(found ?? WILD) }));
+    const same = pins.every((p, i) => p.type === n.definition.pins[i]?.type);
+    if (!same) n.definition.pins = pins;
+    return !same;
+  };
+  for (let pass = 0; pass <= wilds.length; pass++)
+    if (!wilds.map(resolve).some(Boolean)) break;
 }

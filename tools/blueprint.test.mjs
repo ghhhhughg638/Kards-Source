@@ -394,18 +394,53 @@ test("card data has an operation cost; older files get the default of 1", () => 
   assert.throws(() => validateProject(old), /卡牌信息/);
 });
 
-test("array library has Contains / Find / Remove nodes for BaseCardObject arrays, with English names", async () => {
+test("array library nodes are wildcards: they take the element type of whatever is wired", async () => {
   const { ueBuiltins } = await import("../docs/ue-nodes.js");
   const { nodeEnglish } = await import("../docs/i18n.js");
+  const { compatible, resolveWildcards, makeGraph } = await import("../docs/model.js");
   const byId = new Map(ueBuiltins.map((d) => [d.id, d]));
-  for (const name of ["ArrayContains", "ArrayFind", "AddUniqueArrayItem", "RemoveArrayItem", "ClearArray", "ArrayLastIndex", "ArrayIsValidIndex"])
-    for (const type of ["int32", "UBaseCardObject", "FString"])
-      assert(byId.has(`ue.${name}_${type}`), `${name}_${type}`);
-  const contains = byId.get("ue.ArrayContains_UBaseCardObject");
-  assert.equal(nodeEnglish(contains), "Contains Item (BaseCardObject)");
-  assert.equal(contains.pins.find((p) => p.id === "Array").type, "TArray<UBaseCardObject*>");
-  assert.equal(contains.pins.find((p) => p.id === "ItemToFind").type, "UBaseCardObject*");
-  assert.equal(contains.pins.find((p) => p.id === "return").type, "bool");
-  assert(contains.pure);
+  for (const name of ["ArrayContains", "ArrayFind", "AddUniqueArrayItem", "RemoveArrayItem", "ClearArray", "ArrayLastIndex", "ArrayIsValidIndex", "ForEachLoop", "ArrayLength", "GetArrayItem", "MakeArray", "AddArrayItem"])
+    assert(byId.has(`ue.${name}`), name);
+  assert.equal(nodeEnglish(byId.get("ue.ArrayContains")), "Contains Item");
   assert.equal(new Set(ueBuiltins.map((d) => d.id)).size, ueBuiltins.length, "ids stay unique");
+  // wildcard compatibility
+  assert(compatible("TArray<UBaseCardObject*>", "TArray<$T>") && compatible("TArray<int32>", "TArray<$T>"));
+  assert(compatible("UBaseCardObject*", "$T") && compatible("FString", "$T"));
+  assert(!compatible("int32", "TArray<$T>") && !compatible("TArray<int32>", "$T") && !compatible("exec", "$T"));
+
+  const src = (type, direction) => ({ id: "src", name: "S", label: "S", class: "X", kind: "function", pins: [{ id: "o", name: "o", type, direction }] });
+  const run = (setup) => {
+    const g = makeGraph("t", "event");
+    const contains = makeNode(byId.get("ue.ArrayContains"), 0, 0);
+    g.nodes.push(contains);
+    const pin = (id) => contains.definition.pins.find((p) => p.id === id).type;
+    setup(g, contains);
+    return { g, contains, pin };
+  };
+  // an array of BaseCardObject on the Array pin fixes the Item pin as well
+  const one = run((g, contains) => {
+    const array = makeNode(src("TArray<UBaseCardObject*>", "out"), 0, 0);
+    g.nodes.push(array);
+    connect(g, { node: array.id, pin: "o" }, { node: contains.id, pin: "Array" });
+    resolveWildcards(g);
+  });
+  assert.equal(one.pin("Array"), "TArray<UBaseCardObject*>");
+  assert.equal(one.pin("ItemToFind"), "UBaseCardObject*");
+  // then only a BaseCardObject fits the Item pin
+  const wrong = makeNode(src("int32", "out"), 0, 0);
+  one.g.nodes.push(wrong);
+  assert.throws(() => connect(one.g, { node: wrong.id, pin: "o" }, { node: one.contains.id, pin: "ItemToFind" }), /类型不匹配/);
+  // unplugging goes back to wildcard
+  one.g.edges = [];
+  resolveWildcards(one.g);
+  assert.equal(one.pin("Array"), "TArray<$T>");
+  assert.equal(one.pin("ItemToFind"), "$T");
+  // a single element wired first resolves the array type too
+  const two = run((g, contains) => {
+    const item = makeNode(src("FString", "out"), 0, 0);
+    g.nodes.push(item);
+    connect(g, { node: item.id, pin: "o" }, { node: contains.id, pin: "ItemToFind" });
+    resolveWildcards(g);
+  });
+  assert.equal(two.pin("Array"), "TArray<FString>");
 });
