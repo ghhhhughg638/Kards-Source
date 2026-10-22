@@ -33,7 +33,7 @@ def category(name, source, pure, event=False):
     return 'utilities'
 
 nodes=[]; enums={}; classes={}; properties=[]
-for path in sorted(root.glob('*/Public/*.h')):
+for path in sorted(root.glob('*/Public/*.h'), key=lambda p: p.relative_to(root).as_posix()):
     text=path.read_text(encoding='utf-8-sig')
     for m in re.finditer(r'enum\s+class\s+(\w+)[^{]*\{([^}]+)', text):
         values=[]
@@ -43,7 +43,7 @@ for path in sorted(root.glob('*/Public/*.h')):
             if v and '_MAX' not in v[1] and 'UMETA(Hidden)' not in entry: values.append(v[1])
         enums[m[1]]=values
     class_matches=list(re.finditer(r'class\s+(?:\w+_API\s+)?([UA]\w+)\s*:\s*public\s+(\w+)', text))
-    for c in class_matches: classes[c[1]]={'parent':c[2], 'source':str(path.relative_to(root))}
+    for c in class_matches: classes[c[1]]={'parent':c[2], 'source':path.relative_to(root).as_posix()}
     if not class_matches: continue
     source=path.stem.replace('Stub','').replace('EditorShim','')
     for m in re.finditer(r'\bUFUNCTION\s*\(',text):
@@ -88,7 +88,7 @@ for path in sorted(root.glob('*/Public/*.h')):
             clean=typ.replace('const ','').replace('&','').strip()
             pins.append({'id':pname,'name':pname,'type':clean,'direction':direction})
         if ret.strip()!='void': pins.append({'id':'return','name':'Return Value','type':ret.strip(),'direction':'out'})
-        nodes.append({'id':f'{cls}.{name}','name':name,'class':cls,'category':category(name,source,pure,event),'pure':pure,'event':event,'static':is_static,'nativeEvent':'BlueprintNativeEvent' in flags,'implementable':'BlueprintImplementableEvent' in flags,'kind':'event' if event else 'pure' if pure else 'function','source':str(path.relative_to(root)),'signature':re.sub(r'\s+',' ',sig),'pins':pins})
+        nodes.append({'id':f'{cls}.{name}','name':name,'class':cls,'category':category(name,source,pure,event),'pure':pure,'event':event,'static':is_static,'nativeEvent':'BlueprintNativeEvent' in flags,'implementable':'BlueprintImplementableEvent' in flags,'kind':'event' if event else 'pure' if pure else 'function','source':path.relative_to(root).as_posix(),'signature':re.sub(r'\s+',' ',sig),'pins':pins})
     for m in re.finditer(r'\bUPROPERTY\s*\(',text):
         enclosing=[c for c in class_matches if c.start()<m.start()]
         if not enclosing: continue
@@ -103,7 +103,7 @@ for path in sorted(root.glob('*/Public/*.h')):
         prop=re.match(r'([\w:<>, *&]+?)\s+(\w+)$',sig,re.S)
         if not prop: continue
         typ,name=prop.groups();typ=re.sub(r'\s+',' ',typ.strip())
-        properties.append({'class':cls,'name':name,'type':typ,'writable':'BlueprintReadWrite' in flags,'source':str(path.relative_to(root))})
+        properties.append({'class':cls,'name':name,'type':typ,'writable':'BlueprintReadWrite' in flags,'source':path.relative_to(root).as_posix()})
 result={'version':1,'repository':'ghhhhughg638/KardsSource','nodes':nodes,'enums':enums,'classes':classes,'properties':properties}
 (root/'docs/catalog.json').write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n',encoding='utf-8')
 print(f'Generated {len(nodes)} functions and {len(enums)} enums, {len(classes)} classes, {len(properties)} properties')

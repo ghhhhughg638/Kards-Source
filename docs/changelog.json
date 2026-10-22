@@ -1,5 +1,32 @@
 [
   {
+    "version": "2.13.0",
+    "date": "2026-10-23",
+    "author": "Codex",
+    "title": {
+      "zh": "原版卡牌蓝图库与类型化枚举 · Codex",
+      "en": "Original-card Blueprint library and typed enums · Codex"
+    },
+    "items": [
+      {
+        "zh": "收录2019份原版蓝图、5585个函数与80736条顶层源指令，支持搜索、函数导航、类默认值和源指令核对。",
+        "en": "Browse 2,019 original Blueprints, 5,585 functions and 80,736 top-level instructions with search, function navigation, defaults and source inspection."
+      },
+      {
+        "zh": "保留枚举类型，恢复函数内置枚举执行出口，新增Select/Equal/Not Equal枚举节点与引脚类型推断。",
+        "en": "Preserve enum types, recover inline enum execution branches, and add typed Select/Equal/Not Equal enum nodes."
+      },
+      {
+        "zh": "辅助表达式和高级参数默认折叠，支持复制到工作区与导出，保留确定的数据连线与执行回边。",
+        "en": "Fold helper expressions and advanced inputs by default; copy to the workspace or export while preserving stable data links and execution back-edges."
+      },
+      {
+        "zh": "修复压缩ZIP导入时将未压缩大小当作压缩大小读取的问题。",
+        "en": "Fix deflated ZIP imports reading the uncompressed size instead of the compressed size."
+      }
+    ]
+  },
+  {
     "version": "2.12.4",
     "date": "2026-10-20",
     "title": {

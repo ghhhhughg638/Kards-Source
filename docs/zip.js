@@ -107,7 +107,7 @@ export async function readZip(buffer, { maxEntries = 500, maxBytes = 64 * 1024 *
   for (let n = 0; n < count; n++) {
     if (view.getUint32(at, true) !== 0x02014b50) throw new Error("ZIP 目录已损坏");
     const method = view.getUint16(at + 10, true);
-    const size = view.getUint32(at + 24, true);
+    const size = view.getUint32(at + 20, true);
     const nameLength = view.getUint16(at + 28, true);
     const extraLength = view.getUint16(at + 30, true);
     const commentLength = view.getUint16(at + 32, true);

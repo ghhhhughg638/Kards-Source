@@ -19,6 +19,16 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run lint
+      - name: Install browser for UI checks
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - name: Upload reference UI screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-ui-checks
+          path: test-results/
+          if-no-files-found: ignore
       - name: Catalog is up to date
         run: |
           python3 tools/generate-node-catalog.py

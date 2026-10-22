@@ -6,6 +6,7 @@ export const clone = (value) =>
     ? structuredClone(value)
     : JSON.parse(JSON.stringify(value));
 import { ueBuiltins, engineClasses } from "./ue-nodes.js";
+import { enumNodes } from "./enum-tools.js";
 import {
   DEFAULT_PACKAGE_PATH,
   DEFAULT_PARENT,
@@ -13,7 +14,7 @@ import {
   syncDefinitions,
   validateBlueprint,
 } from "./blueprint.js";
-export const builtins = ueBuiltins;
+export const builtins = [...ueBuiltins, ...enumNodes];
 let typeHierarchy = { ...engineClasses };
 export function setTypeHierarchy(classes = {}) {
   typeHierarchy = { ...engineClasses, ...classes };
@@ -126,6 +127,7 @@ export function makeProject() {
 }
 export function pinKind(type) {
   if (type === "exec") return "exec";
+  if (enumTable[type]) return "enum";
   if (type === WILD_ENUM) return "wildcard";
   if (type.includes(WILD)) return type.startsWith("TArray<") ? "array" : "wildcard";
   if (type.startsWith("Delegate<")) return "delegate";
@@ -193,6 +195,10 @@ export function connect(graph, a, b) {
 export function validateProject(input) {
   if (!input || input.format !== FORMAT || input.version !== VERSION)
     throw new Error("无法识别文件。请导入版本 2 的 .kardsbp.json 蓝图文件（旧版本文件不兼容）。");
+  if (input.enums !== undefined) {
+    if (!input.enums || typeof input.enums !== "object" || Array.isArray(input.enums) || Object.keys(input.enums).length > 200 || Object.entries(input.enums).some(([name, values]) => !/^[A-Za-z_]\w*$/.test(name) || !Array.isArray(values) || values.length > 1000 || values.some((v) => typeof v !== "string" || v.length > 128) || new Set(values).size !== values.length)) throw new Error("枚举声明无效");
+    setEnumTable({ ...enumTable, ...input.enums });
+  }
   if (
     typeof input.name !== "string" ||
     input.name.length > 200 ||
@@ -337,15 +343,29 @@ export function validateProject(input) {
 function resolveEnumSwitches(graph) {
   for (const n of graph.nodes) {
     const d = n.definition;
-    if (!d.switchEnum) continue;
+    if (!d.switchEnum && !d.selectEnum && !d.enumCompare) continue;
+    const selectors = d.selectEnum ? ["Index"] : d.enumCompare ? ["A", "B"] : ["Selection"];
     let wired = null;
     for (const e of graph.edges) {
-      if (e.to.node !== n.id || e.to.pin !== "Selection") continue;
+      if (e.to.node !== n.id || !selectors.includes(e.to.pin)) continue;
       const t = graph.nodes.find((x) => x.id === e.from.node)?.definition.pins.find((p) => p.id === e.from.pin)?.type;
       if (t && enumTable[t]) wired = t;
     }
     if (wired) d.enumType = wired;
     if (d.enumType && !enumTable[d.enumType]) d.enumType = null;
+    if (d.enumCompare) {
+      d.pins = [...["A", "B"].map((id) => ({ id, name: id, type: d.enumType || WILD_ENUM, direction: "in" })), { id: "Result", name: "Result", type: "bool", direction: "out" }];
+      continue;
+    }
+    if (d.selectEnum) {
+      d.wild = [
+        { id: "Index", name: "Index", type: d.enumType || WILD_ENUM, direction: "in" },
+        ...(d.enumType ? enumTable[d.enumType] : []).map((v) => ({ id: `Value_${v}`, name: v, type: WILD, direction: "in" })),
+        { id: "Result", name: "Result", type: WILD, direction: "out" },
+      ];
+      d.pins = d.wild.map((p) => ({ ...p }));
+      continue;
+    }
     const exec = d.pins.find((p) => p.id === "exec-in") || { id: "exec-in", name: "Exec", type: "exec", direction: "in" };
     d.pins = [
       exec,

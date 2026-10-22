@@ -16,6 +16,14 @@
 
 这是蓝图的可视化设计和展示工具，不执行游戏逻辑，不导入或生成 Unreal `.uasset` 文件。
 
+## 原版卡牌蓝图库（Codex）
+
+顶部「原版蓝图库」打开独立参考界面，包含解包输入中的全部 **2019 份原版卡牌蓝图、5585 个函数、80736 条顶层源指令**。支持搜索、阵营/类型过滤、函数切换、类默认值和源指令核对，以及复制到工作区继续编辑。
+
+内置枚举执行分支恢复为函数上的命名出口，比较保留枚举类型；新增 Select / Equal / Not Equal 枚举节点。辅助表达式和高级参数默认收起，按需查看。画布依据烘焙指令重建逻辑布局，不是已剥离的原编辑器坐标。转换与实现署名 **Codex**。
+
+[查看还原范围、证据和更新方法](docs/REFERENCE_LIBRARY.md)。
+
 ## 蓝图结构（与 Unreal 蓝图一致）
 
 - **EventGraph**：每个蓝图只有一个，不能新建、重命名或删除。`On…` 事件和自定义事件都放在这里。
@@ -57,14 +65,18 @@
 
 ## 自定义文件格式
 
-`format` 为 `kards-blueprint`，`version` 为 `1`。扩展名为 `.kardsbp.json`，UTF-8 JSON。完整字段：
+`format` 为 `kards-blueprint`，`version` 为 `2`。扩展名为 `.kardsbp.json`，UTF-8 JSON。以下为含一个布尔节点的最小示例：
 
 ```json
 {
   "format": "kards-blueprint",
-  "version": 1,
+  "version": 2,
   "id": "project-uuid",
-  "name": "我的卡牌",
+  "name": "BP_ExampleCard",
+  "asset": { "parentClass": "UBaseCardObject", "packagePath": "/Game/KARDS/Cards", "description": "" },
+  "variables": [],
+  "dispatchers": [],
+  "classDefaults": {},
   "card": {
     "title": "我的卡牌", "faction": "Soviet", "type": "infantry",
     "rarity": "Common", "cost": 3, "attack": 3, "defense": 4,
@@ -73,7 +85,8 @@
   "activeGraph": "graph-uuid",
   "graphs": [{
     "id": "graph-uuid",
-    "name": "事件图",
+    "name": "EventGraph",
+    "kind": "event",
     "view": { "x": 40, "y": 0, "zoom": 1 },
     "nodes": [{
       "id": "node-uuid", "x": 100, "y": 100,

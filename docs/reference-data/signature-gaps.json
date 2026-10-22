@@ -1,0 +1,4 @@
+{
+  "note": "Call arguments remain typed and inspectable even when a declaration is absent from available headers.",
+  "keys": []
+}

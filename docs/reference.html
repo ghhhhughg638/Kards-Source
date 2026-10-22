@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="build" content="__BUILD_SHA__" />
+    <title>原版卡牌蓝图库 · KARDS Blueprint Studio</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./reference.css" />
+  </head>
+  <body class="reference-page">
+    <header class="ref-header">
+      <a class="ref-brand" href="./index.html"><span class="ref-mark">K</span><span>KARDS <small>BLUEPRINT STUDIO</small></span></a>
+      <div class="ref-heading"><strong>原版卡牌蓝图库</strong><span>ORIGINAL CARD REFERENCES</span></div>
+      <a href="./index.html" class="ref-button">返回编辑器</a>
+      <span class="ref-author">Reconstructed by <b>Codex</b></span>
+    </header>
+    <main class="ref-layout">
+      <aside class="ref-sidebar">
+        <div class="ref-library-heading"><h1>原版蓝图</h1><span id="ref-total">载入中…</span></div>
+        <label class="ref-search-label" for="ref-search">搜索名称、效果、函数或资源路径</label>
+        <input id="ref-search" class="ref-search" type="search" placeholder="例如 stranglehold、draw、海军…" autocomplete="off" />
+        <div class="ref-filters"><select id="ref-faction" aria-label="阵营"><option value="">全部阵营</option></select><select id="ref-type" aria-label="卡牌类型"><option value="">全部类型</option></select></div>
+        <label class="ref-check"><input id="ref-with-logic" type="checkbox" />仅显示有逻辑的蓝图</label>
+        <p id="ref-result-count" class="ref-muted" aria-live="polite"></p>
+        <div id="ref-cards" class="ref-cards"></div>
+        <div class="ref-pager"><button id="ref-prev" class="ref-button" type="button">上一页</button><span id="ref-page"></span><button id="ref-next" class="ref-button" type="button">下一页</button></div>
+        <footer class="ref-library-footer">按需载入，参考库不会占用你的工作区存储。</footer>
+      </aside>
+      <section class="ref-main">
+        <section class="ref-card-summary" id="ref-summary"><h2>选择一张原版卡牌</h2><p>从左侧浏览卡牌，查看事件、函数和完整源指令。</p></section>
+        <div class="ref-toolbar">
+          <select id="ref-graph" aria-label="查看事件图或函数" disabled><option>EventGraph</option></select>
+          <button id="ref-fit" class="ref-button" type="button">适应画布</button>
+          <button id="ref-zoom-out" class="ref-button" type="button" aria-label="缩小">−</button><span id="ref-zoom">100%</span><button id="ref-zoom-in" class="ref-button" type="button" aria-label="放大">＋</button>
+          <span class="ref-toolbar-space"></span>
+          <button id="ref-copy" class="ref-button ref-primary" type="button" disabled>复制到工作区</button>
+          <button id="ref-export" class="ref-button" type="button" disabled>导出参考蓝图</button>
+        </div>
+        <div id="ref-viewport" class="ref-viewport" tabindex="0" aria-label="蓝图参考画布，拖动平移，滚轮缩放">
+          <div id="ref-stage" class="ref-stage"><svg id="ref-wires" class="ref-wires" aria-hidden="true"></svg><div id="ref-nodes"></div></div>
+          <div id="ref-empty" class="ref-empty">选择卡牌后显示参考图</div>
+          <span class="ref-canvas-hint">拖动画布平移 · 滚轮缩放 · 点击节点查看来源</span>
+        </div>
+        <div class="ref-evidence">
+          <details id="ref-source"><summary>源指令与函数声明 <span id="ref-instruction-count"></span></summary><pre id="ref-instructions"></pre></details>
+          <details><summary>类默认值与资源信息</summary><pre id="ref-defaults"></pre></details>
+        </div>
+        <footer id="ref-status" class="ref-status" aria-live="polite">载入原版索引…</footer>
+      </section>
+      <aside class="ref-details"><h2>节点详情</h2><div id="ref-details"><p class="ref-muted">点击节点查看参数类型、折叠表达式及源指令位置。</p></div><hr /><p class="ref-muted">烘焙数据不包含原编辑器坐标。本库保留源指令并重建逻辑布局；查看和调整选项不会执行游戏逻辑。复制到工作区后可继续编辑。</p></aside>
+    </main>
+    <script type="module" src="./reference.js"></script>
+  </body>
+</html>

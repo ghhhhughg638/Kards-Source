@@ -4,12 +4,14 @@
   "type": "module",
   "scripts": {
     "test": "node --test tools/*.test.mjs",
-    "lint": "eslint docs/*.js tools/*.mjs",
+    "lint": "eslint docs/*.js tools/*.mjs tools/browser/*.mjs playwright.config.js",
     "catalog": "python3 tools/generate-node-catalog.py",
-    "reasons": "python3 tools/generate-reasons.py"
+    "reasons": "python3 tools/generate-reasons.py",
+    "test:browser": "playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@playwright/test": "^1.64.1",
     "eslint": "^9.0.0",
     "globals": "^15.0.0"
   }
