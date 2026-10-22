@@ -11,19 +11,15 @@
   </head>
   <body class="reference-page">
     <header class="ref-header">
+      <button id="ref-browse" class="ref-button ref-mobile-only" type="button">☰ 选卡</button>
       <a class="brand ref-brand" href="./index.html"><span class="brand-mark">K<span>✦</span></span><span>KARDS<span class="brand-sub">BLUEPRINT EDITOR</span></span></a>
       <div class="ref-heading"><strong>原版卡牌蓝图库</strong><span>ORIGINAL CARD REFERENCES</span></div>
       <a href="./index.html" class="ref-button">返回编辑器</a>
       <span class="ref-author">Reconstructed by <b>Codex</b></span>
     </header>
-    <nav class="ref-mobile-nav" aria-label="蓝图库面板">
-      <button type="button" data-ref-panel="library" aria-pressed="true">卡牌列表</button>
-      <button type="button" data-ref-panel="graph" aria-pressed="false">蓝图</button>
-      <button type="button" data-ref-panel="details" aria-pressed="false">节点详情</button>
-    </nav>
-    <main class="ref-layout" data-panel="library">
+    <main class="ref-layout" data-panel="graph">
       <aside class="ref-sidebar">
-        <div class="ref-library-heading"><h1>原版蓝图</h1><span id="ref-total">载入中…</span></div>
+        <div class="ref-library-heading"><h1>原版蓝图</h1><span id="ref-total">载入中…</span><button id="ref-close-library" class="ref-button ref-mobile-only" type="button">返回蓝图 ×</button></div>
         <label class="ref-search-label" for="ref-search">搜索名称、效果、函数或资源路径</label>
         <input id="ref-search" class="ref-search" type="search" placeholder="例如 stranglehold、draw、海军…" autocomplete="off" />
         <div class="ref-filters"><select id="ref-faction" aria-label="阵营"><option value="">全部阵营</option></select><select id="ref-type" aria-label="卡牌类型"><option value="">全部类型</option></select></div>
@@ -37,16 +33,25 @@
         <section class="ref-card-summary" id="ref-summary"><h2>选择一张原版卡牌</h2><p>从左侧浏览卡牌，查看事件、函数和完整源指令。</p></section>
         <div class="ref-toolbar">
           <select id="ref-graph" aria-label="查看事件图或函数" disabled><option>EventGraph</option></select>
-          <button id="ref-fit" class="ref-button" type="button">适应画布</button>
-          <button id="ref-zoom-out" class="ref-button" type="button" aria-label="缩小">−</button><span id="ref-zoom">100%</span><button id="ref-zoom-in" class="ref-button" type="button" aria-label="放大">＋</button>
-          <span class="ref-toolbar-space"></span>
-          <button id="ref-copy" class="ref-button ref-primary" type="button" disabled>复制到工作区</button>
-          <button id="ref-export" class="ref-button" type="button" disabled>导出参考蓝图</button>
+          <button id="ref-more" class="ref-button ref-mobile-only" type="button" aria-expanded="false" aria-controls="ref-actions">更多 ⋯</button>
+          <div id="ref-actions" class="ref-actions">
+            <label class="ref-mode-label">逻辑显示 <select id="ref-mode"><option value="expanded">完整展开</option><option value="compact">精简参考</option></select></label>
+            <button id="ref-info" class="ref-button" type="button">卡牌信息</button>
+            <button id="ref-copy" class="ref-button ref-primary" type="button" disabled>复制到工作区</button>
+            <button id="ref-export" class="ref-button" type="button" disabled>导出参考蓝图</button>
+          </div>
         </div>
         <div id="ref-viewport" class="ref-viewport" tabindex="0" aria-label="蓝图参考画布，拖动平移，滚轮缩放">
           <div id="ref-stage" class="ref-stage"><svg id="ref-wires" class="ref-wires" aria-hidden="true"></svg><div id="ref-nodes"></div></div>
           <div id="ref-empty" class="ref-empty">选择卡牌后显示参考图</div>
           <span class="ref-canvas-hint">拖动平移 · 双指或滚轮缩放 · 点击节点查看详情</span>
+        </div>
+        <div class="ref-navigation" aria-label="画布导航">
+          <button id="ref-zoom-out" class="ref-button" type="button" aria-label="缩小">−</button>
+          <button id="ref-readable" class="ref-button" type="button" title="按可读比例显示当前节点"><span id="ref-zoom">100%</span></button>
+          <button id="ref-zoom-in" class="ref-button" type="button" aria-label="放大">＋</button>
+          <button id="ref-fit" class="ref-button" type="button">全图</button>
+          <select id="ref-locate" aria-label="定位节点"><option value="">定位节点…</option></select>
         </div>
         <div class="ref-evidence">
           <details id="ref-source"><summary>源指令与函数声明 <span id="ref-instruction-count"></span></summary><pre id="ref-instructions"></pre></details>
@@ -54,8 +59,12 @@
         </div>
         <footer id="ref-status" class="ref-status" aria-live="polite">载入原版索引…</footer>
       </section>
-      <aside class="ref-details"><h2>节点详情</h2><div id="ref-details"><p class="ref-muted">点击节点查看参数类型、折叠表达式及源指令位置。</p></div><hr /><p class="ref-muted">烘焙数据不包含原编辑器坐标。本库保留源指令并重建逻辑布局；查看和调整选项不会执行游戏逻辑。复制到工作区后可继续编辑。</p></aside>
+      <aside class="ref-details"><button id="ref-close-details" class="ref-button ref-mobile-only" type="button">关闭详情 ×</button><h2>节点详情</h2><div id="ref-details"><p class="ref-muted">点击节点查看参数类型、折叠表达式及源指令位置。</p></div><hr /><p class="ref-muted">烘焙数据不包含原编辑器坐标。本库保留源指令并重建逻辑布局；查看和调整选项不会执行游戏逻辑。复制到工作区后可继续编辑。</p></aside>
     </main>
+    <dialog id="ref-info-dialog" class="ref-info-dialog">
+      <form method="dialog"><button class="ref-button" type="submit">关闭 ×</button></form>
+      <div id="ref-info-content"></div>
+    </dialog>
     <script type="module" src="./reference.js"></script>
   </body>
 </html>
