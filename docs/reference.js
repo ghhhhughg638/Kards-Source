@@ -6,7 +6,15 @@ import { nodeChinese } from "./i18n.js";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const factions = { Britain: "英国", Germany: "德国", Soviet: "苏联", Japan: "日本", USA: "美国", France: "法国", Finland: "芬兰", Italy: "意大利", Poland: "波兰", Neutral: "中立", Anzac: "澳新", ANZAC: "澳新", NotAvailable: "其他" };
-let library, card, project, page = 0, request = 0, view = { x: 30, y: 30, zoom: 0.8 }, drag;
+let library, card, project, page = 0, request = 0, view = { x: 30, y: 30, zoom: 0.8 };
+const narrow = matchMedia("(max-width: 900px)");
+function showPanel(panel) {
+  document.querySelector(".ref-layout").dataset.panel = panel;
+  document.querySelectorAll("[data-ref-panel]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.refPanel === panel)));
+  if (panel === "graph") requestAnimationFrame(() => { if (graph()) { renderGraph(!viewReady); viewReady = true; } });
+}
+let viewReady = false;
+document.querySelectorAll("[data-ref-panel]").forEach((b) => b.addEventListener("click", () => showPanel(b.dataset.refPanel)));
 const pageSize = 40;
 const cache = new Map();
 const graph = () => project?.graphs.find((g) => g.id === project.activeGraph);
@@ -27,7 +35,7 @@ function renderList() {
   $("ref-page").textContent = `${page + 1} / ${Math.max(1, Math.ceil(cards.length / pageSize))}`;
   $("ref-prev").disabled = page === 0; $("ref-next").disabled = (page + 1) * pageSize >= cards.length;
   $("ref-cards").innerHTML = cards.slice(page * pageSize, (page + 1) * pageSize).map((c) => `<button type="button" class="ref-card ${c.id === card?.id ? "active" : ""}" data-card="${esc(c.id)}"><strong>${esc(c.title)}</strong><small>${esc(c.name)}</small><span class="ref-card-tags">${esc(factions[c.faction] || c.faction)} · ${esc(c.type)} · ${c.cost} 费 · ${c.dataOnly ? "仅默认数据" : `${c.functionCount} 函数`}</span></button>`).join("") || '<p class="ref-muted">没有匹配的卡牌。</p>';
-  $("ref-cards").querySelectorAll("[data-card]").forEach((b) => b.addEventListener("click", () => openCard(b.dataset.card)));
+  $("ref-cards").querySelectorAll("[data-card]").forEach((b) => b.addEventListener("click", async () => { await openCard(b.dataset.card); if (narrow.matches) showPanel("graph"); }));
 }
 async function openCard(id, graphName) {
   const ticket = ++request;
@@ -48,7 +56,7 @@ async function openCard(id, graphName) {
     $("ref-defaults").textContent = JSON.stringify({ package: card.package, parent: card.parent, defaults: card.defaults, provenance: card.provenance }, null, 2);
     $("ref-graph").innerHTML = project.graphs.map((g) => `<option value="${esc(g.id)}" ${g.id === project.activeGraph ? "selected" : ""}>${esc(g.sourceName || g.name)}${g.pure ? " · Pure" : ""}</option>`).join("");
     for (const id of ["ref-graph", "ref-copy", "ref-export"]) $(id).disabled = false;
-    renderList(); renderGraph();
+    viewReady = false; renderList(); renderGraph();
     status(`${card.functions.reduce((s, f) => s + f.body.length, 0)} 条源指令已保留 · 自动布局 · 折叠辅助表达式${project.reference.diagnostics.length ? ` · ${project.reference.diagnostics.length} 个待检查控制流` : ""}`);
   } catch (e) { if (ticket === request) status(e.message, true); }
 }
@@ -70,7 +78,7 @@ function renderGraph(refit = true) {
   history.replaceState(null, "", `#${card.id}~${encodeURIComponent(g.id)}`);
   $("ref-empty").hidden = !!g.nodes.length;
   $("ref-empty").textContent = "此图没有可执行效果节点。可查看类默认值或切换其他函数。";
-  $("ref-nodes").innerHTML = g.nodes.map((n) => `<article class="ref-node ${esc(n.definition.kind || "function")}" style="left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="ref-node-head"><strong>${esc(nodeChinese(n.definition))}</strong><small>${esc(n.definition.name)}</small></div><div class="ref-node-body">${n.definition.pins.filter((p) => n.showAdvanced || !n.definition.advancedPins?.includes(p.id) || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id)).map((p) => `<div class="ref-pin-row ${p.direction === "out" ? "output" : ""}" data-ref-pin="${esc(p.id)}" style="--ref-pin:${p.type === "bool" ? "#cf6969" : library.enums[p.type] ? "#c6b47c" : p.type === "exec" ? "#eee" : "#75afcc"}">${p.direction === "in" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}<span class="ref-pin-label">${esc(p.name)}</span>${p.type !== "exec" ? `<span class="ref-pin-type" title="${esc(p.type)}">${esc(p.type)}</span>` : ""}${pinControl(n, p)}${p.direction === "out" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}</div>`).join("")}${n.definition.advancedPins?.length ? `<button class="ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : ""}</div><div class="ref-node-note">${n.definition.reference ? `${esc(n.definition.reference.function)} · @${n.definition.reference.sourceOffset}` : "Function signature"}</div></article>`).join("");
+  $("ref-nodes").innerHTML = g.nodes.map((n) => `<article class="ref-node ${esc(n.definition.kind || "function")}" style="left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="ref-node-head"><strong>${esc(nodeChinese(n.definition))}</strong><small>${esc(n.definition.name)}</small></div><div class="ref-node-body">${n.definition.pins.filter((p) => n.showAdvanced || !n.definition.advancedPins?.includes(p.id) || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id)).map((p) => `<div class="ref-pin-row ${p.direction === "out" ? "output" : ""}" data-ref-pin="${esc(p.id)}" style="--ref-pin:${p.type === "bool" ? "var(--bool)" : library.enums[p.type] ? "var(--enum)" : p.type === "exec" ? "var(--exec)" : "var(--object)"}">${p.direction === "in" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}<span class="ref-pin-label">${esc(p.name)}</span>${p.type !== "exec" ? `<span class="ref-pin-type" title="${esc(p.type)}">${esc(p.type)}</span>` : ""}${pinControl(n, p)}${p.direction === "out" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}</div>`).join("")}${n.definition.advancedPins?.length ? `<button class="ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : ""}</div><div class="ref-node-note">${n.definition.reference ? `${esc(n.definition.reference.function)} · @${n.definition.reference.sourceOffset}` : "Function signature"}</div></article>`).join("");
   // Size columns using real content height; busy native functions must not overlap.
   const columns = new Map();
   for (const n of g.nodes) {
@@ -101,6 +109,8 @@ function transform() {
   $("ref-zoom").textContent = `${Math.round(view.zoom * 100)}%`;
 }
 function fit() {
+  if (!$("ref-viewport").clientWidth || !$("ref-viewport").clientHeight) return;
+  viewReady = true;
   const nodes = graph()?.nodes || []; if (!nodes.length) { view = { x: 30, y: 30, zoom: 1 }; transform(); return; }
   const bounds = $("ref-viewport").getBoundingClientRect();
   const right = Math.max(...nodes.map((n) => n.x + 330)), bottom = Math.max(...[...$("ref-nodes").children].map((e) => parseFloat(e.style.top) + e.offsetHeight));
@@ -127,10 +137,40 @@ function zoom(delta, point) {
   view.x = p.x - (p.x - view.x) * next / old; view.y = p.y - (p.y - view.y) * next / old; view.zoom = next; transform();
 }
 $("ref-viewport").addEventListener("wheel", (e) => { if (e.target.closest("select,input")) return; e.preventDefault(); const r = $("ref-viewport").getBoundingClientRect(); zoom(e.deltaY > 0 ? 0.9 : 1.1, { x: e.clientX - r.left, y: e.clientY - r.top }); }, { passive: false });
-$("ref-viewport").addEventListener("pointerdown", (e) => { if (e.target.closest(".ref-node,input,select")) return; drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y }; $("ref-viewport").setPointerCapture(e.pointerId); });
-$("ref-viewport").addEventListener("pointermove", (e) => { if (!drag) return; view.x = drag.vx + e.clientX - drag.x; view.y = drag.vy + e.clientY - drag.y; transform(); });
-$("ref-viewport").addEventListener("pointerup", () => { drag = null; });
-$("ref-viewport").addEventListener("pointercancel", () => { drag = null; });
+const pointers = new Map();
+let gesture, moved = false, suppressClickUntil = 0;
+function resetGesture() {
+  const ps = [...pointers.values()], r = $("ref-viewport").getBoundingClientRect();
+  if (!ps.length) { gesture = null; return; }
+  const center = ps.length > 1 ? { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 } : ps[0];
+  gesture = { x: center.x - r.left, y: center.y - r.top, vx: view.x, vy: view.y, zoom: view.zoom, distance: ps.length > 1 ? Math.max(1, Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y)) : 0 };
+}
+$("ref-viewport").addEventListener("pointerdown", (e) => {
+  if (e.target.closest("input,select,button,a") || (e.pointerType === "mouse" && (e.button !== 0 || e.target.closest(".ref-node")))) return;
+  if (!pointers.size) moved = false;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); resetGesture();
+  // Capture only after movement: a stationary tap must still reach its node.
+});
+$("ref-viewport").addEventListener("pointermove", (e) => {
+  if (!pointers.has(e.pointerId) || !gesture) return;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const ps = [...pointers.values()], r = $("ref-viewport").getBoundingClientRect();
+  const center = ps.length > 1 ? { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 } : ps[0];
+  const x = center.x - r.left, y = center.y - r.top;
+  if (!moved && ps.length === 1 && Math.hypot(x - gesture.x, y - gesture.y) < 5) return;
+  moved = true; suppressClickUntil = Date.now() + 400;
+  $("ref-viewport").setPointerCapture(e.pointerId);
+  const next = ps.length > 1 ? Math.max(0.035, Math.min(2, gesture.zoom * Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) / gesture.distance)) : gesture.zoom;
+  view.x = x - (gesture.x - gesture.vx) * next / gesture.zoom;
+  view.y = y - (gesture.y - gesture.vy) * next / gesture.zoom;
+  view.zoom = next; transform();
+});
+function endPointer(e) {
+  if (moved) suppressClickUntil = Date.now() + 400;
+  pointers.delete(e.pointerId); resetGesture();
+}
+for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) $("ref-viewport").addEventListener(name, endPointer);
+$("ref-viewport").addEventListener("click", (e) => { if (Date.now() < suppressClickUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
 $("ref-fit").onclick = fit; $("ref-zoom-in").onclick = () => zoom(1.2); $("ref-zoom-out").onclick = () => zoom(1 / 1.2);
 $("ref-graph").onchange = () => { project.activeGraph = $("ref-graph").value; renderGraph(); };
 for (const id of ["ref-search", "ref-faction", "ref-type", "ref-with-logic"]) $(id).addEventListener(id === "ref-search" ? "input" : "change", () => { page = 0; renderList(); });
@@ -149,7 +189,7 @@ $("ref-export").onclick = () => {
     const a = document.createElement("a"); a.href = url; a.download = `${card.name}.kardsbp.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (e) { status(`导出失败：${e.message}`, true); }
 };
-window.addEventListener("resize", drawWires);
+window.addEventListener("resize", () => { if (graph() && $("ref-viewport").clientWidth) renderGraph(true); });
 try {
   const response = await fetch(snapshot("./reference-data/index.json")); if (!response.ok) throw new Error(`索引加载失败 (${response.status})`);
   library = await response.json(); $("ref-total").textContent = `${library.cards.length} 个`;

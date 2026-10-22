@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.13.1",
+    "date": "2026-10-23",
+    "author": "Codex",
+    "title": {
+      "zh": "蓝图库手机操作与原编辑器风格统一",
+      "en": "Mobile reference navigation and consistent editor styling"
+    },
+    "items": [
+      {
+        "zh": "蓝图库沿用编辑器深灰界面、蓝色选中状态和语义节点标题。",
+        "en": "Match the editor neutral chrome, blue selection and semantic node headers."
+      },
+      {
+        "zh": "手机改为列表、蓝图、详情面板切换，支持单指平移、双指缩放与触摸控件。",
+        "en": "Add full-width mobile panels, one-finger panning, pinch zoom and touch-sized controls."
+      }
+    ]
+  },
+  {
     "version": "2.13.0",
     "date": "2026-10-23",
     "author": "Codex",
