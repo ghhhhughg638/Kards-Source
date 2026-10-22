@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="build" content="__BUILD_SHA__" />
     <title>原版卡牌蓝图库 · KARDS Blueprint Studio</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -11,12 +11,17 @@
   </head>
   <body class="reference-page">
     <header class="ref-header">
-      <a class="ref-brand" href="./index.html"><span class="ref-mark">K</span><span>KARDS <small>BLUEPRINT STUDIO</small></span></a>
+      <a class="brand ref-brand" href="./index.html"><span class="brand-mark">K<span>✦</span></span><span>KARDS<span class="brand-sub">BLUEPRINT EDITOR</span></span></a>
       <div class="ref-heading"><strong>原版卡牌蓝图库</strong><span>ORIGINAL CARD REFERENCES</span></div>
       <a href="./index.html" class="ref-button">返回编辑器</a>
       <span class="ref-author">Reconstructed by <b>Codex</b></span>
     </header>
-    <main class="ref-layout">
+    <nav class="ref-mobile-nav" aria-label="蓝图库面板">
+      <button type="button" data-ref-panel="library" aria-pressed="true">卡牌列表</button>
+      <button type="button" data-ref-panel="graph" aria-pressed="false">蓝图</button>
+      <button type="button" data-ref-panel="details" aria-pressed="false">节点详情</button>
+    </nav>
+    <main class="ref-layout" data-panel="library">
       <aside class="ref-sidebar">
         <div class="ref-library-heading"><h1>原版蓝图</h1><span id="ref-total">载入中…</span></div>
         <label class="ref-search-label" for="ref-search">搜索名称、效果、函数或资源路径</label>
@@ -41,7 +46,7 @@
         <div id="ref-viewport" class="ref-viewport" tabindex="0" aria-label="蓝图参考画布，拖动平移，滚轮缩放">
           <div id="ref-stage" class="ref-stage"><svg id="ref-wires" class="ref-wires" aria-hidden="true"></svg><div id="ref-nodes"></div></div>
           <div id="ref-empty" class="ref-empty">选择卡牌后显示参考图</div>
-          <span class="ref-canvas-hint">拖动画布平移 · 滚轮缩放 · 点击节点查看来源</span>
+          <span class="ref-canvas-hint">拖动平移 · 双指或滚轮缩放 · 点击节点查看详情</span>
         </div>
         <div class="ref-evidence">
           <details id="ref-source"><summary>源指令与函数声明 <span id="ref-instruction-count"></span></summary><pre id="ref-instructions"></pre></details>
