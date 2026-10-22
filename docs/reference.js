@@ -74,7 +74,7 @@ async function openCard(id, graphName) {
     }
     if (ticket !== request) return;
     card = payload; document.querySelector(".ref-heading strong").textContent = card.card.title; project = buildReferenceProject(card, library, { expanded: $("ref-mode").value === "expanded" });
-    setEnumTable(library.enums); setTypeHierarchy({ UBaseCardObject: { parent: "UObject" } });
+    setEnumTable(library.enums); setTypeHierarchy(project.types);
     if (graphName) project.activeGraph = project.graphs.find((g) => g.id === graphName || g.sourceName === graphName)?.id || project.activeGraph;
     $("ref-summary").innerHTML = `<h2>${esc(card.card.title)}</h2><div class="ref-package">${esc(card.name)} · ${esc(card.package)}</div><div class="ref-badges"><span class="ref-badge">${esc(factions[card.card.faction] || card.card.faction)}</span><span class="ref-badge">${esc(card.card.type)} · ${esc(card.card.rarity)}</span><span class="ref-badge">${card.card.cost} 费 · ${card.card.operationCost} 行动 · ${card.card.attack}/${card.card.defense}</span><span class="ref-badge">${card.functions.length} 函数</span></div><p>${esc(card.card.text)}</p>`;
     $("ref-defaults").textContent = JSON.stringify({ package: card.package, parent: card.parent, defaults: card.defaults, provenance: card.provenance }, null, 2);

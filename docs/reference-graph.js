@@ -2,7 +2,8 @@
 // Source instructions stay in the reference data. Layout is reconstructed, not
 // claimed to be the original editor layout. Calls/expressions are not executed.
 import { makeFunctionGraph, checkName } from "./blueprint.js";
-import { compatible } from "./model.js";
+import { referenceTypes } from "./reference-types.js";
+import { compatible, setTypeHierarchy } from "./model.js";
 
 const CALLS = new Set(["VirtualFunction", "LocalVirtualFunction", "FinalFunction", "LocalFinalFunction", "CallMath", "CallMulticastDelegate"]);
 const ASSIGN = new Set(["Let", "LetBool", "LetObj", "LetValueOnPersistentFrame"]);
@@ -18,10 +19,12 @@ const peel = (x) => x?.op === "Context" ? peel(x.value) : x;
 const variable = (x) => x?.op === "Variable" ? x.name : null;
 const isEnum = (t, library) => Object.hasOwn(library.enums || {}, t);
 const isConst = (x) => x && (/Const$/.test(x.op) || ["True", "False", "Self", "NoObject", "Nothing"].includes(x.op));
+const canonicalType = (type = "unknown") => String(type).replace(/\bclass\s+/g, "").replace(/\b(GameplayTag|FormatArgumentData|LinearColor)\b/g, "F$1");
 
 export function expressionType(x, library) {
   if (!x) return "unknown";
-  if (x.type && x.type !== "unknown") return x.type;
+  if (x.op === "Cast" && x.type === "CST_ObjectToBool") return "bool";
+  if (x.type && !["unknown", "Cast"].includes(x.type)) return canonicalType(x.type);
   if (x.op === "Context") return expressionType(x.value, library);
   if (x.op === "StructMemberContext") return expressionType(x.member, library);
   if (["True", "False"].includes(x.op)) return "bool";
@@ -124,7 +127,8 @@ function buildBody(fn, graph, library, prefix, entry, result, diagnostics, expan
     return n;
   };
   const input = (n, id, name, type, expr) => {
-    type = type || "unknown";
+    type = canonicalType(type);
+    if (type === "unknown") type = expressionType(expr, library);
     n.definition.pins.push(pin(id, name, type, "in"));
     if (isConst(expr) && expr.op !== "StructConst") n.values[id] = isEnum(type, library) ? enumValue(expr, type, library) : expr.op === "True" ? true : expr.op === "False" ? false : expr.op === "Self" ? "Self" : typeof expr.value === "object" ? expressionText(expr, library) : expr.value ?? "None";
     else n.folded[id] = { text: expressionText(expr, library), expression: expr, type };
@@ -153,7 +157,11 @@ function buildBody(fn, graph, library, prefix, entry, result, diagnostics, expan
         n.definition.pins.push(pin(`arg${i}`, p.name, p.type === "unknown" ? expressionType(c.args[i], library) : p.type, "out"));
         produce(c.args[i], n, `arg${i}`);
       }
-      else input(n, enumCompare ? i === 0 ? "A" : "B" : `arg${i}`, p.name, enumCompare ? enumType : p.type === "unknown" ? expressionType(c.args[i], library) : p.type, resolve(c.args[i]));
+      else {
+        const actual = expressionType(c.args[i], library);
+        const type = enumCompare ? enumType : p.type === "unknown" || c.name === "GetEnumeratorUserFriendlyName" && isEnum(actual, library) ? actual : p.type;
+        input(n, enumCompare ? i === 0 ? "A" : "B" : `arg${i}`, p.name, type, resolve(c.args[i]));
+      }
     });
     if (outTarget) { n.definition.pins.push(pin("return", sig?.params.find((p) => p.return)?.name || "ReturnValue", expressionType(outTarget, library), "out")); produce(outTarget, n, "return"); }
     const dataInputs = n.definition.pins.filter((p) => p.type !== "exec" && p.direction === "in" && p.id !== "target");
@@ -184,7 +192,7 @@ function buildBody(fn, graph, library, prefix, entry, result, diagnostics, expan
       const condition = ASSIGN.has(previous?.op) && variable(previous.target) === variable(s.condition) ? previous.value : s.condition;
       const c = peel(resolve(condition));
       const enumType = c?.args?.map((a) => expressionType(a, library)).find((t) => isEnum(t, library));
-      const n = make(s, enumType ? `${/NotEqual/.test(c.name) ? "Not Equal" : "Equal"} (${enumType})` : "Branch", "flow");
+      const n = make(s, enumType && /Equal.*ByteByte/.test(c?.name || "") ? `${/NotEqual/.test(c.name) ? "Not Equal" : "Equal"} (${enumType})` : "Branch", "flow");
       n.definition.pins = [pin("exec-in", "Exec", "exec", "in"), pin("true", "True", "exec", "out"), pin("false", "False", "exec", "out")];
       if (enumType && /Equal.*ByteByte/.test(c.name)) {
         n.definition.enumComparison = enumType;
@@ -203,8 +211,10 @@ function buildBody(fn, graph, library, prefix, entry, result, diagnostics, expan
       if (expanded && temp && /Equal.*ByteByte/.test(c?.name || "") && c.args?.some((a) => isEnum(expressionType(a, library), library)) && ["JumpIfNot", "PopExecutionFlowIfNot"].includes(next?.op) && variable(next.condition) === variable(s.target)) continue;
       if (CALLS.has(c?.op) && !(expanded && !temp && library.signatures?.[c.signature]?.pure)) callNode(s, s.value, s.target);
       else {
-        const n = make(s, `Set ${s.target?.name || "Value"}`, "setter");
-        input(n, "value", s.target?.name || "Value", expressionType(s.target, library), resolve(s.value));
+        const field = s.target?.name || s.target?.member?.name || s.target?.value?.name || "Value";
+        const n = make(s, `Set ${field}`, "setter");
+        if (expanded && s.target?.object) input(n, "target", s.target.op === "StructMemberContext" ? "Struct" : "Target", expressionType(s.target.object, library), s.target.object);
+        input(n, "value", field, expressionType(s.target, library), resolve(s.value));
         n.definition.pins.push(pin("value-out", "Value", expressionType(s.target, library), "out"));
         produce(s.target, n, "value-out");
       }
@@ -344,16 +354,23 @@ export function expandDataExpressions(graph, library) {
     graph.edges.push({ id: `expanded-edge-${graph.id}-${sequence++}`, from: source, to: { node: destination.id, pin: port } });
   };
   const fill = (n, id, name, type, expr) => {
-    n.definition.pins.push(pin(id, name, type || "unknown", "in"));
+    type = canonicalType(type);
+    if (type === "unknown") type = expressionType(expr, library);
+    n.definition.pins.push(pin(id, name, type, "in"));
     if (isConst(expr) && expr.op !== "StructConst") {
-      n.values[id] = isEnum(type, library) ? enumValue(expr, type, library) : expr.op === "True" ? true : expr.op === "False" ? false : expr.op === "Self" ? "Self" : expr.value ?? "None";
+      n.values[id] = isEnum(type, library) ? enumValue(expr, type, library) : expr.op === "True" ? true : expr.op === "False" ? false : expr.op === "Self" ? "Self" : typeof expr.value === "object" ? expressionText(expr, library) : expr.value ?? "None";
     } else connect(materialize(expr, type, n.definition.reference), n, id);
   };
   const materialize = (expr, hint, origin) => {
     if (!expr) return null;
+    hint = canonicalType(hint);
     const c = peel(expr), sig = library.signatures?.[c?.signature];
     let type = expressionType(expr, library);
     if (type === "unknown") type = hint || "unknown";
+    if (isEnum(hint, library) && type === "uint8") {
+      const n = { id: `expanded-${graph.id}-${sequence++}`, x: 0, y: 0, values: {}, folded: {}, showAdvanced: true, definition: { id: "reference.EnumConversion", name: `Convert to ${hint}`, class: "Reference", category: "cards", kind: "pure", pure: true, pins: [pin("result", "Value", hint, "out")], reference: { ...origin, expression: expr, expanded: true, conversion: "Source byte result assigned to typed enum" } } };
+      graph.nodes.push(n); fill(n, "input", "Value", "uint8", expr); return { node: n.id, pin: "result" };
+    }
     const key = expr.op === "Variable" ? `${origin?.function}:${expr.scope}:${expr.name}:${type}` : null;
     if (key && getters.has(key)) return getters.get(key);
     const n = { id: `expanded-${graph.id}-${sequence++}`, x: 0, y: 0, title: "", comment: "", values: {}, folded: {}, showAdvanced: true, definition: { id: `reference.data.${expr.op}`, name: expr.op, class: "Reference", category: "cards", kind: "pure", pure: true, pins: [], reference: { ...origin, expression: expr, expanded: true } } };
@@ -402,8 +419,8 @@ export function expandDataExpressions(graph, library) {
       n.definition.name = expr.op.replace(/([a-z])([A-Z])/g, "$1 $2");
       for (const [field, value] of Object.entries(expr)) if (value?.op) fill(n, field, field, expressionType(value, library), value);
     }
-    n.definition.pins.push(pin("value", "Value", type, "out"));
-    const output = { node: n.id, pin: "value" };
+    n.definition.pins.push(pin("result", "Value", type, "out"));
+    const output = { node: n.id, pin: "result" };
     if (key) getters.set(key, output);
     return output;
   };
@@ -418,9 +435,10 @@ export function expandDataExpressions(graph, library) {
 }
 
 export function buildReferenceProject(card, library, { expanded = true } = {}) {
+  setTypeHierarchy(referenceTypes);
   const diagnostics = [];
   const eventGraph = { id: `event-${card.id}`, name: "EventGraph", kind: "event", nodes: [], edges: [], view: { x: 30, y: 40, zoom: 0.8 } };
-  const project = { format: "kards-blueprint", version: 2, id: `reference-${card.id}`, name: safe(card.name), asset: { parentClass: "UBaseCardObject", packagePath: card.package.slice(0, card.package.lastIndexOf("/")), description: "Original-card reference, reconstructed by Codex" }, card: { ...card.card }, variables: [], dispatchers: [], classDefaults: {}, enums: library.enums, graphs: [eventGraph], activeGraph: eventGraph.id, reference: { ...card.provenance, originalName: card.name, package: card.package, diagnostics } };
+  const project = { format: "kards-blueprint", version: 2, id: `reference-${card.id}`, name: safe(card.name), asset: { parentClass: "UBaseCardObject", packagePath: card.package.slice(0, card.package.lastIndexOf("/")), description: "Original-card reference, reconstructed by Codex" }, card: { ...card.card }, variables: [], dispatchers: [], classDefaults: {}, enums: library.enums, types: referenceTypes, graphs: [eventGraph], activeGraph: eventGraph.id, reference: { ...card.provenance, originalName: card.name, package: card.package, diagnostics } };
   for (const [key, v] of Object.entries(card.defaults)) {
     if (!/^[A-Za-z_]\w*$/.test(key)) continue;
     const value = ["string", "number", "boolean"].includes(typeof v) ? v : Array.isArray(v) && v.every((x) => ["string", "number", "boolean"].includes(typeof x)) ? v : v?.SourceString || v?.LocalizedString || v?.CultureInvariantString || v?.ObjectName;
