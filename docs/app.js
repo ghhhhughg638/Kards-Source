@@ -3663,6 +3663,7 @@ const SITE_FILES = [
   "./reference.css",
   "./reference.js",
   "./reference-graph.js",
+  "./reference-types.js",
   "./reference-data/index.json",
   "./style.css",
   "./polish.css",
