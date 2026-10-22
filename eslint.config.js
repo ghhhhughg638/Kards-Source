@@ -8,7 +8,7 @@ export default [
     languageOptions: { globals: globals.browser, sourceType: "module" },
   },
   {
-    files: ["tools/*.mjs"],
+    files: ["tools/*.mjs", "tools/browser/*.mjs", "playwright.config.js"],
     languageOptions: { globals: globals.node, sourceType: "module" },
   },
 ];

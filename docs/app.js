@@ -2,6 +2,7 @@ import { setUiLanguage, tr } from "./ui-i18n.js";
 import { createWorkspace } from "./workspace.js";
 import { makeZip, readZip } from "./zip.js";
 import { entriesSince, isOutdated, isStamped } from "./update.js";
+import { expandEnumExecs as expandEnumPins } from "./enum-tools.js";
 import {
   FORMAT,
   VERSION,
@@ -258,6 +259,7 @@ const FACTIONS = {
 let catalog = [],
   repository = null,
   enums = {},
+  catalogEnums = {},
   project,
   category = "all",
   selection = new Set(),
@@ -397,6 +399,8 @@ function openModal(name, body, subtitle = "") {
   if (!$("modal").open) $("modal").showModal();
 }
 function render() {
+  enums = { ...catalogEnums, ...(project.enums || {}) };
+  setEnumTable(enums);
   project.types = { ...classes, ...project.types };
   setTypeHierarchy(project.types);
   $("project-name").value = project.name;
@@ -1849,6 +1853,7 @@ function reasonDialog(nodeId, pinId) {
 function valueControl(n, p, val) {
   const attrs = `data-input="${esc(p.id)}" data-input-node="${esc(n.id)}"`;
   const kind = pinKind(p.type);
+  if (n.folded?.[p.id]) return `<button type="button" class="pin-input folded-value" data-clear-fold="${esc(p.id)}" data-clear-fold-node="${esc(n.id)}" title="${esc(n.folded[p.id].text)} · 点击改为手动输入">ƒ ${esc(n.folded[p.id].text)} ×</button>`;
   if (typeof val === "boolean")
     return `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>`;
   if (p.id === "target" && val === "None")
@@ -1904,11 +1909,12 @@ function pinMarkup(n, p) {
   return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? valueControl(n, p, val) : ""}${p.direction === "out" ? button : ""}</div>`;
 }
 function nodeBody(n) {
+  const hidden = new Set(n.showAdvanced ? [] : n.definition.advancedPins || []);
   const ins = n.definition.pins.filter(
-      (p) => p.direction === "in" && !targetHidden(n, p),
+      (p) => p.direction === "in" && !targetHidden(n, p) && (!hidden.has(p.id) || pinConnected(n, p)),
     ),
     outs = n.definition.pins.filter((p) => p.direction === "out");
-  const enumPicker = n.definition.switchEnum
+  const enumPicker = n.definition.switchEnum || n.definition.selectEnum || n.definition.enumCompare
     ? `<div class="switch-enum"><select data-switch-enum="${esc(n.id)}" aria-label="枚举 / Enum"><option value="">${langMode === "en" ? "Choose enum…" : "选择枚举…"}</option>${Object.keys(enums)
         .map((k) => `<option ${k === n.definition.enumType ? "selected" : ""}>${esc(k)}</option>`)
         .join("")}</select></div>`
@@ -1917,8 +1923,20 @@ function nodeBody(n) {
     { length: Math.max(ins.length, outs.length) },
     (_, i) =>
       `<div class="pin-pair">${ins[i] ? pinMarkup(n, ins[i]) : '<div class="pin-row"></div>'}${outs[i] ? pinMarkup(n, outs[i]) : '<div class="pin-row output"></div>'}</div>`,
-  ).join("");
+  ).join("") + (n.definition.advancedPins?.length ? `<button class="pin-input advanced-toggle" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : "");
 }
+$("nodes").addEventListener("click", (e) => {
+  const folded = e.target.closest("[data-clear-fold]");
+  if (folded) {
+    const n = graph().nodes.find((n) => n.id === folded.dataset.clearFoldNode);
+    if (n) mutate(() => { delete n.folded[folded.dataset.clearFold]; });
+    return;
+  }
+  const button = e.target.closest("[data-advanced-node]");
+  if (!button) return;
+  const n = graph().nodes.find((n) => n.id === button.dataset.advancedNode);
+  if (n) mutate(() => { n.showAdvanced = !n.showAdvanced; });
+});
 // Visual size class: simple data nodes (Get Self, Get Card ID, literals) stay small, while
 // busy nodes (Change Attack and friends) get larger ports and rows that are easier to wire.
 function nodeTier(d) {
@@ -2426,7 +2444,7 @@ function renderInspector() {
         value,
         label: FACTIONS[value] ? `${FACTIONS[value]} / ${value}` : value,
       })),
-    )}${field("卡牌类型", "card.type", card.type, labelled(TYPE_LABELS, enums.ETypeEnum || Object.keys(TYPE_LABELS)))}${field("稀有度", "card.rarity", card.rarity, labelled(RARITY_LABELS, ["NotAvailable", "Common", "Uncommon", "Rare", "Unique"]))}<div class="field-grid">${field("攻击力", "card.attack", card.attack)}${field("防御力", "card.defense", card.defense)}</div><div style="height:12px"></div><div class="field-grid">${field("指挥点消耗", "card.cost", card.cost)}${field("行动花费", "card.operationCost", card.operationCost ?? 1)}</div><div class="field"><label class="detail-label">卡牌效果<textarea data-field="card.text">${esc(card.text)}</textarea></label></div></section>${classDefaultsSection()}${graphSection()}<section class="detail-section"><h3 class="detail-heading">文件格式 <span>v1.0</span></h3><p class="detail-description">.kardsbp.json 包含资源信息、变量、函数、宏、EventGraph、节点定义、参数和连线。导入后可继续编辑。</p></section>`;
+    )}${field("卡牌类型", "card.type", card.type, labelled(TYPE_LABELS, enums.ETypeEnum || Object.keys(TYPE_LABELS)))}${field("稀有度", "card.rarity", card.rarity, labelled(RARITY_LABELS, ["NotAvailable", "Common", "Uncommon", "Rare", "Unique"]))}<div class="field-grid">${field("攻击力", "card.attack", card.attack)}${field("防御力", "card.defense", card.defense)}</div><div style="height:12px"></div><div class="field-grid">${field("指挥点消耗", "card.cost", card.cost)}${field("行动花费", "card.operationCost", card.operationCost ?? 1)}</div><div class="field"><label class="detail-label">卡牌效果<textarea data-field="card.text">${esc(card.text)}</textarea></label></div></section>${classDefaultsSection()}${graphSection()}<section class="detail-section"><h3 class="detail-heading">文件格式 <span>v2.0</span></h3><p class="detail-description">.kardsbp.json 包含资源信息、变量、函数、宏、EventGraph、节点定义、参数和连线。导入后可继续编辑。</p></section>`;
   }
   $("inspector-content").innerHTML = body;
   $("inspector-content").onpointerdown = (e) => {
@@ -3637,20 +3655,20 @@ function expandEnumExecs(d, enumTable) {
     ...d,
     aliases: [d.aliases || (words !== d.name ? words : ""), SEARCH_ALIASES[d.name] || ""].filter(Boolean).join(" ") || undefined,
   };
-  const branches = d.pins.find((p) => p.id === "Branches" && p.direction === "out" && enumTable?.[p.type]);
-  if (!branches) return out;
-  const pins = d.pins.filter((p) => p.id !== "Branches" && !(p.type === "exec" && p.direction === "out"));
-  if (!pins.some((p) => p.type === "exec" && p.direction === "in"))
-    pins.unshift({ id: "exec-in", name: "执行", type: "exec", direction: "in" });
-  for (const v of enumTable[branches.type]) pins.push({ id: "Case_" + v, name: v, type: "exec", direction: "out" });
-  return { ...out, pins, pure: false, kind: "function", expandedEnum: branches.type };
+  return expandEnumPins(out, enumTable);
 }
 const SITE_FILES = [
   "./",
+  "./reference.html",
+  "./reference.css",
+  "./reference.js",
+  "./reference-graph.js",
+  "./reference-data/index.json",
   "./style.css",
   "./polish.css",
   "./app.js",
   "./model.js",
+  "./enum-tools.js",
   "./blueprint.js",
   "./ue-nodes.js",
   "./i18n.js",
@@ -3997,6 +4015,7 @@ async function boot() {
       ...typeNodes(classes, data.properties || []),
       ...data.nodes.map((d) => expandEnumExecs(d, data.enums)),
     ];
+    catalogEnums = data.enums;
     enums = data.enums;
     setEnumTable(enums);
     properties = data.properties || [];

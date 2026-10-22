@@ -30,14 +30,14 @@ jobs:
           VERSION="$(jq -r '.[0].version' docs/changelog.json)"
           sed -i "s/__BUILD_SHA__/${GITHUB_SHA}/; s/__BUILD_VERSION__/${VERSION}/" _site/v1/app.js
           grep -q "${GITHUB_SHA}" _site/v1/app.js
-          sed -i "s/__BUILD_SHA__/${GITHUB_SHA}/" _site/v1/index.html
+          sed -i "s/__BUILD_SHA__/${GITHUB_SHA}/" _site/v1/*.html
           # Pin every script, style and data URL to this commit (?v=sha). A browser can then never
           # run a mix of old and new files: each build has its own cache entries.
           (
             cd _site/v1
             sed -i -E "s#\"(\./[A-Za-z0-9_-]+\.(js|json|css))\"#\"\1?v=${GITHUB_SHA}\"#g" *.js
             sed -i "s#\./version\.json?v=${GITHUB_SHA}#./version.json#g" app.js
-            sed -i -E "s#(href|src)=\"(\./[A-Za-z0-9_-]+\.(js|css))\"#\1=\"\2?v=${GITHUB_SHA}\"#g" index.html
+            sed -i -E "s#(href|src)=\"(\./[A-Za-z0-9_-]+\.(js|css))\"#\1=\"\2?v=${GITHUB_SHA}\"#g" *.html
             grep -q "app.js?v=${GITHUB_SHA}" index.html
             grep -q "content=\"${GITHUB_SHA}\"" index.html
             if grep -nE "from \"\./[^\"?]+\"" *.js; then echo "unstamped import left"; exit 1; fi

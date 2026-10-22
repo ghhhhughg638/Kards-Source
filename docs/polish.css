@@ -728,3 +728,7 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 /* Switch on Enum: the enum picker sits on top of the node body */
 .node .switch-enum { grid-column: 1 / -1; padding: 6px 10px 2px; }
 .node .switch-enum select { width: 100%; }
+.reference-library-link { color: #b9dbd4; text-decoration: none; font-size: 12px; padding: 7px 10px; border: 1px solid #3b5a53; border-radius: 5px; white-space: nowrap; }
+.reference-library-link:hover { background: #253c36; }
+.folded-value { max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: help; }
+.advanced-toggle { display: block; margin: 4px auto; cursor: pointer; }
