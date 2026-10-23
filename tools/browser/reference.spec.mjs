@@ -110,6 +110,29 @@ test.describe("touch gestures", () => {
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await expect(page.locator("#ref-zoom")).not.toHaveText(before);
   });
+
+  test("one finger on a node drags the node, one finger on empty canvas pans", async ({ page }) => {
+    await page.goto("/reference.html#1a1410e4609e6a61");
+    await expect(page.locator(".ref-node").first()).toBeVisible();
+    const cdp = await page.context().newCDPSession(page);
+    const swipe = async (x, y, dx, dy) => {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y, id: 1 }] });
+      for (let i = 1; i <= 10; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + dx * i / 10, y: y + dy * i / 10, id: 1 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    };
+    const node = page.locator(".ref-node").first();
+    const head = await node.locator(".node-head").boundingBox();
+    const stage = () => page.locator("#ref-stage").evaluate((e) => e.style.transform);
+    const nodeBefore = await node.boundingBox(), stageBefore = await stage();
+    await swipe(head.x + 20, head.y + head.height / 2, 60, 40);
+    const nodeAfter = await node.boundingBox();
+    expect(nodeAfter.x - nodeBefore.x).toBeGreaterThan(40);
+    expect(nodeAfter.y - nodeBefore.y).toBeGreaterThan(25);
+    expect(await stage()).toBe(stageBefore);
+    const vp = await page.locator("#ref-viewport").boundingBox();
+    await swipe(vp.x + vp.width - 40, vp.y + vp.height - 120, -50, -30);
+    expect(await stage()).not.toBe(stageBefore);
+  });
 });
 
 test("Settings shows the running version block (a local copy says it is not a published build)", async ({ page }) => {
