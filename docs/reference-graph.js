@@ -4,12 +4,13 @@
 import { makeFunctionGraph, checkName } from "./blueprint.js";
 import { referenceTypes } from "./reference-types.js";
 import { compatible, setTypeHierarchy } from "./model.js";
+import { collapseForEachLoops } from "./reference-loops.js";
 
 const CALLS = new Set(["VirtualFunction", "LocalVirtualFunction", "FinalFunction", "LocalFinalFunction", "CallMath", "CallMulticastDelegate"]);
 const ASSIGN = new Set(["Let", "LetBool", "LetObj", "LetValueOnPersistentFrame"]);
 const META = new Set(["ComputedJump", "PushExecutionFlow", "PopExecutionFlow", "Jump", "EndOfScript"]);
 const TEMP = /^(CallFunc_|Temp_|K2Node_|UberGraph)/;
-const TEMP_CALL = /^CallFunc_/;
+const TEMP_CALL = /^(CallFunc_|K2Node_Event_)/; // compiler temporaries with exactly one writer: a call output or an event parameter
 const pin = (id, name, type, direction) => ({ id, name, type, direction });
 const safe = (s, prefix = "Ref") => {
   let n = String(s).replace(/[^A-Za-z0-9_]/g, "_").slice(0, 58);
@@ -522,7 +523,7 @@ export function buildReferenceProject(card, library, { expanded = true } = {}) {
   }
   for (const g of project.graphs) {
     compactEnumBranches(g, library);
-    if (expanded) expandDataExpressions(g, library);
+    if (expanded) { expandDataExpressions(g, library); collapseForEachLoops(g); }
     const entries = g.nodes.filter((n) => n.definition.kind === "event" || n.definition.bp?.type === "entry");
     const depth = new Map(entries.map((n) => [n.id, 0]));
     const todo = [...entries.map((n) => n.id)];

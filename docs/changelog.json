@@ -1,5 +1,55 @@
 [
   {
+    "version": "2.18.0",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "原版蓝图查看器:循环还原成 For Each Loop",
+      "en": "Original-card viewer: loops restored to For Each Loop nodes"
+    },
+    "items": [
+      {
+        "zh": "原版卡牌里的数组循环(如“双日出航线”)以前显示成编译后的一大串计数变量、小于、数组长度、加一、分支节点。现在还原成一个 For Each Loop(或带 Break 的 For Each Loop With Break),连好数组、循环体、完成、数组元素和索引。约 98% 的循环已还原,全库节点总数减少约 17%",
+        "en": "Array loops in original cards (e.g. The Double Sunrise) used to show the compiled counter, Less, Array Length, Add and Branch nodes. They now appear as one For Each Loop (or For Each Loop With Break) with array, loop body, completed, element and index wired. About 98% of loops are restored and the library has about 17% fewer nodes"
+      },
+      {
+        "zh": "用字面量数组做的循环(如“军团指挥”的 left_most / right_most),现在是一个 构造数组 节点接 For Each Loop;每圈重新调用一次函数再取元素的循环(如 GetCardsToTheLeft、GetDeckByside),现在只剩一次调用接 For Each Loop",
+        "en": "Loops over a literal array (e.g. Corps Command's left_most / right_most) are now one Make Array node feeding a For Each Loop, and loops whose array comes from a call that the compiler repeats on every pass (GetCardsToTheLeft, GetDeckByside…) show that call once feeding a For Each Loop"
+      },
+      {
+        "zh": "计数循环(For Loop,如“澳新精神”的 0 到 1 次)现在是一个 For Loop 节点,不再是 Temp_int、小于等于、加一、分支;只装着常量的临时变量(文本、枚举、布尔字面量)直接写在读取它的引脚上,图里不再有对应的赋值和读取节点",
+        "en": "Counted loops (e.g. ANZAC Spirit's 0 to 1) are now one For Loop node instead of Temp_int, Less Equal, Add and Branch; temporaries that only carry a constant (text, enum, bool literals) are written straight on the pin that reads them, so their assignment and getter nodes are gone"
+      },
+      {
+        "zh": "事件参数和函数返回值的临时变量读取不再单独悬空,直接连到来源引脚",
+        "en": "Temporary variable reads of event parameters and call results are wired straight to their source pin instead of hanging loose"
+      },
+      {
+        "zh": "Switch on Int(如“外国援助”里按费用分 1/2/3 的分支)现在是一个 Switch on Int 节点,不再是一串“不等于”加分支;Select 节点直接读取它的条件,不再绕一个临时变量,也不再挂一个没有来源的 default 读取节点",
+        "en": "Switch on Int (e.g. Foreign Support splitting by cost 1/2/3) is now one Switch on Int node instead of a chain of Not Equal and Branch; Select nodes read their condition directly instead of through a temporary and no longer carry an unsourced default getter"
+      },
+      {
+        "zh": "Cast To 节点还原成一个带 Success / Cast Failed 执行输出的节点,不再是“设置转换结果、设置是否成功、分支”三个节点",
+        "en": "Cast To is restored to a single node with Success / Cast Failed execution outputs, instead of two assignments plus a Branch"
+      }
+    ]
+  },
+  {
+    "version": "2.17.3",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "与/或/比较/运算节点恢复成普通节点样式",
+      "en": "AND / OR / compare / arithmetic nodes look like normal nodes again"
+    },
+    "items": [
+      {
+        "zh": "与、或、比较(<、>、==)、加减乘除等节点不再用没有标题栏的紧凑样式,改回和其他节点一样的标题栏加引脚行;编辑器和原版蓝图库都一样",
+        "en": "AND, OR, comparison (<, >, ==) and arithmetic nodes no longer use the headerless compact style; they have the same title bar and pin rows as every other node, in the editor and in the original-card viewer"
+      }
+    ]
+  },
+  {
     "version": "2.17.2",
     "date": "2026-10-23",
     "author": "Claude",

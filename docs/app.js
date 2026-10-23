@@ -3659,6 +3659,7 @@ const SITE_FILES = [
   "./zip.js",
   "./update.js",
   "./node-look.js",
+  "./reference-loops.js",
   "./sw.js",
   "./catalog.json",
   "./engine-events.json",

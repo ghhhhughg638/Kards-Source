@@ -74,12 +74,14 @@ test("the main editor exposes the original-library entry and typed enum nodes", 
   await expect(page.locator("#node-list")).toContainText("Select");
 });
 
-test("viewer nodes use the editor node styling, including the compact AND/compare operators", async ({ page }) => {
+test("viewer nodes use the editor node styling; AND/OR/compare nodes look like every other node", async ({ page }) => {
   await page.goto("/reference.html#ffc141adeef542f6");
   await expect(page.locator(".ref-node").first()).toBeVisible();
   expect(await page.locator(".ref-node.node").count()).toBeGreaterThan(5);
-  expect(await page.locator(".ref-node.ue-compact").count()).toBeGreaterThan(0);
-  await expect(page.locator(".ref-node.ue-compact .node-heading strong").first()).toHaveText(/AND|OR|==|<|>|\+/);
+  expect(await page.locator(".ref-node.ue-compact").count()).toBe(0);
+  const operator = page.locator(".ref-node .node-subtitle", { hasText: /BooleanAND|BooleanOR|EqualEqual|Less_|Greater_/ }).first();
+  await expect(operator).toBeVisible();
+  await expect(operator.locator("xpath=ancestor::*[contains(@class,'node-head')]")).toBeVisible();
   expect(await page.locator(".ref-node .pin").count()).toBeGreaterThan(10);
   expect(await page.locator(".ref-pin-row, .ref-dot").count()).toBe(0);
 });

@@ -124,14 +124,120 @@ test("library calls such as Array_Get show no Target pin for Default__KismetArra
   for (const n of nodes) assert.ok(!n.definition.pins.some((p) => p.id === "target"), n.definition.name);
 });
 
-test("a call-output variable is wired from the pin that produces it, not through a detached getter", () => {
-  const g = blockade().graphs.find((x) => x.kind === "event");
-  const arrayGet = g.nodes.find((n) => n.definition.name === "Array_Get");
-  const item = arrayGet.definition.pins.find((p) => p.name === "Item");
-  assert.ok(g.edges.some((e) => e.from.node === arrayGet.id && e.from.pin === item.id), "Array_Get Item feeds a consumer");
-  assert.ok(!g.nodes.some((n) => n.definition.name === "Get CallFunc_Array_Get_Item"));
-  // the array element getter reads its array straight from GetDeckBySide's output
-  const read = g.nodes.find((n) => n.definition.name === "Get Array Item");
-  const source = g.edges.find((e) => e.to.node === read.id && e.to.pin === "array");
-  assert.equal(g.nodes.find((n) => n.id === source.from.node).definition.name, "GetDeckByside");
+const build = (name) => {
+  const meta = library.cards.find((c) => c.name === name);
+  setEnumTable(library.enums);
+  return buildReferenceProject({ ...read(`../docs/reference-data/cards/${meta.id}.json`), translation: {} }, library, { expanded: true });
+};
+const loopNodes = (project) => project.graphs.flatMap((g) => g.nodes.map((n) => ({ g, n }))).filter(({ n }) => /^ue\.ForEachLoop/.test(n.definition.id));
+
+test("the ForEachLoop macro expansion becomes a For Each Loop node instead of a dozen counter nodes", () => {
+  const project = build("card_event_the_double_sunrise");
+  const loops = loopNodes(project);
+  assert.equal(loops.length, 2);
+  const g = project.graphs.find((x) => x.kind === "event");
+  for (const { n } of loops) {
+    const linked = (pin, dir) => g.edges.filter((e) => e[dir].node === n.id && e[dir].pin === pin).length;
+    assert.equal(linked("Array", "to"), 1, "array in");
+    assert.equal(linked("LoopBody", "from"), 1, "loop body");
+    assert.equal(linked("Completed", "from"), 1, "completed");
+    assert.ok(linked("ArrayElement", "from") >= 1, "element feeds the body");
+    assert.equal(n.definition.pins.find((p) => p.id === "Array").type, "TArray<UBaseCardObject*>");
+  }
+  const names = g.nodes.map((n) => n.definition.name);
+  assert.ok(!names.some((x) => /^(Set|Get) Temp_int_(Loop_Counter|Array_Index)_Variable/.test(x)), "no loop counter/index nodes left");
+  assert.ok(!names.includes("Less_IntInt") && !names.includes("Add_IntInt"));
+  assert.ok(g.nodes.length < 45, `expected a short graph, got ${g.nodes.length} nodes`);
+  validateProject(structuredClone(project));
+});
+
+test("a ForEachLoopWithBreak expansion turns the 'break' assignment into the Break pin", () => {
+  const project = build("card_unit_17th_infantry_brigade");
+  const found = loopNodes(project).find(({ n }) => n.definition.id === "ue.ForEachLoopWithBreak");
+  assert.ok(found, "loop with break");
+  const { g, n } = found, by = (id) => g.nodes.find((x) => x.id === id);
+  const breakEdge = g.edges.find((e) => e.to.node === n.id && e.to.pin === "Break");
+  assert.ok(breakEdge, "something leads into Break");
+  assert.match(by(breakEdge.from.node).definition.name, /^Set /);
+  assert.ok(!g.nodes.some((x) => /Temp_bool_True_if_break_was_hit/.test(x.definition.name)));
+  validateProject(structuredClone(project));
+});
+
+test("a literal array feeding a loop becomes one Make Array node, and a re-fetched call result becomes one call", () => {
+  const corps = build("card_event_corps_command");
+  const g = corps.graphs.find((x) => (x.sourceName || x.name) === "_DoOnCardPlayedOrGotchaTriggered");
+  const make = g.nodes.filter((n) => n.definition.id === "ue.MakeArray");
+  assert.equal(make.length, 1);
+  assert.deepEqual([make[0].values.Item0, make[0].values.Item1], ["left_most", "right_most"]);
+  assert.ok(!g.nodes.some((n) => n.definition.name === "Make / Set Array" || /K2Node_MakeArray_Array/.test(n.definition.name)));
+  const loop = g.nodes.find((n) => n.definition.id === "ue.ForEachLoop");
+  assert.ok(g.edges.some((e) => e.from.node === make[0].id && e.to.node === loop.id && e.to.pin === "Array"));
+  validateProject(structuredClone(corps));
+
+  const howitzer = build("card_unit_3_7_inch_mountain_howitzer").graphs.find((x) => (x.sourceName || x.name) === "EventGraph");
+  assert.equal(howitzer.nodes.filter((n) => n.definition.name === "GetCardsToTheLeft").length, 1, "the call is not repeated per iteration");
+  assert.equal(howitzer.nodes.filter((n) => n.definition.id === "ue.ForEachLoop").length, 2);
+  assert.ok(!howitzer.nodes.some((n) => /Temp_int_Loop_Counter/.test(n.definition.name)));
+  validateProject(structuredClone(build("card_unit_3_7_inch_mountain_howitzer")));
+});
+
+test("a counted loop becomes a For Loop and constant temporaries become pin values", () => {
+  const anzac = build("card_event_anzac_spirit").graphs.find((x) => x.kind === "event");
+  const loop = anzac.nodes.find((n) => n.definition.id === "ue.ForLoop");
+  assert.ok(loop, "For Loop node");
+  assert.equal(String(loop.values.FirstIndex), "0");
+  assert.equal(String(loop.values.LastIndex), "1");
+  assert.ok(anzac.edges.some((e) => e.from.node === loop.id && e.from.pin === "LoopBody"));
+  assert.ok(!anzac.nodes.some((n) => /Temp_int_Variable/.test(n.definition.name) && n.definition.kind === "getter"));
+  validateProject(structuredClone(build("card_event_anzac_spirit")));
+
+  const espionage = build("card_event_espionage_skirm").graphs.find((x) => x.kind === "event");
+  assert.ok(!espionage.nodes.some((n) => n.definition.name === "Set Temp_text_Variable"));
+  const note = espionage.nodes.find((n) => n.definition.name === "ShowNotification");
+  assert.equal(note.values.arg1, "No cards in enemy hand.");
+});
+
+test("a switch on int comes back as one Switch node and a Select reads its condition directly", () => {
+  const g = build("card_event_foreign_support_skirm").graphs.find((x) => (x.sourceName || x.name) === "RandomChooseCards");
+  const sw = g.nodes.find((n) => n.definition.id === "ue.SwitchOnInt");
+  assert.ok(sw, "Switch on Int");
+  assert.deepEqual(sw.definition.pins.filter((p) => p.type === "exec" && p.direction === "out").map((p) => p.id), ["1", "2", "3", "Default"]);
+  assert.ok(!g.nodes.some((n) => /K2Node_SwitchInteger/.test(n.definition.name)));
+  assert.equal(g.edges.filter((e) => e.from.node === sw.id).length, 3, "three cases are wired");
+  const scen = build("card_location_british_scen1").graphs.find((x) => x.kind === "event");
+  const select = scen.nodes.find((n) => n.definition.name === "Select");
+  const index = scen.edges.find((e) => e.to.node === select.id && e.to.pin === "index");
+  assert.equal(scen.nodes.find((n) => n.id === index.from.node).definition.name, "Greater_IntInt");
+  assert.ok(!scen.nodes.some((n) => /^Get K2Node_Select_Default|^Get Temp_bool_Variable/.test(n.definition.name)));
+});
+
+test("a compiled dynamic cast becomes one Cast node with Success and Failed outputs", () => {
+  const project = build("card_location_british_scen2");
+  const g = project.graphs.find((x) => x.kind === "event" && x.nodes.some((n) => /^Cast To /.test(n.definition.name)));
+  const cast = g.nodes.find((n) => /^Cast To /.test(n.definition.name));
+  assert.ok(cast.definition.pins.some((p) => p.id === "Success" && p.type === "exec"));
+  assert.ok(g.edges.some((e) => e.from.node === cast.id && e.from.pin === "Success"));
+  assert.ok(!g.nodes.some((n) => /K2Node_DynamicCast/.test(n.definition.name)));
+  validateProject(structuredClone(project));
+});
+
+test("call outputs and event parameters are wired from their producing pin, not through a detached getter", () => {
+  const g = build("card_event_forward_base_anzac").graphs.find((x) => x.kind === "event");
+  assert.ok(!g.nodes.some((n) => /^Get K2Node_Event_/.test(n.definition.name)), "no detached event-parameter getters");
+  const event = g.nodes.find((n) => n.definition.name === "OnPlayedFromHand");
+  assert.ok(g.edges.some((e) => e.from.node === event.id && e.from.pin === "p0"), "the event's parameter pin feeds its readers");
+  const blockade = build("card_event_blockade").graphs.find((x) => x.kind === "event");
+  assert.ok(!blockade.nodes.some((n) => /^Get CallFunc_/.test(n.definition.name)), "no detached call-output getters");
+});
+
+test("loop collapsing never leaves the graph with dangling or mistyped wires", () => {
+  setEnumTable(library.enums);
+  for (const name of ["card_event_the_double_sunrise", "card_unit_17th_infantry_brigade", "card_event_blockade", "card_event_mass_deployment", "card_location_british_scen3", "card_event_vanguard_ita", "card_event_corps_command", "card_event_support_column", "card_unit_3_7_inch_mountain_howitzer", "card_event_defend_the_empire"]) {
+    const project = build(name);
+    for (const g of project.graphs) {
+      const ids = new Set(g.nodes.map((n) => n.id));
+      for (const e of g.edges) assert.ok(ids.has(e.from.node) && ids.has(e.to.node), `${name}: wire to a removed node`);
+    }
+    validateProject(structuredClone(project));
+  }
 });
