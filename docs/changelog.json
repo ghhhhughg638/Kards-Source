@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.18.1",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "与/或/比较/运算节点缩小",
+      "en": "AND / OR / compare / arithmetic nodes are small again"
+    },
+    "items": [
+      {
+        "zh": "这几类节点仍然是普通样式(标题栏加引脚行),但不再带副标题、底部长文字和整行的“添加引脚”按钮,宽度跟内容走:“与”节点从 276×145 缩到 120×95。添加引脚改成一个小的“＋”按钮;编辑器和原版蓝图库一致",
+        "en": "These nodes keep the normal title bar and pin rows but no longer carry the subtitle, the long footer line or the full-width Add Pin button, and their width follows the content: the AND node shrinks from 276×145 to 120×95. Add Pin is a small ＋ button; same in the editor and the original-card viewer"
+      }
+    ]
+  },
+  {
     "version": "2.18.0",
     "date": "2026-10-23",
     "author": "Claude",

@@ -79,9 +79,9 @@ test("viewer nodes use the editor node styling; AND/OR/compare nodes look like e
   await expect(page.locator(".ref-node").first()).toBeVisible();
   expect(await page.locator(".ref-node.node").count()).toBeGreaterThan(5);
   expect(await page.locator(".ref-node.ue-compact").count()).toBe(0);
-  const operator = page.locator(".ref-node .node-subtitle", { hasText: /BooleanAND|BooleanOR|EqualEqual|Less_|Greater_/ }).first();
-  await expect(operator).toBeVisible();
-  await expect(operator.locator("xpath=ancestor::*[contains(@class,'node-head')]")).toBeVisible();
+  const operator = page.locator(".ref-node.ue-slim").first();
+  await expect(operator.locator(".node-head")).toBeVisible();
+  expect(await operator.locator(".pin").count()).toBeGreaterThan(1);
   expect(await page.locator(".ref-node .pin").count()).toBeGreaterThan(10);
   expect(await page.locator(".ref-pin-row, .ref-dot").count()).toBe(0);
 });
@@ -119,4 +119,14 @@ test("Settings shows the running version block (a local copy says it is not a pu
   await expect(page.locator(".version-field .version-line")).toContainText("本地开发版");
   await expect(page.locator("#ver-check")).toBeDisabled();
   await expect(page.locator("#ver-refresh")).toBeEnabled();
+});
+
+test("AND / compare nodes are slim: no subtitle, footer or wide add-pin button", async ({ page }) => {
+  await page.goto("/reference.html#1a1410e4609e6a61");
+  await expect(page.locator(".ref-node").first()).toBeVisible();
+  const and = page.locator(".ref-node.ue-slim").first();
+  const size = await and.evaluate((n) => [n.offsetWidth, n.offsetHeight]);
+  expect(size[0]).toBeLessThan(170);
+  expect(size[1]).toBeLessThan(120);
+  await expect(and.locator(".node-subtitle")).toBeHidden();
 });

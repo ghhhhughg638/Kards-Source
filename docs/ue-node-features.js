@@ -43,8 +43,9 @@ export function pinColor(type, enums = {}) {
 
 export function nodeAppearance(d, enums = {}) {
   const meta = functionMetadata(d), kind = d.kind || (d.event ? "event" : d.pure ? "pure" : "function");
-  // AND / OR / compare / arithmetic nodes keep the same header and body as every other node.
-  const compact = false;
+  // AND / OR / compare / arithmetic nodes keep the same header and pin rows as every other node,
+  // just without the subtitle, footer and wide "add pin" button, so they stay small.
+  const compact = false, slim = !!meta.compactTitle && !d.pins.some((p) => p.type === "exec");
   let color = colors.FunctionCallNodeTitleColor;
   if (/event/i.test(kind)) color = colors.EventNodeTitleColor;
   else if (/Entry|Result|Exit/.test(kind)) color = colors.FunctionTerminatorNodeTitleColor;
@@ -54,7 +55,7 @@ export function nodeAppearance(d, enums = {}) {
   else if (kind === "flow" || kind === "macro") color = "#a0a0a0";
   else if (d.pure || kind === "pure") color = colors.PureFunctionCallNodeTitleColor;
   else if (kind === "cast" || kind === "conversion") color = "#4bb8bd";
-  return { compact, title: meta.compactTitle || d.name, color };
+  return { compact, slim, title: meta.compactTitle || d.name, color };
 }
 
 export function dynamicPinSpec(d) {

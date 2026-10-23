@@ -744,3 +744,9 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 .version-field code { font: 11px var(--mono); color: #cfcfcf; background: #1d1d1d; padding: 1px 5px; border-radius: 2px; }
 .version-ok { color: #8fd18a; }
 .version-old, .version-warn { color: #e0b252; }
+
+/* AND / OR / compare / arithmetic: the normal header and pin rows, kept small */
+.node.ue-slim { min-width: 0; width: max-content; }
+.node.ue-slim .node-subtitle, .node.ue-slim .ref-node-note, .node.ue-slim .pin-en { display: none; }
+.node.ue-slim .node-head { padding-bottom: 4px; }
+.node.ue-slim .add-user-pin { width: auto; min-height: 0; height: 18px; margin: 2px 0 2px 8px; padding: 0 7px; font-size: 12px; line-height: 1; }
