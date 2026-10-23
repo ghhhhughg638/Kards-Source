@@ -27,6 +27,10 @@
       {
         "zh": "Switch on Int(如“外国援助”里按费用分 1/2/3 的分支)现在是一个 Switch on Int 节点,不再是一串“不等于”加分支;Select 节点直接读取它的条件,不再绕一个临时变量,也不再挂一个没有来源的 default 读取节点",
         "en": "Switch on Int (e.g. Foreign Support splitting by cost 1/2/3) is now one Switch on Int node instead of a chain of Not Equal and Branch; Select nodes read their condition directly instead of through a temporary and no longer carry an unsourced default getter"
+      },
+      {
+        "zh": "Cast To 节点还原成一个带 Success / Cast Failed 执行输出的节点,不再是“设置转换结果、设置是否成功、分支”三个节点",
+        "en": "Cast To is restored to a single node with Success / Cast Failed execution outputs, instead of two assignments plus a Branch"
       }
     ]
   },

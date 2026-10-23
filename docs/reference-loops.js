@@ -22,6 +22,7 @@ export function collapseForEachLoops(graph) {
   while (forLoop && guard++ < 120 && collapseForLoop(graph, forLoop)) collapsed++;
   const switchInt = builtins.find((d) => d.id === "ue.SwitchOnInt");
   while (switchInt && guard++ < 180 && collapseSwitchInt(graph, switchInt)) collapsed++;
+  while (guard++ < 240 && collapseCast(graph)) collapsed++;
   foldConstantTemps(graph);
   forwardPureTemps(graph);
   return collapsed;
@@ -407,6 +408,55 @@ function collapseSwitchInt(graph, template) {
     graph.edges = graph.edges.filter((e) => !doomed.has(node(e.from.node)) && !doomed.has(node(e.to.node)));
     graph.nodes = graph.nodes.filter((n) => !doomed.has(n));
     graph.nodes.push(loop);
+    graph.edges.push(...added);
+    return true;
+  }
+  return false;
+}
+
+// Cast To X compiles to:  As = cast(Object) ; Success = (As is valid) ; if (Success) ... else ...
+// The blueprint node is one execution node with Success / Cast Failed outputs and an "As X" pin.
+function collapseCast(graph) {
+  const node = (id) => graph.nodes.find((n) => n.id === id);
+  const into = (n, pin) => graph.edges.filter((e) => e.to.node === n.id && (pin === undefined || e.to.pin === pin));
+  const from = (n, pin) => graph.edges.filter((e) => e.from.node === n.id && (pin === undefined || e.from.pin === pin));
+  const target = (n, pin) => { const e = from(n, pin)[0]; return e && { node: node(e.to.node), pin: e.to.pin }; };
+  for (const setAs of graph.nodes) {
+    if (!/^Set K2Node_DynamicCast_As/.test(setAs.definition.name)) continue;
+    const asName = setAs.definition.name.slice(4), castEdge = into(setAs, "value")[0], cast = castEdge && node(castEdge.from.node);
+    const setOk = target(setAs, "exec-out")?.node;
+    if (!cast || !/^Cast To /.test(cast.definition.name) || !setOk || setOk.definition.name !== `Set ${asName.replace(/_As.*$/, "")}_bSuccess`) continue;
+    const convert = node(into(setOk, "value")[0]?.from.node), branch = target(setOk, "exec-out")?.node;
+    if (convert?.definition.name !== "Convert To bool" || branch?.definition.name !== "Branch" || from(setOk, "value-out").some((e) => e.to.node !== branch.id) || into(branch, "condition")[0]?.from.node !== setOk.id) continue;
+    const getters = graph.nodes.filter((n) => n.definition.name === `Get ${asName}`);
+    if (!getters.some((g) => into(convert, "value").some((e) => e.from.node === g.id)) || from(cast).length !== 1) continue;
+    const resultPin = cast.definition.pins.find((p) => p.direction === "out") || { id: "result", type: "UObject*" };
+    const objectIn = into(cast, "value")[0] || into(cast)[0];
+    if (!objectIn || into(setAs, "exec-in").length === 0) continue;
+    const className = cast.definition.name.slice(8);
+    const definition = {
+      ...structuredClone(cast.definition), kind: "cast", pure: false,
+      pins: [
+        { id: "exec-in", name: "Exec", type: "exec", direction: "in" },
+        { id: "Object", name: "Object", type: "UObject*", direction: "in" },
+        { id: "Success", name: "Success", type: "exec", direction: "out" },
+        { id: "Failed", name: "Cast Failed", type: "exec", direction: "out" },
+        { id: "As", name: `As ${className.replace(/^[UA]?B?P?_?/, "") || className}`, type: resultPin.type, direction: "out" },
+      ],
+    };
+    const make = { id: `cast-${setAs.id}`, x: setAs.x, y: setAs.y, title: "", comment: "", values: {}, folded: {}, definition };
+    let serial = 0;
+    const edge = (f, t) => ({ id: `${make.id}-edge-${serial++}`, from: f, to: t });
+    const added = [...into(setAs, "exec-in").map((e) => edge(e.from, { node: make.id, pin: "exec-in" })), edge(objectIn.from, { node: make.id, pin: "Object" })];
+    const ok = target(branch, "true"), failed = target(branch, "false");
+    if (ok) added.push(edge({ node: make.id, pin: "Success" }, { node: ok.node.id, pin: ok.pin }));
+    if (failed) added.push(edge({ node: make.id, pin: "Failed" }, { node: failed.node.id, pin: failed.pin }));
+    for (const g of getters) for (const e of from(g)) if (e.to.node !== convert.id) added.push(edge({ node: make.id, pin: "As" }, e.to));
+    const doomed = new Set([setAs, setOk, convert, branch, cast, ...getters]);
+    if (graph.nodes.some((n) => n.definition.name === `Get ${setOk.definition.name.slice(4)}`)) continue;
+    graph.edges = graph.edges.filter((e) => !doomed.has(node(e.from.node)) && !doomed.has(node(e.to.node)));
+    graph.nodes = graph.nodes.filter((n) => !doomed.has(n));
+    graph.nodes.push(make);
     graph.edges.push(...added);
     return true;
   }

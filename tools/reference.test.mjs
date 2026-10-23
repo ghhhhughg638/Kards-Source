@@ -211,6 +211,16 @@ test("a switch on int comes back as one Switch node and a Select reads its condi
   assert.ok(!scen.nodes.some((n) => /^Get K2Node_Select_Default|^Get Temp_bool_Variable/.test(n.definition.name)));
 });
 
+test("a compiled dynamic cast becomes one Cast node with Success and Failed outputs", () => {
+  const project = build("card_location_british_scen2");
+  const g = project.graphs.find((x) => x.kind === "event" && x.nodes.some((n) => /^Cast To /.test(n.definition.name)));
+  const cast = g.nodes.find((n) => /^Cast To /.test(n.definition.name));
+  assert.ok(cast.definition.pins.some((p) => p.id === "Success" && p.type === "exec"));
+  assert.ok(g.edges.some((e) => e.from.node === cast.id && e.from.pin === "Success"));
+  assert.ok(!g.nodes.some((n) => /K2Node_DynamicCast/.test(n.definition.name)));
+  validateProject(structuredClone(project));
+});
+
 test("call outputs and event parameters are wired from their producing pin, not through a detached getter", () => {
   const g = build("card_event_forward_base_anzac").graphs.find((x) => x.kind === "event");
   assert.ok(!g.nodes.some((n) => /^Get K2Node_Event_/.test(n.definition.name)), "no detached event-parameter getters");
