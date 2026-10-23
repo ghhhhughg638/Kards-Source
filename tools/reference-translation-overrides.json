@@ -1,0 +1,154 @@
+{
+  "card_event_bomber_cost": {
+    "englishTitle": "LAND OF THE FREE",
+    "title": "自由之地",
+    "englishText": "Reduce cost of the highest cost bomber in your hand by your max kredit slots.",
+    "text": "使你手牌中费用最高的轰炸机的费用减少，数值等于你的指挥点上限。"
+  },
+  "card_event_bombing_run": {
+    "englishTitle": "BOMBING RUN",
+    "title": "轰炸行动",
+    "englishText": "Choose and discard a bomber with cost 3 or less. Deal its attack in damage to the enemy HQ.",
+    "text": "选择并弃掉一张费用不超过 3 的轰炸机，对敌方总部造成等同于其攻击力的伤害。"
+  },
+  "card_event_carrier_support": {
+    "englishTitle": "CARRIER SUPPORT",
+    "title": "航母支援",
+    "englishText": "Destroy an enemy unit with an attack of 2 or less, or 3 or less if you control an air unit.",
+    "text": "消灭一个攻击力不超过 2 的敌方单位；若你控制空中单位，则改为不超过 3。"
+  },
+  "card_event_dogfight_usa": {
+    "englishTitle": "DOGFIGHT",
+    "title": "空中缠斗",
+    "englishText": "Choose one - Target fighter gets +3+3 OR is dealt 6 damage.",
+    "text": "二选一：使目标战斗机获得 +3/+3；或对其造成 6 点伤害。"
+  },
+  "card_event_flank_attack_sov": {
+    "englishTitle": "FLANK ATTACK",
+    "title": "侧翼进攻",
+    "englishText": "Choose one - Add 214th AMUR OR T-34 1942 to your support line.",
+    "text": "二选一：将第 214 阿穆尔团或 T-34 1942 加入你的支援阵线。"
+  },
+  "card_event_for_our_freedom": {
+    "englishTitle": "FOR OUR FREEDOM",
+    "title": "为了我们的自由",
+    "englishText": "Target unit gets +2+2. Other friendly units from the same nation get +1+1.",
+    "text": "目标单位获得 +2/+2，其他同一国家的友方单位获得 +1/+1。"
+  },
+  "card_event_french_promo2": {
+    "englishTitle": "OVERLOAD",
+    "title": "过载",
+    "englishText": "Give target unit +2+2 and pin it.",
+    "text": "目标单位获得 +2/+2，并被压制。"
+  },
+  "card_event_inspired_tactics": {
+    "englishTitle": "INSPIRED TACTICS",
+    "title": "妙计",
+    "englishText": "Add the top unit of your deck with \"Cannot attack the enemy HQ.\" to your support line with Blitz.",
+    "text": "将牌组中最靠上的、具有“无法攻击敌方总部”的单位加入你的支援阵线，并使其获得闪击。"
+  },
+  "card_event_last_ditch": {
+    "englishTitle": "LAST DITCH",
+    "title": "最后一搏",
+    "englishText": "When an enemy unit destroys a friendly unit, destroy the enemy unit.",
+    "text": "当敌方单位消灭一个友方单位时，消灭该敌方单位。"
+  },
+  "card_event_ruthless_planning": {
+    "englishTitle": "RUTHLESS PLANNING",
+    "title": "无情筹划",
+    "englishText": "Destroy a friendly unit. Draw a unit with Destruction from your deck.",
+    "text": "消灭一个友方单位，从牌组抽取一张具有亡语的单位牌。"
+  },
+  "card_event_secret_service": {
+    "englishTitle": "SECRET SERVICE",
+    "title": "秘密情报局",
+    "englishText": "Target friendly unit gets: \"When you play a card with Intel, deal 1 damage to a random enemy.\"",
+    "text": "目标友方单位获得：“当你打出一张具有情报的卡牌时，对随机一个敌人造成 1 点伤害。”"
+  },
+  "card_event_soviet_promo3": {
+    "englishTitle": "FORCED MARCH",
+    "title": "强行军",
+    "englishText": "Choose one - add 1 OR 3 random Soviet units to your support line. Damage your HQ equal to their defense.",
+    "text": "二选一：将 1 个或 3 个随机苏联单位加入你的支援阵线，对你的总部造成等同于这些单位防御力总和的伤害。"
+  },
+  "card_event_top_deck_play_test": {
+    "englishTitle": "BEACHHEAD",
+    "title": "滩头阵地",
+    "englishText": "Draw a card. Put it into play if it is a unit.",
+    "text": "抽取一张卡牌，若它是单位牌，则将其投入战场。"
+  },
+  "card_event_usa_promo2": {
+    "englishTitle": "MELEE",
+    "title": "混战",
+    "englishText": "All units become 1/1 and lose Smokescreen, Ambush and Destruction.",
+    "text": "所有单位变为 1/1，并失去烟幕、伏击和亡语。"
+  },
+  "card_unit_110th_infantry_regiment": {
+    "englishTitle": "110th INFANTRY REGIMENT",
+    "title": "第 110 步兵团",
+    "englishText": "Deployment: Deal 2 damage. Destruction: Enemy HQ gains +4 defense.",
+    "text": "部署：造成 2 点伤害。亡语：敌方总部获得 +4 防御力。"
+  },
+  "card_unit_1st_pulk_piechoty": {
+    "englishTitle": "1st PUŁK PIECHOTY",
+    "title": "第 1 步兵团",
+    "englishText": "When the enemy plays a known card, deal 2 damage to a random enemy.",
+    "text": "当敌方打出一张已知卡牌时，对随机一个敌人造成 2 点伤害。"
+  },
+  "card_unit_211th_basargino": {
+    "englishTitle": "211th BASARGINO",
+    "title": "第 211 巴萨尔吉诺团",
+    "englishText": "Gets +2 attack when you discard a card.",
+    "text": "当你弃掉一张卡牌时，获得 +2 攻击力。"
+  },
+  "card_unit_britain_promo1": {
+    "englishTitle": "KING'S OWN SCOTTISH",
+    "title": "国王直属苏格兰团",
+    "englishText": "When this unit attacks the enemy HQ, deal 2 damage to the HQ.",
+    "text": "当此单位攻击敌方总部时，对该总部造成 2 点伤害。"
+  },
+  "card_unit_jager_regiment_75": {
+    "englishTitle": "75. JÄGER REGIMENT",
+    "title": "第 75 猎兵团",
+    "englishText": "Deployment: Retreat an enemy unit in the frontline.",
+    "text": "部署：使一个前线敌方单位撤退。"
+  },
+  "card_unit_japan_promo1": {
+    "englishTitle": "1st GUARDS CAVALRY",
+    "title": "近卫第 1 骑兵团",
+    "englishText": "Deployment: Deal damage to your HQ equal to the number of non-Japanese cards in your deck.",
+    "text": "部署：对你的总部造成等同于牌组中非日本卡牌数量的伤害。"
+  },
+  "card_unit_m1_240mm_howitzer": {
+    "englishTitle": "M1 240mm HOWITZER",
+    "title": "M1 240 毫米榴弹炮",
+    "englishText": "Reduce operation cost by 1 each time unit moves or attacks, to minimum of 0.",
+    "text": "每次此单位移动或攻击时，行动花费减少 1，最低为 0。"
+  },
+  "card_unit_royal_sussex": {
+    "englishTitle": "ROYAL SUSSEX",
+    "title": "皇家萨塞克斯团",
+    "englishText": "When you attack with a British unit with attack of 1, deal 2 damage to the enemy HQ.",
+    "text": "当你使用攻击力为 1 的英国单位攻击时，对敌方总部造成 2 点伤害。"
+  },
+  "card_unit_soviet_promo1": {
+    "englishTitle": "77th RIFLE REGIMENT",
+    "title": "第 77 步枪团",
+    "englishText": "Your Soviet units with 5 or more attack cost 1 less to deploy.",
+    "text": "你的攻击力不低于 5 的苏联单位的部署花费减少 1。"
+  },
+  "card_unit_usa_promo1": {
+    "englishTitle": "36th INFANTRY REGIMENT",
+    "title": "第 36 步兵团",
+    "englishText": "Deployment: Shuffle a 32nd INFANTRY REGIMENT into your deck.",
+    "text": "部署：将一张第 32 步兵团洗入你的牌组。"
+  },
+  "card_sideeffect_holder_left": {
+    "englishTitle": "Side Effect Holder Left",
+    "title": "左侧副作用承载器"
+  },
+  "card_sideeffect_holder_right": {
+    "englishTitle": "Side Effect Holder Right",
+    "title": "右侧副作用承载器"
+  }
+}

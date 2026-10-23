@@ -7,14 +7,38 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const factions = { Britain: "英国", Germany: "德国", Soviet: "苏联", Japan: "日本", USA: "美国", France: "法国", Finland: "芬兰", Italy: "意大利", Poland: "波兰", Neutral: "中立", Anzac: "澳新", ANZAC: "澳新", NotAvailable: "其他" };
 let library, card, project, page = 0, request = 0, view = { x: 30, y: 30, zoom: 0.8 };
-const narrow = matchMedia("(max-width: 900px)");
+const narrow = matchMedia("(max-width: 1024px)");
 function showPanel(panel) {
   document.querySelector(".ref-layout").dataset.panel = panel;
-  document.querySelectorAll("[data-ref-panel]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.refPanel === panel)));
   if (panel === "graph") requestAnimationFrame(() => { if (graph()) { renderGraph(!viewReady); viewReady = true; } });
 }
-let viewReady = false;
-document.querySelectorAll("[data-ref-panel]").forEach((b) => b.addEventListener("click", () => showPanel(b.dataset.refPanel)));
+let viewReady = false, focusedNode;
+$("ref-browse").onclick = () => showPanel("library");
+$("ref-close-library").onclick = () => showPanel("graph");
+$("ref-close-details").onclick = () => { document.querySelector(".ref-layout").dataset.panel = "graph"; };
+$("ref-more").onclick = () => {
+  const open = $("ref-more").getAttribute("aria-expanded") !== "true";
+  $("ref-more").setAttribute("aria-expanded", String(open));
+  $("ref-actions").classList.toggle("open", open);
+};
+function closeTools() { $("ref-actions").classList.remove("open"); $("ref-more").setAttribute("aria-expanded", "false"); }
+$("ref-viewport").addEventListener("pointerdown", closeTools);
+$("ref-info").onclick = () => {
+  $("ref-info-content").replaceChildren($("ref-summary").cloneNode(true));
+  $("ref-info-content").firstChild.removeAttribute("id");
+  for (const [title, content] of [["类默认值与资源", $("ref-defaults").textContent], ["源指令", $("ref-instructions").textContent]]) {
+    const d = document.createElement("details"), heading = document.createElement("summary"), pre = document.createElement("pre");
+    heading.textContent = title; pre.textContent = content; d.append(heading, pre); $("ref-info-content").append(d);
+  }
+  closeTools(); $("ref-info-dialog").showModal();
+};
+$("ref-mode").onchange = () => {
+  if (!card) return;
+  const previous = project.activeGraph;
+  project = buildReferenceProject(card, library, { expanded: $("ref-mode").value === "expanded" });
+  if (project.graphs.some((g) => g.id === previous)) project.activeGraph = previous;
+  closeTools(); renderGraph();
+};
 const pageSize = 40;
 const cache = new Map();
 const graph = () => project?.graphs.find((g) => g.id === project.activeGraph);
@@ -25,16 +49,19 @@ const snapshot = (key) => {
   return url.href;
 };
 
+const searchText = (s) => String(s ?? "").normalize("NFKC").toLowerCase().replace(/<[^>]*>/g, "").replace(/[\s\p{P}]+/gu, "");
+const plainText = (s) => String(s ?? "").replace(/<[^>]*>/g, "");
 function filteredCards() {
-  const query = $("ref-search").value.trim().toLowerCase(), faction = $("ref-faction").value, type = $("ref-type").value;
-  return library.cards.filter((c) => (!faction || c.faction === faction) && (!type || c.type === type) && (!$("ref-with-logic").checked || !c.dataOnly) && `${c.name} ${c.title} ${c.text} ${c.package} ${(c.functionNames || []).join(" ")}`.toLowerCase().includes(query));
+  const terms = $("ref-search").value.trim().split(/\s+/).map(searchText).filter(Boolean), faction = $("ref-faction").value, type = $("ref-type").value;
+  return library.cards.filter((c) => (!faction || c.faction === faction) && (!type || c.type === type) && (!$("ref-with-logic").checked || !c.dataOnly) && terms.every((term) => c.searchIndex.includes(term)));
+
 }
 function renderList() {
   const cards = filteredCards(); page = Math.min(page, Math.max(0, Math.ceil(cards.length / pageSize) - 1));
   $("ref-result-count").textContent = `${cards.length} 个匹配 / ${library.cards.length} 个蓝图`;
   $("ref-page").textContent = `${page + 1} / ${Math.max(1, Math.ceil(cards.length / pageSize))}`;
   $("ref-prev").disabled = page === 0; $("ref-next").disabled = (page + 1) * pageSize >= cards.length;
-  $("ref-cards").innerHTML = cards.slice(page * pageSize, (page + 1) * pageSize).map((c) => `<button type="button" class="ref-card ${c.id === card?.id ? "active" : ""}" data-card="${esc(c.id)}"><strong>${esc(c.title)}</strong><small>${esc(c.name)}</small><span class="ref-card-tags">${esc(factions[c.faction] || c.faction)} · ${esc(c.type)} · ${c.cost} 费 · ${c.dataOnly ? "仅默认数据" : `${c.functionCount} 函数`}</span></button>`).join("") || '<p class="ref-muted">没有匹配的卡牌。</p>';
+  $("ref-cards").innerHTML = cards.slice(page * pageSize, (page + 1) * pageSize).map((c) => `<button type="button" class="ref-card ${c.id === card?.id ? "active" : ""}" data-card="${esc(c.id)}"><strong>${esc(c.zh.title || c.title)}</strong>${c.zh.title && c.zh.title !== c.title ? `<span class="ref-card-english">${esc(c.title)}</span>` : ""}<small>${esc(c.name)}</small>${c.zh.text || c.text ? `<span class="ref-card-effect">${esc(plainText(c.zh.text || c.text))}</span>` : ""}<span class="ref-card-tags">${esc(factions[c.faction] || c.faction)} · ${esc(c.type)} · ${c.cost} 费 · ${c.dataOnly ? "仅默认数据" : `${c.functionCount} 函数`}${Object.values(c.zh.origins || {}).includes("reference") ? " · 参考译文" : ""}</span></button>`).join("") || '<p class="ref-muted">没有匹配的卡牌，可试试“总部 伤害”等效果关键词。</p>';
   $("ref-cards").querySelectorAll("[data-card]").forEach((b) => b.addEventListener("click", async () => { await openCard(b.dataset.card); if (narrow.matches) showPanel("graph"); }));
 }
 async function openCard(id, graphName) {
@@ -49,15 +76,15 @@ async function openCard(id, graphName) {
       if (cache.size > 12) cache.delete(cache.keys().next().value);
     }
     if (ticket !== request) return;
-    card = payload; project = buildReferenceProject(card, library);
-    setEnumTable(library.enums); setTypeHierarchy({ UBaseCardObject: { parent: "UObject" } });
+    card = { ...payload, translation: library.cards.find((c) => c.id === id)?.zh || {} }; document.querySelector(".ref-heading strong").textContent = card.translation.title || card.card.title; project = buildReferenceProject(card, library, { expanded: $("ref-mode").value === "expanded" });
+    setEnumTable(library.enums); setTypeHierarchy(project.types);
     if (graphName) project.activeGraph = project.graphs.find((g) => g.id === graphName || g.sourceName === graphName)?.id || project.activeGraph;
-    $("ref-summary").innerHTML = `<h2>${esc(card.card.title)}</h2><div class="ref-package">${esc(card.name)} · ${esc(card.package)}</div><div class="ref-badges"><span class="ref-badge">${esc(factions[card.card.faction] || card.card.faction)}</span><span class="ref-badge">${esc(card.card.type)} · ${esc(card.card.rarity)}</span><span class="ref-badge">${card.card.cost} 费 · ${card.card.operationCost} 行动 · ${card.card.attack}/${card.card.defense}</span><span class="ref-badge">${card.functions.length} 函数</span></div><p>${esc(card.card.text)}</p>`;
+    $("ref-summary").innerHTML = `<h2>${esc(card.translation.title || card.card.title)}</h2>${card.translation.title && card.translation.title !== card.card.title ? `<p class="ref-original-text">${esc(card.card.title)}</p>` : ""}<div class="ref-package">${esc(card.name)} · ${esc(card.package)}</div><div class="ref-badges"><span class="ref-badge">${esc(factions[card.card.faction] || card.card.faction)}</span><span class="ref-badge">${esc(card.card.type)} · ${esc(card.card.rarity)}</span><span class="ref-badge">${card.card.cost} 费 · ${card.card.operationCost} 行动 · ${card.card.attack}/${card.card.defense}</span><span class="ref-badge">${card.functions.length} 函数</span></div><p>${esc(plainText(card.translation.text || card.card.text))}</p>${card.translation.text && card.translation.text !== card.card.text ? `<p class="ref-original-text">英文原文：${esc(card.card.text)}</p>` : ""}${Object.values(card.translation.origins || {}).includes("reference") ? '<p class="ref-translation-note">包含参考译文：解包未提供对应中文时补译，英文原文保留。</p>' : ""}`;
     $("ref-defaults").textContent = JSON.stringify({ package: card.package, parent: card.parent, defaults: card.defaults, provenance: card.provenance }, null, 2);
     $("ref-graph").innerHTML = project.graphs.map((g) => `<option value="${esc(g.id)}" ${g.id === project.activeGraph ? "selected" : ""}>${esc(g.sourceName || g.name)}${g.pure ? " · Pure" : ""}</option>`).join("");
     for (const id of ["ref-graph", "ref-copy", "ref-export"]) $(id).disabled = false;
     viewReady = false; renderList(); renderGraph();
-    status(`${card.functions.reduce((s, f) => s + f.body.length, 0)} 条源指令已保留 · 自动布局 · 折叠辅助表达式${project.reference.diagnostics.length ? ` · ${project.reference.diagnostics.length} 个待检查控制流` : ""}`);
+    status(`${card.functions.reduce((s, f) => s + f.body.length, 0)} 条源指令已保留 · 自动布局 · ${$("ref-mode").value === "expanded" ? "完整展开逻辑" : "精简参考"}${project.reference.diagnostics.length ? ` · ${project.reference.diagnostics.length} 个待检查控制流` : ""}`);
   } catch (e) { if (ticket === request) status(e.message, true); }
 }
 function pinControl(n, p) {
@@ -78,7 +105,7 @@ function renderGraph(refit = true) {
   history.replaceState(null, "", `#${card.id}~${encodeURIComponent(g.id)}`);
   $("ref-empty").hidden = !!g.nodes.length;
   $("ref-empty").textContent = "此图没有可执行效果节点。可查看类默认值或切换其他函数。";
-  $("ref-nodes").innerHTML = g.nodes.map((n) => `<article class="ref-node ${esc(n.definition.kind || "function")}" style="left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="ref-node-head"><strong>${esc(nodeChinese(n.definition))}</strong><small>${esc(n.definition.name)}</small></div><div class="ref-node-body">${n.definition.pins.filter((p) => n.showAdvanced || !n.definition.advancedPins?.includes(p.id) || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id)).map((p) => `<div class="ref-pin-row ${p.direction === "out" ? "output" : ""}" data-ref-pin="${esc(p.id)}" style="--ref-pin:${p.type === "bool" ? "var(--bool)" : library.enums[p.type] ? "var(--enum)" : p.type === "exec" ? "var(--exec)" : "var(--object)"}">${p.direction === "in" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}<span class="ref-pin-label">${esc(p.name)}</span>${p.type !== "exec" ? `<span class="ref-pin-type" title="${esc(p.type)}">${esc(p.type)}</span>` : ""}${pinControl(n, p)}${p.direction === "out" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}</div>`).join("")}${n.definition.advancedPins?.length ? `<button class="ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : ""}</div><div class="ref-node-note">${n.definition.reference ? `${esc(n.definition.reference.function)} · @${n.definition.reference.sourceOffset}` : "Function signature"}</div></article>`).join("");
+  $("ref-nodes").innerHTML = g.nodes.map((n) => `<article class="ref-node ${esc(n.definition.kind || "function")}" style="left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="ref-node-head"><strong>${esc(nodeChinese(n.definition))}</strong><small>${esc(n.definition.name)}</small></div><div class="ref-node-body">${n.definition.pins.filter((p) => n.showAdvanced || !n.definition.advancedPins?.includes(p.id) || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id)).map((p) => `<div class="ref-pin-row ${p.direction === "out" ? "output" : ""}" data-ref-pin="${esc(p.id)}" style="--ref-pin:${p.type === "bool" ? "var(--bool)" : library.enums[p.type] ? "var(--enum)" : p.type === "exec" ? "var(--exec)" : "var(--object)"}">${p.direction === "in" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}<span class="ref-pin-label">${esc(p.name)}</span>${p.type !== "exec" ? `<span class="ref-pin-type" title="${esc(p.type)}">${esc(p.type)}</span>` : ""}${pinControl(n, p)}${p.direction === "out" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}</div>`).join("")}${$("ref-mode").value === "compact" && n.definition.advancedPins?.length ? `<button class="ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : ""}</div><div class="ref-node-note">${n.definition.reference ? `${esc(n.definition.reference.function)} · @${n.definition.reference.sourceOffset}` : "Function signature"}</div></article>`).join("");
   // Size columns using real content height; busy native functions must not overlap.
   const columns = new Map();
   for (const n of g.nodes) {
@@ -96,10 +123,31 @@ function renderGraph(refit = true) {
   const source = g.kind === "event" ? card.functions.filter((f) => f.name.startsWith("ExecuteUbergraph_") || f.event) : card.functions.filter((f) => f.name === g.sourceName);
   $("ref-instructions").textContent = JSON.stringify(source, null, 2);
   $("ref-instruction-count").textContent = ` · ${source.reduce((s, f) => s + f.body.length, 0)} 条`;
-  $("ref-details").innerHTML = '<p class="ref-muted">点击节点查看参数和折叠表达式。</p>';
-  requestAnimationFrame(() => { if (refit) fit(); else transform(); drawWires(); });
+  $("ref-locate").innerHTML = '<option value="">定位节点…</option>' + g.nodes.map((n) => `<option value="${esc(n.id)}">${esc(nodeChinese(n.definition))} · ${esc(n.definition.name)}</option>`).join("");
+  for (const row of $("ref-nodes").querySelectorAll("[data-ref-pin]")) {
+    const nodeId = row.closest("[data-ref-node]").dataset.refNode, port = row.dataset.refPin;
+    const edge = g.edges.find((e) => e.from.node === nodeId && e.from.pin === port || e.to.node === nodeId && e.to.pin === port);
+    if (!edge) continue;
+    const target = edge.from.node === nodeId ? edge.to.node : edge.from.node;
+    row.classList.add("ref-connected"); row.title = "点击沿连线定位节点";
+    row.addEventListener("click", (e) => { if (!e.target.closest("input,select,button")) { e.stopPropagation(); focusNode(target); } });
+  }
+  requestAnimationFrame(() => { if (refit) focusNode(); else transform(); drawWires(); });
 }
+function focusNode(id = focusedNode) {
+  const g = graph(); if (!g) return;
+  const n = g.nodes.find((n) => n.id === id) || g.nodes.find((n) => n.definition.event || n.definition.bp?.type === "entry") || g.nodes[0];
+  if (!n || !$("ref-viewport").clientWidth) return;
+  focusedNode = n.id; viewReady = true;
+  const viewport = $("ref-viewport");
+  view = { x: Math.max(12, (viewport.clientWidth - 310 * .95) / 2) - n.x * .95, y: 28 - n.y * .95, zoom: .95 };
+  transform(); $("ref-locate").value = n.id;
+}
+$("ref-locate").onchange = () => focusNode($("ref-locate").value);
+$("ref-readable").onclick = () => focusNode();
 function inspect(n) {
+  focusedNode = n.id;
+  if (narrow.matches) document.querySelector(".ref-layout").dataset.panel = "details";
   $("ref-nodes").querySelectorAll(".selected").forEach((e) => e.classList.remove("selected"));
   [...$("ref-nodes").children].find((e) => e.dataset.refNode === n.id)?.classList.add("selected");
   $("ref-details").innerHTML = `<h3>${esc(n.definition.name)}</h3><p class="ref-muted">${esc(n.definition.signature || "")}</p>${n.definition.reference?.signatureEvidence ? '<p class="ref-muted">参数类型来自源调用反射；缺少原始参数名的输入按 Arg0、Arg1 标记。</p>' : ""}${n.definition.pins.filter((p) => p.type !== "exec").map((p) => `<div class="ref-detail-pin"><strong>${esc(p.name)} · ${esc(p.type)}</strong><code>${esc(n.folded?.[p.id]?.text ?? n.values[p.id] ?? p.direction)}</code></div>`).join("")}<details><summary>源位置与表达式</summary><pre>${esc(JSON.stringify({ source: n.definition.reference, folded: n.folded }, null, 2))}</pre></details>`;
@@ -113,7 +161,7 @@ function fit() {
   viewReady = true;
   const nodes = graph()?.nodes || []; if (!nodes.length) { view = { x: 30, y: 30, zoom: 1 }; transform(); return; }
   const bounds = $("ref-viewport").getBoundingClientRect();
-  const right = Math.max(...nodes.map((n) => n.x + 330)), bottom = Math.max(...[...$("ref-nodes").children].map((e) => parseFloat(e.style.top) + e.offsetHeight));
+  const right = Math.max(...nodes.map((n) => n.x + 360)), bottom = Math.max(...[...$("ref-nodes").children].map((e) => parseFloat(e.style.top) + e.offsetHeight));
   view = { x: 20, y: 25, zoom: Math.max(0.035, Math.min(1, (bounds.width - 40) / right, (bounds.height - 50) / bottom)) }; transform();
 }
 function drawWires() {
@@ -189,13 +237,25 @@ $("ref-export").onclick = () => {
     const a = document.createElement("a"); a.href = url; a.download = `${card.name}.kardsbp.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (e) { status(`导出失败：${e.message}`, true); }
 };
-window.addEventListener("resize", () => { if (graph() && $("ref-viewport").clientWidth) renderGraph(true); });
+let viewportWidth = innerWidth;
+window.addEventListener("resize", () => {
+  if (graph() && $("ref-viewport").clientWidth && innerWidth !== viewportWidth) renderGraph(true);
+  viewportWidth = innerWidth;
+});
 try {
-  const response = await fetch(snapshot("./reference-data/index.json")); if (!response.ok) throw new Error(`索引加载失败 (${response.status})`);
-  library = await response.json(); $("ref-total").textContent = `${library.cards.length} 个`;
+  const [response, chineseResponse] = await Promise.all([fetch(snapshot("./reference-data/index.json")), fetch(snapshot("./reference-data/zh-Hans.json"))]); if (!response.ok) throw new Error(`索引加载失败 (${response.status})`);
+  if (!chineseResponse.ok) throw new Error(`中文索引加载失败 (${chineseResponse.status})`);
+  const chinese = await chineseResponse.json();
+  library = await response.json();
+  for (const c of library.cards) {
+    c.zh = chinese.cards[c.id] || {};
+    c.searchIndex = searchText(`${c.name} ${c.title} ${c.text} ${c.zh.title || ""} ${c.zh.text || ""} ${c.package} ${factions[c.faction] || c.faction} ${(c.functionNames || []).join(" ")}`);
+  }
+  $("ref-total").textContent = `${library.cards.length} 个`;
   for (const [id, key] of [["ref-faction", "faction"], ["ref-type", "type"]]) for (const v of [...new Set(library.cards.map((c) => c[key]))].sort()) { const option = document.createElement("option"); option.value = v; option.textContent = key === "faction" ? factions[v] || v : v; $(id).append(option); }
   renderList(); status(`${library.counts.cards} 张卡 · ${library.counts.functions} 个函数 · ${library.counts.statements} 条源指令 · Codex`);
   const [id, fn] = location.hash.slice(1).split("~");
   const first = library.cards.find((c) => c.id === id) || library.cards.find((c) => c.name === "card_event_stranglehold") || library.cards.find((c) => !c.dataOnly);
   if (first) await openCard(first.id, fn ? decodeURIComponent(fn) : undefined);
+  if (narrow.matches && !id) showPanel("library");
 } catch (e) { status(`蓝图库加载失败：${e.message}`, true); $("ref-empty").textContent = e.message; }

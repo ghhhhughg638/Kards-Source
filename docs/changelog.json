@@ -1,5 +1,43 @@
 [
   {
+    "version": "2.14.1",
+    "date": "2026-10-23",
+    "author": "Codex",
+    "title": {
+      "zh": "原版卡牌中文名称与效果搜索",
+      "en": "Chinese card names and effect search"
+    },
+    "items": [
+      {
+        "zh": "从游戏简体中文本地化资源提取卡名与效果，缺失条目补充并标记参考译文，覆盖全部2019张原版蓝图。",
+        "en": "Use game localization for Chinese names and effects, with marked supplemental translations for missing entries across all 2,019 original Blueprints."
+      },
+      {
+        "zh": "支持中文卡名、多个效果关键词及英文混合搜索，结果显示中文效果摘要并保留英文原文。",
+        "en": "Search Chinese names, multiple effect keywords and English together; show Chinese effect previews while retaining original English text."
+      }
+    ]
+  },
+  {
+    "version": "2.14.0",
+    "date": "2026-10-23",
+    "author": "Codex",
+    "title": {
+      "zh": "展开原版逻辑与手机画布重排",
+      "en": "Expanded original logic and canvas-first mobile navigation"
+    },
+    "items": [
+      {
+        "zh": "默认展开纯函数、变量读取、运算、数组、结构体和转换节点，保留类型化枚举与函数内置执行分支，可切换精简视图。",
+        "en": "Expand data operations and pure calls by default, preserving typed enums and inline enum execution branches; keep an optional compact view."
+      },
+      {
+        "zh": "手机画布优先显示，选卡、信息及导出按需打开；默认可读比例，支持节点定位和沿连线跳转。",
+        "en": "Give the mobile canvas priority with on-demand library and information panels, readable initial zoom, node navigation and wire following."
+      }
+    ]
+  },
+  {
     "version": "2.13.1",
     "date": "2026-10-23",
     "author": "Codex",

@@ -75,6 +75,13 @@ def generate(source, engine=None):
         for n in [cls, info.get("parent", "")]:
             if re.match(r"^[UA][A-Z]", n):
                 CPP_CLASSES[n[1:]] = n
+    reflected_classes = dict(catalog["classes"])
+    skirmish_path = source / "Blueprints/BP_SkirmishMode.json"
+    if skirmish_path.exists():
+        skirmish = next((e for e in json.loads(skirmish_path.read_text(encoding="utf-8-sig")) if e.get("Type") == "BlueprintGeneratedClass"), None)
+        if skirmish and object_name(skirmish.get("SuperStruct")) == "Actor":
+            reflected_classes["U" + skirmish["Name"]] = {"parent": "AActor", "source": "Exports/Blueprints/BP_SkirmishMode.json:SuperStruct"}
+    (ROOT / "docs/reference-types.js").write_text("// Generated from catalog and source class reflection by generate-reference-library.py.\nexport const referenceTypes = " + json.dumps(reflected_classes, ensure_ascii=False, indent=2) + ";\n", encoding="utf-8")
     enums = dict(catalog["enums"])
     enum_values = {k: {str(i): v for i, v in enumerate(vs)} for k, vs in enums.items()}
     enum_labels = {}
