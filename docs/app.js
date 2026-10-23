@@ -1,3 +1,4 @@
+import { pinColor as uePinColor, nodeAppearance, dynamicPinSpec, canRemoveDynamicPin, addDynamicPin, removeDynamicPin, applyUEPalette } from "./ue-node-features.js";
 import { setUiLanguage, tr } from "./ui-i18n.js";
 import { createWorkspace } from "./workspace.js";
 import { makeZip, readZip } from "./zip.js";
@@ -123,46 +124,9 @@ const CAT = {
     functions: bi("函数", "Functions"),
     macros: bi("宏", "Macros"),
   };
-const COLORS = {
-  event: "#b52c2c",
-  function: "#2469a1",
-  pure: "#508d3d",
-  flow: "#727272",
-  variable: "#68bbaa",
-  cast: "#169ca9",
-  conversion: "#4b8c4b",
-  getter: "#43834a",
-  setter: "#43834a",
-  functionEntry: "#7b4fa0",
-  functionResult: "#7b4fa0",
-  macroEntry: "#9a8530",
-  macroExit: "#9a8530",
-  customEvent: "#b52c2c",
-  call: "#2469a1",
-  macro: "#727272",
-};
-const PINCOLORS = {
-  exec: "#eeeeee",
-  object: "#00a9ef",
-  int: "#30e7bd",
-  bool: "#d41119",
-  string: "#ec3fc4",
-  enum: "#0e9f6e",
-  float: "#9fdb47",
-  name: "#bf83ef",
-  text: "#ec96b4",
-  vector: "#e3bd20",
-  rotator: "#aaa0eb",
-  delegate: "#ff3838",
-  wildcard: "#8f8f8f",
-};
-// Arrays and sets take the color of their element type, as in Unreal.
-function pinColor(type) {
-  const inner = /^T(?:Array|Set)\s*<(.*)>$/.exec(type.trim());
-  if (inner) return pinColor(inner[1]);
-  const kind = pinKind(type);
-  return PINCOLORS[kind === "array" ? "object" : kind];
-}
+applyUEPalette(document.documentElement);
+const PINCOLORS = Object.fromEntries(Object.entries({exec: "exec", object: "UObject*", int: "int32", bool: "bool", string: "FString", enum: "uint8", float: "float", name: "FName", text: "FText", vector: "FVector", rotator: "FRotator", delegate: "Delegate<void>", wildcard: "$T"}).map(([name, type]) => [name, uePinColor(type)]));
+const pinColor = (type) => uePinColor(type, enums);
 const PIN_LEGEND = [
   ["exec", "执行"],
   ["object", "对象"],
@@ -286,7 +250,7 @@ const graph = () => project.graphs.find((g) => g.id === project.activeGraph),
     [...catalog, ...dynamicDefinitions(project, graph())].filter((d) =>
       allowedInGraph(d, graph()),
     ),
-  color = (d) => COLORS[nodeKind(d)] || "#2469a1",
+  color = (d) => nodeAppearance(d, enums).color,
   icon = (d) =>
     ({
       event: "ϟ",
@@ -1396,13 +1360,16 @@ function freeSpotNearCenter(size = { w: 240, h: 130 }) {
       !boxes.some(
         (b) => x < b.x + b.w + 20 && b.x < x + size.w && y < b.y + b.h + 20 && b.y < y + size.h,
       );
+  const viewport = $("viewport"), view = graph().view;
+  const visible = (x, y) => x * view.zoom + view.x >= 8 && y * view.zoom + view.y >= 8 && (x + size.w) * view.zoom + view.x <= viewport.clientWidth - 8 && (y + size.h) * view.zoom + view.y <= viewport.clientHeight - 8;
+  for (const preferVisible of [true, false])
   for (let ring = 0; ring < 12; ring++)
     for (let dy = -ring; dy <= ring; dy++)
       for (let dx = -ring; dx <= ring; dx++) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
         const x = base.x + dx * (size.w + 30),
           y = base.y + dy * (size.h + 20);
-        if (free(x, y)) return { x, y };
+        if (free(x, y) && (!preferVisible || visible(x, y))) return { x, y };
       }
   return base;
 }
@@ -1854,8 +1821,8 @@ function valueControl(n, p, val) {
   const attrs = `data-input="${esc(p.id)}" data-input-node="${esc(n.id)}"`;
   const kind = pinKind(p.type);
   if (n.folded?.[p.id]) return `<button type="button" class="pin-input folded-value" data-clear-fold="${esc(p.id)}" data-clear-fold-node="${esc(n.id)}" title="${esc(n.folded[p.id].text)} · 点击改为手动输入">ƒ ${esc(n.folded[p.id].text)} ×</button>`;
-  if (typeof val === "boolean")
-    return `<button class="pin-value pin-toggle" data-toggle="${esc(p.id)}" data-toggle-node="${esc(n.id)}" title="点击切换 true / false">${val ? "true" : "false"}</button>`;
+  if (kind === "bool")
+    return `<input type="checkbox" class="pin-checkbox" ${attrs} ${val === true || val === "true" ? "checked" : ""} aria-label="${esc(p.name)} 默认布尔值">`;
   if (p.id === "target" && val === "None")
     return `<span class="pin-value pin-need" title="${esc(`这个函数属于 ${n.definition.class}，不是本蓝图（${project.asset.parentClass}）的成员，Target 必须连接`)}">None</span>`;
   if (isReasonPin(n, p))
@@ -1897,7 +1864,7 @@ function pinMarkup(n, p) {
   const button = `<button class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""} ${pending?.node === n.id && pending.pin === p.id ? "pending" : ""}" style="--pin-color:${pinColor(p.type)}" data-node="${esc(n.id)}" data-pin="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type.split("$T").join("Wildcard"))} · ${p.direction === "in" ? "输入" : "输出"}" aria-label="${esc(p.name)} ${p.direction === "in" ? "输入" : "输出"}端口"></button>`;
   const cn = translate(p.name),
     raw = pinEnglish(p);
-  const label = `<span class="pin-label"><span class="pin-cn zh">${esc(cn)}</span><span class="pin-en en">${esc(raw)}</span></span>`;
+  const label = nodeAppearance(n.definition, enums).compact && p.direction === "out" ? "" : cn === raw ? `<span class="pin-label"><span>${esc(raw)}</span></span>` : `<span class="pin-label"><span class="pin-cn zh">${esc(cn)}</span><span class="pin-en en">${esc(raw)}</span></span>`;
   const showValue =
     !connected &&
     p.type !== "exec" &&
@@ -1906,7 +1873,8 @@ function pinMarkup(n, p) {
     !(p.id === "target" && val === "Self") &&
     (p.direction === "in" ||
       (n.definition.category === "variables" && n.definition.kind === "variable"));
-  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? valueControl(n, p, val) : ""}${p.direction === "out" ? button : ""}</div>`;
+  const remove = canRemoveDynamicPin(n.definition, p.id) ? `<button type="button" class="remove-user-pin" data-remove-user-pin="${esc(p.id)}" data-pin-owner="${esc(n.id)}" title="删除引脚（可撤销）" aria-label="删除 ${esc(p.name)} 引脚">×</button>` : "";
+  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}">${p.direction === "in" ? button : ""}${label}${showValue ? valueControl(n, p, val) : ""}${p.direction === "out" ? button : ""}${remove}</div>`;
 }
 function nodeBody(n) {
   const hidden = new Set(n.showAdvanced ? [] : n.definition.advancedPins || []);
@@ -1919,13 +1887,21 @@ function nodeBody(n) {
         .map((k) => `<option ${k === n.definition.enumType ? "selected" : ""}>${esc(k)}</option>`)
         .join("")}</select></div>`
     : "";
+  const spec = dynamicPinSpec(n.definition);
+  const add = spec ? `<button type="button" class="add-user-pin" data-add-user-pin="${esc(n.id)}" ${n.definition.pins.length >= 126 || spec.kind === "operands" && spec.pins.length >= 26 ? "disabled" : ""}>＋ ${spec.kind === "exec" || spec.kind.includes("Cases") ? "添加分支" : "添加引脚"}</button>` : "";
   return enumPicker + Array.from(
     { length: Math.max(ins.length, outs.length) },
     (_, i) =>
       `<div class="pin-pair">${ins[i] ? pinMarkup(n, ins[i]) : '<div class="pin-row"></div>'}${outs[i] ? pinMarkup(n, outs[i]) : '<div class="pin-row output"></div>'}</div>`,
-  ).join("") + (n.definition.advancedPins?.length ? `<button class="pin-input advanced-toggle" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : "");
+  ).join("") + add + (n.definition.advancedPins?.length ? `<button class="pin-input advanced-toggle" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : "");
 }
 $("nodes").addEventListener("click", (e) => {
+  const add = e.target.closest("[data-add-user-pin]"), remove = e.target.closest("[data-remove-user-pin]");
+  if (add || remove) {
+    const n = graph().nodes.find((n) => n.id === (add?.dataset.addUserPin || remove.dataset.pinOwner));
+    if (n) mutate(() => { if (add) addDynamicPin(graph(), n, enums); else removeDynamicPin(graph(), n, remove.dataset.removeUserPin); });
+    return;
+  }
   const folded = e.target.closest("[data-clear-fold]");
   if (folded) {
     const n = graph().nodes.find((n) => n.id === folded.dataset.clearFoldNode);
@@ -1964,7 +1940,7 @@ $("nodes").addEventListener("change", (e) => {
   if (!p) return;
   const kind = pinKind(p.type);
   const val =
-    kind === "int" || kind === "float" ? Number(el.value) : el.value;
+    kind === "bool" ? el.checked : kind === "int" || kind === "float" ? Number(el.value) : el.value;
   if (typeof val === "number" && !Number.isFinite(val)) return renderNodes();
   mutate(() => (n.values[p.id] = kind === "int" ? Math.trunc(val) : val));
 });
@@ -2050,7 +2026,7 @@ function renderNodes() {
   $("nodes").innerHTML = graph()
     .nodes.map(
       (n) =>
-        `<article class="node ue-${nodeKind(n.definition)} tier-${nodeTier(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
+        `<article class="node ue-${nodeKind(n.definition)} ${nodeAppearance(n.definition, enums).compact ? "ue-compact" : ""} tier-${nodeTier(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeAppearance(n.definition, enums).compact && !n.title ? nodeAppearance(n.definition, enums).title : nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
     )
     .join("");
   nodeObserver.disconnect();
@@ -3028,7 +3004,7 @@ viewport.addEventListener("pointerdown", (e) => {
   }
   if (e.target.closest(".canvas-bottom,.minimap-wrap,.empty-state,.selection-bar"))
     return;
-  if (e.target.closest(".pin-input")) return;
+  if (e.target.closest(".pin-input,input,select,textarea,.add-user-pin,.remove-user-pin,.advanced-toggle")) return;
   const toggle = e.target.closest("[data-toggle]");
   if (toggle && e.button === 0) {
     e.preventDefault();
@@ -3259,11 +3235,24 @@ viewport.addEventListener(
   },
   { passive: false },
 );
+function openPinMenu(target) {
+  const el = target?.closest(".pin[data-node][data-pin]");
+  if (!el) return false;
+  const n = graph().nodes.find((n) => n.id === el.dataset.node), id = el.dataset.pin;
+  if (!n) return false;
+  const p = n.definition.pins.find((p) => p.id === id);
+  const connected = graph().edges.some((e) => e.from.node === n.id && e.from.pin === id || e.to.node === n.id && e.to.pin === id);
+  openModal(`引脚 · ${p.name}`, `<p>${esc(p.type)}</p><button id="pin-disconnect" class="secondary-button" ${connected ? "" : "disabled"}>断开此引脚的连线</button><button id="pin-remove" class="secondary-button" ${canRemoveDynamicPin(n.definition, id) ? "" : "disabled"}>删除引脚</button><p class="detail-description">可用撤销恢复引脚及连线。固定签名引脚不能删除。</p>`);
+  $("pin-disconnect").onclick = () => { $("modal").close(); mutate(() => { graph().edges = graph().edges.filter((e) => !(e.from.node === n.id && e.from.pin === id || e.to.node === n.id && e.to.pin === id)); }); };
+  $("pin-remove").onclick = () => { $("modal").close(); mutate(() => removeDynamicPin(graph(), n, id)); };
+  return true;
+}
 viewport.addEventListener("contextmenu", (e) => {
   if (e.target.closest(".minimap-wrap")) return;
   e.preventDefault();
   // A mouse right-click opens the menu on button release (below), once we know it was not a pan.
   if (Date.now() - rightDownAt < 1500) return;
+  if (openPinMenu(e.target)) return;
   picker(worldPoint(e), pending);
 });
 window.addEventListener("pointerup", (e) => {
@@ -3271,6 +3260,7 @@ window.addEventListener("pointerup", (e) => {
   rightDownAt = 0;
   const t = document.elementFromPoint(e.clientX, e.clientY);
   if (!t || !viewport.contains(t) || t.closest(".minimap-wrap,.canvas-bottom,.selection-bar")) return;
+  if (openPinMenu(t)) return;
   picker(worldPoint(e), pending);
 });
 viewport.addEventListener("dblclick", (e) => {
@@ -3673,6 +3663,8 @@ const SITE_FILES = [
   "./enum-tools.js",
   "./blueprint.js",
   "./ue-nodes.js",
+  "./ue-node-features.js",
+  "./ue-editor-metadata.js",
   "./i18n.js",
   "./ui-i18n.js",
   "./workspace.js",

@@ -118,3 +118,8 @@
 .ref-card-effect { color: #c9c9c9; font-size: 12px; line-height: 1.6; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .ref-card-summary .ref-original-text { font-size: 11px; color: #a0a0a0; }
 .ref-card-summary .ref-translation-note { font-size: 11px; color: #c1ac75; }
+
+.ref-node:not(.ue-compact) .ref-node-head { background: linear-gradient(color-mix(in srgb, var(--node-color) 52%, #111), color-mix(in srgb, var(--node-color) 30%, #111)); }
+.ref-node.ue-compact .ref-node-head { background: transparent; border: 0; min-height: 0; text-align: center; padding: 12px 10px 4px; }
+.ref-node.ue-compact .ref-node-head strong { font-size: 19px; }
+.ref-node.ue-compact .ref-node-head small { display: none; }

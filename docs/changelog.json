@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.15.0",
+    "date": "2026-10-23",
+    "author": "Codex",
+    "title": {
+      "zh": "UE 节点可变引脚、紧凑运算与统一配色",
+      "en": "UE variable pins, compact operators and shared colors"
+    },
+    "items": [
+      {
+        "zh": "按 UE 元数据补齐可扩展运算、Sequence、MultiGate、构造数组、Switch 分支和整数 Select 的引脚增删，保留无关连线及撤销保存。",
+        "en": "Add variable-pin controls for associative operators, Sequence, MultiGate, Make Array, switch cases and integer Select while preserving other wires and undo/save behavior."
+      },
+      {
+        "zh": "节点和引脚使用 UE 5.6 默认编辑器色值，紧凑运算不再显示普通纯函数标题栏；布尔输入改用复选框。",
+        "en": "Share UE 5.6 editor colors, render compact operators without regular function headers and use checkboxes for Boolean inputs."
+      }
+    ]
+  },
+  {
     "version": "2.14.1",
     "date": "2026-10-23",
     "author": "Codex",
