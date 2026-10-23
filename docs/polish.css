@@ -732,3 +732,8 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 .reference-library-link:hover { background: #253c36; }
 .folded-value { max-width: 210px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: help; }
 .advanced-toggle { display: block; margin: 4px auto; cursor: pointer; }
+
+/* credits in the status bar */
+.statusbar .credits { color: #8a8a8a; font-size: 10px; white-space: nowrap; }
+.statusbar .credits b { color: #bdbdbd; font-weight: 600; }
+@media (max-width: 800px) { .statusbar .credits, .statusbar .credits + .separator { display: none; } }

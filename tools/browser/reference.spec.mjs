@@ -1,3 +1,4 @@
+/* global document */
 import { test, expect } from "@playwright/test";
 
 test("reference library searches, selects functions and copies an editable card without console errors", async ({ page }) => {
@@ -18,9 +19,9 @@ test("reference library searches, selects functions and copies an editable card 
   const advanced = page.locator(".ref-advanced").first();
   if (await advanced.count()) {
     const id = await advanced.getAttribute("data-advanced-node");
-    const node = page.locator(`[data-ref-node="${id}"]`), before = await node.locator(".ref-pin-row").count();
+    const node = page.locator(`[data-ref-node="${id}"]`), before = await node.locator("[data-ref-pin]").count();
     await advanced.click();
-    expect(await node.locator(".ref-pin-row").count()).toBeGreaterThan(before);
+    expect(await node.locator("[data-ref-pin]").count()).toBeGreaterThan(before);
     await page.locator("#ref-fit").click();
     await node.locator(".ref-advanced").click();
   }
@@ -52,7 +53,7 @@ test("reference enum constants are selectable inline and keep their enum type", 
   let found = false;
   for (let i = 0; i < await page.locator("#ref-graph option").count(); i++) {
     await page.locator("#ref-graph").selectOption({ index: i });
-    const selects = page.locator(".ref-pin-row select");
+    const selects = page.locator("[data-ref-pin] select");
     if (await selects.count()) {
       const select = selects.first(); const values = await select.locator("option").evaluateAll((es) => es.map((e) => e.value));
       if (values.length < 2) continue;
@@ -71,4 +72,40 @@ test("the main editor exposes the original-library entry and typed enum nodes", 
   await expect(page.locator("#project-name")).not.toHaveValue("");
   await page.locator("#node-search").fill("Select (Enum)");
   await expect(page.locator("#node-list")).toContainText("Select");
+});
+
+test("viewer nodes use the editor node styling, including the compact AND/compare operators", async ({ page }) => {
+  await page.goto("/reference.html#ffc141adeef542f6");
+  await expect(page.locator(".ref-node").first()).toBeVisible();
+  expect(await page.locator(".ref-node.node").count()).toBeGreaterThan(5);
+  expect(await page.locator(".ref-node.ue-compact").count()).toBeGreaterThan(0);
+  await expect(page.locator(".ref-node.ue-compact .node-heading strong").first()).toHaveText(/AND|OR|==|<|>|\+/);
+  expect(await page.locator(".ref-node .pin").count()).toBeGreaterThan(10);
+  expect(await page.locator(".ref-pin-row, .ref-dot").count()).toBe(0);
+});
+
+test.describe("touch gestures", () => {
+  test.use({ hasTouch: true, viewport: { width: 1000, height: 900 } });
+  test("pinch zoom still works when the first finger lands on a node's input", async ({ page }) => {
+    await page.goto("/reference.html#f2f31478cbff8fb7");
+    await expect(page.locator(".ref-node").first()).toBeVisible();
+    const id = await page.evaluate(() => document.querySelector(".ref-node input, .ref-node select").closest("[data-ref-node]").dataset.refNode);
+    await page.locator("#ref-locate").selectOption(id);
+    const spot = await page.evaluate(() => {
+      const vp = document.getElementById("ref-viewport").getBoundingClientRect();
+      for (const e of document.querySelectorAll(".ref-node input, .ref-node select")) {
+        const r = e.getBoundingClientRect(), c = [Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2)];
+        if (c[0] > vp.x + 30 && c[0] < vp.right - 30 && c[1] > vp.y + 30 && c[1] < vp.bottom - 130 && r.width > 16) return c;
+      }
+      return null;
+    });
+    expect(spot).not.toBeNull();
+    const before = await page.locator("#ref-zoom").textContent();
+    const cdp = await page.context().newCDPSession(page);
+    const points = (d) => [{ x: spot[0], y: spot[1], id: 1 }, { x: spot[0] + 70 + d, y: spot[1] + 50 + d / 2, id: 2 }];
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: points(0) });
+    for (let i = 1; i <= 8; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: points(i * 12) });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(page.locator("#ref-zoom")).not.toHaveText(before);
+  });
 });

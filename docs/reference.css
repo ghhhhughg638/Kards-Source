@@ -19,8 +19,8 @@
 .ref-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }.ref-card-summary { padding: 19px 23px 14px; background: #252525; border-bottom: 1px solid #393939; }.ref-card-summary h2 { margin: 0 0 8px; font-size: 21px; font-weight: 600; }.ref-card-summary p { margin: 8px 0 0; color: #c2c2c2; font-size: 12px; line-height: 1.6; }.ref-package { font: 10px var(--mono); color: #979797; overflow-wrap: anywhere; }.ref-badges { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 9px; }.ref-badge { padding: 3px 7px; background: #333333; color: #bebebe; border-radius: 4px; font-size: 10px; }
 .ref-toolbar { display: flex; gap: 7px; align-items: center; padding: 9px 12px; background: #2a2a2a; border-bottom: 1px solid #393939; }.ref-toolbar-space { flex: 1; }#ref-graph { max-width: 300px; }#ref-zoom { font: 10px var(--mono); color: #a9a9a9; min-width: 33px; text-align: center; }
 .ref-viewport { flex: 1; min-height: 220px; overflow: hidden; position: relative; background-color: #202020; background-image: linear-gradient(#303030 1px, transparent 1px), linear-gradient(90deg, #303030 1px, transparent 1px), linear-gradient(#272727 1px, transparent 1px), linear-gradient(90deg, #272727 1px, transparent 1px); background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px; cursor: grab; touch-action: none; }.ref-viewport:active { cursor: grabbing; }.ref-stage { position: absolute; transform-origin: 0 0; left: 0; top: 0; }.ref-wires { position: absolute; overflow: visible; pointer-events: none; width: 1px; height: 1px; }.ref-wire { stroke: #c6c6c6; fill: none; stroke-width: 2; opacity: .7; }.ref-wire.false { stroke: #d09282; }.ref-wire.case { stroke: #c3b17f; }
-.ref-node { position: absolute; width: 310px; border: 1px solid #080808; border-radius: 6px; background: #171717f5; box-shadow: 0 5px 15px #0005; cursor: default; overflow: hidden; }.ref-node.selected { outline: 2px solid #f5a623; }.ref-node-head { padding: 10px 12px; background: linear-gradient(#235c8c, #183850); color: #e7f1f7; min-height: 43px; }.ref-node.event .ref-node-head { background: linear-gradient(#a82020, #641313); }.ref-node.flow .ref-node-head { background: linear-gradient(#595959, #373737); }.ref-node.pure .ref-node-head, .ref-node.setter .ref-node-head { background: linear-gradient(#4f4f4f, #333333); }.ref-node.functionEntry .ref-node-head, .ref-node.functionResult .ref-node-head { background: linear-gradient(#654077, #402750); }.ref-node-head strong { display: block; font-size: 12px; overflow-wrap: anywhere; }.ref-node-head small { color: #d8d8d8; display: block; font: 9px var(--mono); margin-top: 4px; opacity: .75; }.ref-node-body { padding: 6px 0; }
-.ref-pin-row { display: flex; align-items: center; gap: 7px; min-height: 26px; padding: 4px 11px; font-size: 10px; position: relative; }.ref-pin-row.output { justify-content: flex-end; background: #24242455; }.ref-dot { height: 8px; width: 8px; min-width: 8px; border: 1px solid var(--ref-pin, #88b3ca); background: var(--ref-pin, #88b3ca); border-radius: 50%; }.ref-dot.exec { background: #e3e3e3; border-radius: 1px; transform: rotate(45deg); width: 7px; height: 7px; min-width: 7px; }.ref-pin-label { color: #c3c3c3; max-width: 130px; overflow-wrap: anywhere; }.ref-pin-type { color: #9b9b9b; font: 8px var(--mono); max-width: 120px; overflow: hidden; text-overflow: ellipsis; }.ref-pin-row select, .ref-pin-row input { background: #191919; color: #dedede; border: 1px solid #585858; border-radius: 3px; padding: 3px; max-width: 144px; font-size: 10px; min-width: 45px; }.ref-pin-row .ref-folded { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; color: #b3b3b3; font: 9px var(--mono); }.ref-node-note { font: 8px var(--mono); color: #8b8b8b; border-top: 1px solid #404040; padding: 5px 10px; }
+
+.ref-node-note { font: 8px var(--mono); color: #8b8b8b; border-top: 1px solid #404040; padding: 5px 10px; }
 .ref-empty { position: absolute; top: 42%; left: 8%; right: 8%; text-align: center; color: #878787; font-size: 13px; line-height: 1.8; }.ref-canvas-hint { position: absolute; bottom: 10px; left: 12px; font-size: 10px; color: #797979; pointer-events: none; }.ref-status { min-height: 27px; padding: 7px 12px; background: #242424; color: #a6a6a6; font-size: 10px; border-top: 1px solid #383838; }.ref-status.error { color: #e4a290; }
 .ref-evidence { background: #252525; max-height: 28vh; overflow: auto; }.ref-evidence details { border-top: 1px solid #363636; }.ref-evidence summary { cursor: pointer; padding: 9px 13px; font-size: 11px; color: #adadad; }.ref-evidence pre, .ref-details pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 10px/1.6 var(--mono); padding: 12px; max-height: 280px; overflow: auto; background: #191919; margin: 0; color: #acacac; }
 .ref-details { padding: 18px 15px; background: #262626; border-left: 1px solid #3a3a3a; overflow: auto; }.ref-details h2 { font-size: 13px; margin: 0 0 16px; }.ref-details h3 { font-size: 12px; overflow-wrap: anywhere; }.ref-details hr { border: 0; border-top: 1px solid #3a3a3a; margin: 20px 0; }.ref-detail-pin { padding: 8px 0; border-bottom: 1px solid #363636; font-size: 10px; line-height: 1.7; }.ref-detail-pin strong { display: block; color: #b2b2b2; }.ref-detail-pin code { color: #c1c1c1; word-break: break-all; }
@@ -39,8 +39,8 @@
 .ref-card, .ref-button, .ref-search, .ref-filters select, #ref-graph { border-radius: 3px; }
 .ref-card.active { background: #33526a; border-color: #4980a7; box-shadow: inset 3px 0 var(--accent); }
 .ref-card:hover { border-color: #535353; }
-.ref-node-head { border-bottom: 1px solid #111; }
-.ref-dot.exec { background: transparent; border: 0; border-radius: 0; transform: none; width: 10px; height: 11px; min-width: 10px; background: var(--exec); clip-path: polygon(0 0, 55% 0, 100% 50%, 55% 100%, 0 100%); }
+
+
 .ref-mobile-nav { display: none; }
 .ref-card-summary { max-height: 28dvh; overflow: auto; }
 .ref-viewport { min-height: 0; }
@@ -53,10 +53,10 @@
 .ref-navigation { display: flex; align-items: center; gap: 5px; padding: 6px 10px; background: #242424; border-top: 1px solid #121212; }
 #ref-locate { min-width: 0; max-width: 340px; flex: 1; }
 .ref-navigation .ref-button { min-width: 38px; }
-.ref-node { width: 340px; }
-.ref-pin-row { font-size: 12px; min-height: 30px; }
-.ref-pin-row input, .ref-pin-row select { font-size: 12px; }
-.ref-node-head strong { font-size: 14px; }
+
+
+
+
 .ref-info-dialog { width: min(760px, calc(100vw - 24px)); max-height: 86dvh; padding: 12px; border: 1px solid #555; border-radius: 5px; background: #252525; color: var(--text); overflow: auto; }
 .ref-info-dialog::backdrop { background: #0009; }
 .ref-info-dialog form { display: flex; justify-content: flex-end; position: sticky; top: 0; background: #252525; }
@@ -81,7 +81,7 @@
  .ref-actions { display: none; position: absolute; z-index: 15; top: 55px; right: 6px; width: min(290px, calc(100vw - 12px)); padding: 12px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; box-shadow: 0 8px 24px #0009; }
  .ref-actions.open { display: flex; flex-direction: column; align-items: stretch; }
  .ref-actions select { min-width: 0; flex: 1; font-size: 16px; min-height: 44px; }
- .ref-pin-row input, .ref-pin-row select { font-size: 16px; min-height: 30px; }
+ 
  .ref-button { min-height: 44px; }
  .ref-navigation { padding: 5px 6px; flex: 0 0 auto; }
  .ref-navigation .ref-button { min-width: 40px; padding: 6px 9px; }
@@ -106,11 +106,11 @@
  .ref-info-dialog .ref-card-summary { display: block; }
 }
 
-.ref-node.pure .ref-node-head, .ref-node.getter .ref-node-head { background: linear-gradient(#427735, #284e24); }
-.ref-node.setter .ref-node-head { background: linear-gradient(#3b3b3b, #252525); }
-.ref-connected { cursor: pointer; }
-.ref-connected:hover { background: #33526a66; }
-.ref-connected .ref-dot { box-shadow: 0 0 0 2px #ffffff12; }
+
+
+
+
+
 
 .ref-heading strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
@@ -119,13 +119,75 @@
 .ref-card-summary .ref-original-text { font-size: 11px; color: #a0a0a0; }
 .ref-card-summary .ref-translation-note { font-size: 11px; color: #c1ac75; }
 
-.ref-node:not(.ue-compact) .ref-node-head { background: linear-gradient(color-mix(in srgb, var(--node-color) 52%, #111), color-mix(in srgb, var(--node-color) 30%, #111)); }
-.ref-node.ue-compact .ref-node-head { background: transparent; border: 0; min-height: 0; text-align: center; padding: 12px 10px 4px; }
-.ref-node.ue-compact .ref-node-head strong { font-size: 19px; }
-.ref-node.ue-compact .ref-node-head small { display: none; }
 
-.ref-node-head { cursor: grab; }.ref-node:active .ref-node-head { cursor: grabbing; }
-.ref-node { user-select: none; }.ref-node input { user-select: text; }
+
+
+
+
+
+
 #ref-multi[aria-pressed="true"] { background: #33526a; border-color: var(--accent); }
 .ref-actions { flex-wrap: wrap; }.ref-toolbar { flex-wrap: wrap; }
 @media (max-width: 1024px) { .ref-toolbar { flex-wrap: nowrap; }#ref-copy-selected { font-size: 10px; padding: 4px; min-width: 54px; }.ref-navigation { gap: 3px; } }
+
+/* Nodes use the editor's own styles (style.css / polish.css); only viewer-specific bits live here. */
+.ref-node { user-select: none; touch-action: none; }
+.ref-node input, .ref-node select { user-select: text; }
+.ref-node .node-head { cursor: grab; }.ref-node:active .node-head { cursor: grabbing; }
+.ref-node .pin { cursor: default; pointer-events: none; }
+.ref-wire { pointer-events: none; }
+.pin-row.ref-connected { cursor: pointer; }
+.pin-row.ref-connected:hover { background: #33526a66; }
+.ref-node .pin-value.ref-folded { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 9px var(--mono); color: #b3b3b3; }
+.ref-node-note { margin-top: 2px; }
+
+/* ---- Same look as the editor: panels, toolbar, buttons, canvas and zoom pill ---- */
+.ref-layout { grid-template-columns: 258px minmax(300px, 1fr) 300px; }
+.ref-sidebar, .ref-details { background: #262626; }
+.ref-sidebar { padding: 14px 12px 10px; border-right: 1px solid #101010; }
+.ref-details { border-left: 1px solid #101010; padding: 0 0 14px; }
+.ref-details > h2 { margin: 0; padding: 10px 14px; font-size: 12px; background: #2e2e2e; border-top: 1px solid #101010; border-bottom: 1px solid #101010; }
+.ref-details > #ref-details, .ref-details > .ref-muted { padding: 0 14px; }
+.ref-library-heading h1 { font-size: 13px; margin: 0 0 12px; letter-spacing: .04em; }
+.ref-button { background: #383838; color: #dddddd; border: 1px solid #535353; border-radius: 2px; padding: 6px 10px; font-size: 11px; font-family: var(--sans); }
+.ref-button:hover { background: #444; border-color: #6d6d6d; }
+.ref-primary { background: #2d6592; border-color: #3b7eb4; }
+.ref-toolbar { height: auto; min-height: 46px; flex-wrap: wrap; row-gap: 6px; padding: 6px 14px; background: #303030; border-bottom: 1px solid #101010; justify-content: space-between; }
+.ref-toolbar .breadcrumbs { min-width: 0; font-size: 11px; color: #a8a8a8; }
+.ref-toolbar .breadcrumbs strong { color: #dedede; font-size: 13px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref-toolbar .breadcrumbs > span:first-child { font-size: 15px; }
+#ref-graph, .ref-mode-label select, #ref-locate { background: #383838; color: #dddddd; border: 1px solid #535353; border-radius: 2px; padding: 5px 8px; font-size: 11px; max-width: 260px; min-height: 0; }
+.ref-actions { margin-left: auto; gap: 6px; flex-wrap: wrap; }
+.ref-mode-label { font-size: 11px; color: #a8a8a8; }
+.ref-main { background: #202020; }
+.ref-canvas-wrap { position: relative; flex: 1; min-height: 0; display: flex; }
+.ref-canvas-wrap .ref-viewport { flex: 1; min-height: 0; background-color: #252525; background-image: linear-gradient(#2d2d2d 1px, transparent 1px), linear-gradient(90deg, #2d2d2d 1px, transparent 1px), linear-gradient(#171717 1px, transparent 1px), linear-gradient(90deg, #171717 1px, transparent 1px); background-size: 16px 16px, 16px 16px, 128px 128px, 128px 128px; outline: 0; }
+.ref-viewport.panning { cursor: grabbing; }
+.ref-navigation { position: absolute; right: 14px; bottom: 12px; z-index: 5; padding: 0; background: transparent; border: 0; gap: 6px; }
+.ref-navigation .zoom-controls { display: flex; align-items: center; }
+.ref-navigation .ref-button, .ref-navigation select { background: #303030e6; }
+.ref-canvas-hint { left: 14px; bottom: 16px; }
+.ref-status { background: #1c1c1c; border-top: 1px solid #101010; }
+.ref-evidence { margin: 12px 0 0; max-height: none; background: transparent; }
+.ref-evidence pre { max-height: 220px; }
+.ref-details .ref-card-summary { max-height: none; overflow: visible; padding: 12px 14px; background: #2a2a2a; border-bottom: 1px solid #101010; }
+.ref-details .ref-card-summary h2 { font-size: 16px; margin: 0 0 4px; }
+.ref-details .ref-card-summary p { font-size: 11px; margin: 6px 0 0; }
+.ref-details .ref-badges { margin-top: 6px; }
+@media (max-width: 1150px) { .ref-layout { grid-template-columns: 240px minmax(300px, 1fr); } }
+@media (max-width: 1024px) {
+  .ref-layout { grid-template-columns: none; }
+  .ref-toolbar { flex-wrap: nowrap; padding: 6px; }
+  .ref-toolbar .breadcrumbs { display: flex; flex: 1; min-width: 0; }
+  .ref-toolbar .breadcrumbs strong, .ref-toolbar .breadcrumbs > span { display: none; }
+  #ref-graph { flex: 1; width: 100%; max-width: none; min-height: 44px; font-size: 16px; }
+  .ref-navigation { left: 6px; right: 6px; bottom: 6px; flex-wrap: nowrap; }
+  .ref-navigation .ref-button, .ref-navigation select { min-height: 40px; }
+  .ref-navigation .zoom-controls button { min-height: 38px; min-width: 38px; }
+  #ref-locate { flex: 1; min-width: 0; max-width: none; font-size: 16px; }
+  .ref-details .ref-card-summary, .ref-details .ref-evidence { display: none; }
+  .ref-details > h2 { margin-top: 8px; }
+}
+
+.ref-search, .ref-filters select { font-size: 12px; padding: 7px 9px; min-height: 0; background: #1b1b1b; border: 1px solid #424242; border-radius: 2px; }
+@media (max-width: 1024px) { .ref-search, .ref-filters select { font-size: 16px; min-height: 44px; } }

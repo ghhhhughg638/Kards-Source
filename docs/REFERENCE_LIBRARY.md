@@ -42,7 +42,7 @@ npm run test:browser
 
 生成器排除 DIY 目录，遇到未覆盖指令或指令计数不一致会失败。提交数据按卡牌拆分；站点不依赖绝对磁盘路径。
 
-本次实现、转换和界面：**Codex**。
+数据转换与最初的查看器：**Codex**。2.17.0 起查看器节点样式、布局与缩放/连线修复：**Claude**。
 
 中文搜索数据可通过 `python tools/generate-reference-translations.py --exports /path/to/Exports/kards/Content` 重建。补译记录和对应英文原文位于 `tools/reference-translation-overrides.json`，覆盖情况及资源哈希见 `reference-data/translation-coverage.json`。
 

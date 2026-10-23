@@ -2,10 +2,12 @@ import { CLIP_KEY, CLIP_TAG, nodeClip } from "./node-clipboard.js";
 import { pinColor, nodeAppearance, dynamicPinSpec, canRemoveDynamicPin, addDynamicPin, removeDynamicPin, applyUEPalette } from "./ue-node-features.js";
 import { buildReferenceProject } from "./reference-graph.js";
 import { createWorkspace } from "./workspace.js";
-import { validateProject, setEnumTable, setTypeHierarchy, resolveWildcards } from "./model.js";
-import { nodeChinese } from "./i18n.js";
+import { validateProject, setEnumTable, setTypeHierarchy, resolveWildcards, pinKind } from "./model.js";
+import { nodeChinese, nodeEnglish, nodeKind, kindLabels, translate } from "./i18n.js";
+import { nodeIcon, nodeTier, pinEnglish } from "./node-look.js";
 
 applyUEPalette(document.documentElement);
+document.documentElement.dataset.lang = "both";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const factions = { Britain: "英国", Germany: "德国", Soviet: "苏联", Japan: "日本", USA: "美国", France: "法国", Finland: "芬兰", Italy: "意大利", Poland: "波兰", Neutral: "中立", Anzac: "澳新", ANZAC: "澳新", NotAvailable: "其他" };
@@ -88,7 +90,7 @@ async function openCard(id, graphName) {
       if (cache.size > 12) cache.delete(cache.keys().next().value);
     }
     if (ticket !== request) return;
-    card = { ...payload, translation: library.cards.find((c) => c.id === id)?.zh || {} }; document.querySelector(".ref-heading strong").textContent = card.translation.title || card.card.title; project = buildReferenceProject(card, library, { expanded: $("ref-mode").value === "expanded" });
+    card = { ...payload, translation: library.cards.find((c) => c.id === id)?.zh || {} }; document.querySelector(".ref-heading strong").textContent = card.translation.title || card.card.title; $("ref-crumb").textContent = card.translation.title || card.card.title; project = buildReferenceProject(card, library, { expanded: $("ref-mode").value === "expanded" });
     setEnumTable(library.enums); setTypeHierarchy(project.types);
     if (graphName) project.activeGraph = project.graphs.find((g) => g.id === graphName || g.sourceName === graphName)?.id || project.activeGraph;
     $("ref-summary").innerHTML = `<h2>${esc(card.translation.title || card.card.title)}</h2>${card.translation.title && card.translation.title !== card.card.title ? `<p class="ref-original-text">${esc(card.card.title)}</p>` : ""}<div class="ref-package">${esc(card.name)} · ${esc(card.package)}</div><div class="ref-badges"><span class="ref-badge">${esc(factions[card.card.faction] || card.card.faction)}</span><span class="ref-badge">${esc(card.card.type)} · ${esc(card.card.rarity)}</span><span class="ref-badge">${card.card.cost} 费 · ${card.card.operationCost} 行动 · ${card.card.attack}/${card.card.defense}</span><span class="ref-badge">${card.functions.length} 函数</span></div><p>${esc(plainText(card.translation.text || card.card.text))}</p>${card.translation.text && card.translation.text !== card.card.text ? `<p class="ref-original-text">英文原文：${esc(card.card.text)}</p>` : ""}${Object.values(card.translation.origins || {}).includes("reference") ? '<p class="ref-translation-note">包含参考译文：解包未提供对应中文时补译，英文原文保留。</p>' : ""}`;
@@ -102,25 +104,64 @@ async function openCard(id, graphName) {
 function pinControl(n, p) {
   if (p.direction !== "in" || p.type === "exec") return "";
   if (graph().edges.some((e) => e.to.node === n.id && e.to.pin === p.id)) return "";
-  if (n.folded?.[p.id]) return `<span class="ref-folded" title="${esc(n.folded[p.id].text)}">ƒ ${esc(n.folded[p.id].text)}</span>`;
+  if (n.folded?.[p.id]) return `<span class="pin-value ref-folded" title="${esc(n.folded[p.id].text)}">ƒ ${esc(n.folded[p.id].text)}</span>`;
   const value = n.values?.[p.id] ?? "", attrs = `data-node-value="${esc(n.id)}" data-pin-value="${esc(p.id)}"`;
   if (library.enums[p.type]) {
     const vs = [...new Set([...library.enums[p.type], String(value)].filter(Boolean))];
-    return `<select ${attrs} aria-label="${esc(`${n.definition.name} ${p.name} ${p.type}`)}">${vs.map((v) => `<option value="${esc(v)}" ${v === String(value) ? "selected" : ""}>${esc(library.enumLabels?.[p.type]?.[v] || v)}</option>`).join("")}</select>`;
+    return `<select class="pin-input" ${attrs} aria-label="${esc(`${n.definition.name} ${p.name} ${p.type}`)}">${vs.map((v) => `<option value="${esc(v)}" ${v === String(value) ? "selected" : ""}>${esc(library.enumLabels?.[p.type]?.[v] || v)}</option>`).join("")}</select>`;
   }
   if (value === "") return "";
   if (typeof value === "boolean") return `<input type="checkbox" class="pin-checkbox" ${attrs} ${value ? "checked" : ""} aria-label="${esc(p.name)} 默认布尔值">`;
-  return `<input ${attrs} aria-label="${esc(p.name)}" value="${esc(value)}" type="${typeof value === "number" ? "number" : "text"}" />`;
+  return `<input class="pin-input ${typeof value === "number" ? "pin-number" : ""}" ${attrs} aria-label="${esc(p.name)}" value="${esc(value)}" type="${typeof value === "number" ? "number" : "text"}" />`;
+}
+// Same node markup and classes as the editor (app.js renderNodes), so both look identical.
+function pinButton(g, n, p) {
+  const connected = g.edges.some((e) => (e.to.node === n.id && e.to.pin === p.id) || (e.from.node === n.id && e.from.pin === p.id));
+  return `<button type="button" tabindex="-1" aria-hidden="true" class="pin ${p.type === "exec" ? "exec" : ""} ${pinKind(p.type) === "array" ? "array" : ""} ${connected ? "connected" : ""}" style="--pin-color:${pinColor(p.type, library.enums)}" data-pin-dot="${esc(p.id)}" title="${esc(p.name)} · ${esc(p.type)} · ${p.direction === "in" ? "输入" : "输出"}"></button>`;
+}
+function pinRow(g, n, p, look) {
+  const cn = translate(p.name), raw = pinEnglish(p);
+  const label = look.compact && p.direction === "out" ? "" : cn === raw ? `<span class="pin-label"><span>${esc(raw)}</span></span>` : `<span class="pin-label"><span class="pin-cn zh">${esc(cn)}</span><span class="pin-en en">${esc(raw)}</span></span>`;
+  const remove = canRemoveDynamicPin(n.definition, p.id) ? `<button type="button" class="remove-user-pin" data-ref-remove-pin="${esc(p.id)}" data-pin-owner="${esc(n.id)}" aria-label="删除 ${esc(p.name)} 引脚">×</button>` : "";
+  const linked = g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id);
+  const control = p.direction === "in" && !linked ? pinControl(n, p) : "";
+  return `<div class="pin-row ${p.direction === "out" ? "output" : ""}" data-ref-pin="${esc(p.id)}">${p.direction === "in" ? pinButton(g, n, p) : ""}${label}${control}${p.direction === "out" ? pinButton(g, n, p) : ""}${remove}</div>`;
+}
+function nodeHtml(n, g) {
+  const d = n.definition, look = nodeAppearance(d, library.enums), kind = nodeKind(d);
+  const linkedIn = (p) => g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id);
+  const shown = d.pins.filter((p) => n.showAdvanced || !d.advancedPins?.includes(p.id) || linkedIn(p));
+  const ins = shown.filter((p) => p.direction === "in"), outs = shown.filter((p) => p.direction === "out");
+  const rows = Array.from({ length: Math.max(ins.length, outs.length) }, (_, i) => `<div class="pin-pair">${ins[i] ? pinRow(g, n, ins[i], look) : '<div class="pin-row"></div>'}${outs[i] ? pinRow(g, n, outs[i], look) : '<div class="pin-row output"></div>'}</div>`).join("");
+  const advanced = $("ref-mode").value === "compact" && d.advancedPins?.length ? `<button class="pin-input advanced-toggle ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${d.advancedPins.length})`} ▾</button>` : "";
+  const add = dynamicPinSpec(d) ? `<button type="button" class="add-user-pin" data-ref-add-pin="${esc(n.id)}">＋ 添加引脚／分支</button>` : "";
+  const owner = (d.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "");
+  return `<article class="node ref-node ue-${kind} ${look.compact ? "ue-compact" : ""} tier-${nodeTier(d)} ${refSelection.has(n.id) ? "selected" : ""}" style="--node-color:${look.color};left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="node-head" title="${esc(kindLabels[kind] || "FUNCTION")} · ${esc(owner)}"><div class="node-heading"><span>${nodeIcon(d)}</span><strong>${esc(look.compact ? look.title : nodeChinese(d))}</strong></div><div class="node-subtitle">${esc(nodeEnglish(d))}</div></div><div class="node-kind-label">${esc(kindLabels[kind] || "FUNCTION")}<span>${esc(owner)}</span></div><div class="node-body">${rows}${advanced}${add}</div><div class="ref-node-note">${d.reference ? `${esc(d.reference.function)} · @${d.reference.sourceOffset}` : "Function signature"}</div></article>`;
 }
 function renderGraph(refit = true) {
   const g = graph(); if (!g) return;
   history.replaceState(null, "", `#${card.id}~${encodeURIComponent(g.id)}`);
   $("ref-empty").hidden = !!g.nodes.length;
   $("ref-empty").textContent = "此图没有可执行效果节点。可查看类默认值或切换其他函数。";
-  $("ref-nodes").innerHTML = g.nodes.map((n) => `<article class="ref-node ${esc(n.definition.kind || "function")} ${nodeAppearance(n.definition, library.enums).compact ? "ue-compact" : ""}" style="--node-color:${nodeAppearance(n.definition, library.enums).color};left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="ref-node-head"><strong>${esc(nodeAppearance(n.definition, library.enums).compact ? nodeAppearance(n.definition, library.enums).title : nodeChinese(n.definition))}</strong><small>${esc(n.definition.name)}</small></div><div class="ref-node-body">${n.definition.pins.filter((p) => n.showAdvanced || !n.definition.advancedPins?.includes(p.id) || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id)).map((p) => `<div class="ref-pin-row ${p.direction === "out" ? "output" : ""}" data-ref-pin="${esc(p.id)}" style="--ref-pin:${pinColor(p.type, library.enums)}">${p.direction === "in" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}<span class="ref-pin-label">${esc(p.name)}</span>${p.type !== "exec" ? `<span class="ref-pin-type" title="${esc(p.type)}">${esc(p.type)}</span>` : ""}${pinControl(n, p)}${canRemoveDynamicPin(n.definition, p.id) ? `<button type="button" class="remove-user-pin" data-ref-remove-pin="${esc(p.id)}" data-pin-owner="${esc(n.id)}" aria-label="删除 ${esc(p.name)} 引脚">×</button>` : ""}${p.direction === "out" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}</div>`).join("")}${$("ref-mode").value === "compact" && n.definition.advancedPins?.length ? `<button class="ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : ""}${dynamicPinSpec(n.definition) ? `<button type="button" class="add-user-pin" data-ref-add-pin="${esc(n.id)}">＋ 添加引脚／分支</button>` : ""}</div><div class="ref-node-note">${n.definition.reference ? `${esc(n.definition.reference.function)} · @${n.definition.reference.sourceOffset}` : "Function signature"}</div></article>`).join("");
+  $("ref-nodes").innerHTML = g.nodes.map((n) => nodeHtml(n, g)).join("");
   // Size columns using real content height; busy native functions must not overlap.
   const columns = new Map();
   refSelection = new Set([...refSelection].filter((id) => g.nodes.some((n) => n.id === id)));
+  // Space the columns by the real node widths so wide nodes never run into their neighbours.
+  if (!g.referenceManualLayout) {
+    const widthOf = new Map([...$("ref-nodes").children].map((e) => [e.dataset.refNode, e.offsetWidth]));
+    const xs = [...new Set(g.nodes.map((n) => n.x))].sort((a, b) => a - b), next = new Map();
+    let cursor = 50;
+    for (const x of xs) {
+      next.set(x, cursor);
+      cursor += Math.max(0, ...g.nodes.filter((n) => n.x === x).map((n) => widthOf.get(n.id) || 244)) + 120;
+    }
+    for (const n of g.nodes) {
+      n.x = next.get(n.x);
+      const el = [...$("ref-nodes").children].find((e) => e.dataset.refNode === n.id);
+      if (el) el.style.left = `${n.x}px`;
+    }
+  }
   for (const n of g.nodes) {
     const ys = columns.get(n.x) || 60;
     const el = [...$("ref-nodes").children].find((e) => e.dataset.refNode === n.id);
@@ -169,7 +210,8 @@ function focusNode(id = focusedNode) {
   if (!n || !$("ref-viewport").clientWidth) return;
   focusedNode = n.id; viewReady = true;
   const viewport = $("ref-viewport");
-  view = { x: Math.max(12, (viewport.clientWidth - 310 * .95) / 2) - n.x * .95, y: 28 - n.y * .95, zoom: .95 };
+  const width = [...$("ref-nodes").children].find((e) => e.dataset.refNode === n.id)?.offsetWidth || 244;
+  view = { x: Math.max(12, (viewport.clientWidth - width * .95) / 2) - n.x * .95, y: 28 - n.y * .95, zoom: .95 };
   transform(); $("ref-locate").value = n.id;
 }
 $("ref-locate").onchange = () => focusNode($("ref-locate").value);
@@ -182,6 +224,9 @@ function inspect(n) {
 }
 function transform() {
   $("ref-stage").style.transform = `translate(${view.x}px,${view.y}px) scale(${view.zoom})`;
+  const z = view.zoom, grid = $("ref-viewport").style;
+  grid.backgroundSize = `${16 * z}px ${16 * z}px, ${16 * z}px ${16 * z}px, ${128 * z}px ${128 * z}px, ${128 * z}px ${128 * z}px`;
+  grid.backgroundPosition = `${view.x}px ${view.y}px`;
   $("ref-zoom").textContent = `${Math.round(view.zoom * 100)}%`;
 }
 function fit() {
@@ -189,24 +234,24 @@ function fit() {
   viewReady = true;
   const nodes = graph()?.nodes || []; if (!nodes.length) { view = { x: 30, y: 30, zoom: 1 }; transform(); return; }
   const bounds = $("ref-viewport").getBoundingClientRect();
-  const right = Math.max(...nodes.map((n) => n.x + 360)), bottom = Math.max(...[...$("ref-nodes").children].map((e) => parseFloat(e.style.top) + e.offsetHeight));
+  const widthOf = new Map([...$("ref-nodes").children].map((e) => [e.dataset.refNode, e.offsetWidth])), right = Math.max(...nodes.map((n) => n.x + (widthOf.get(n.id) || 244))), bottom = Math.max(...[...$("ref-nodes").children].map((e) => parseFloat(e.style.top) + e.offsetHeight));
   const left = Math.min(...nodes.map((n) => n.x)), top = Math.min(...nodes.map((n) => n.y));
   const zoom = Math.max(0.035, Math.min(1, (bounds.width - 40) / Math.max(1, right - left), (bounds.height - 50) / Math.max(1, bottom - top)));
   view = { x: 20 - left * zoom, y: 25 - top * zoom, zoom }; transform();
 }
 function drawWires() {
   const g = graph(); if (!g) return;
-  const elements = new Map([...$("ref-nodes").children].map((e) => [e.dataset.refNode, e]));
-  const position = (ep, output) => {
-    const el = elements.get(ep.node), n = g.nodes.find((n) => n.id === ep.node), row = [...(el?.querySelectorAll("[data-ref-pin]") || [])].find((e) => e.dataset.refPin === ep.pin);
-    if (!row) return null;
-    return { x: n.x + (output ? el.offsetWidth - 12 : 13), y: n.y + row.offsetTop + row.offsetHeight / 2 };
-  };
+  const stage = $("ref-stage").getBoundingClientRect(), pins = new Map();
+  for (const el of $("ref-nodes").children) for (const row of el.querySelectorAll("[data-ref-pin]")) {
+    const dot = row.querySelector(".pin"); if (!dot) continue;
+    const r = dot.getBoundingClientRect();
+    pins.set(`${el.dataset.refNode}\u0000${row.dataset.refPin}`, { x: (r.x + r.width / 2 - stage.x) / view.zoom, y: (r.y + r.height / 2 - stage.y) / view.zoom });
+  }
   $("ref-wires").innerHTML = g.edges.map((e) => {
-    const a = position(e.from, true), b = position(e.to, false); if (!a || !b) return "";
-    const bend = Math.max(60, Math.abs(b.x - a.x) * 0.45);
+    const a = pins.get(`${e.from.node}\u0000${e.from.pin}`), b = pins.get(`${e.to.node}\u0000${e.to.pin}`); if (!a || !b) return "";
+    const dx = Math.max(65, Math.abs(b.x - a.x) * 0.5);
     const type = g.nodes.find((n) => n.id === e.from.node)?.definition.pins.find((p) => p.id === e.from.pin)?.type;
-    return `<path style="stroke:${pinColor(type, library.enums)}" class="ref-wire ${type !== "exec" ? "data" : e.from.pin === "false" ? "false" : e.from.pin.startsWith("Case_") ? "case" : ""}" d="M${a.x},${a.y} C${a.x + bend},${a.y} ${b.x - bend},${b.y} ${b.x},${b.y}" />`;
+    return `<path style="stroke:${pinColor(type, library.enums)}" class="edge ref-wire ${type !== "exec" ? "data" : ""}" d="M${a.x} ${a.y} C${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}" />`;
   }).join("");
 }
 function zoom(delta, point) {
@@ -214,7 +259,7 @@ function zoom(delta, point) {
   const p = point || { x: $("ref-viewport").clientWidth / 2, y: $("ref-viewport").clientHeight / 2 };
   view.x = p.x - (p.x - view.x) * next / old; view.y = p.y - (p.y - view.y) * next / old; view.zoom = next; transform();
 }
-$("ref-viewport").addEventListener("wheel", (e) => { if (e.target.closest("select,input")) return; e.preventDefault(); const r = $("ref-viewport").getBoundingClientRect(); zoom(e.deltaY > 0 ? 0.9 : 1.1, { x: e.clientX - r.left, y: e.clientY - r.top }); }, { passive: false });
+$("ref-viewport").addEventListener("wheel", (e) => { if (e.target.closest("select,input") && e.target === document.activeElement) return; e.preventDefault(); const r = $("ref-viewport").getBoundingClientRect(); zoom(e.deltaY > 0 ? 0.9 : 1.1, { x: e.clientX - r.left, y: e.clientY - r.top }); }, { passive: false });
 const pointers = new Map();
 let gesture, nodeDrag, moved = false, suppressClickUntil = 0;
 function resetGesture() {
@@ -223,13 +268,19 @@ function resetGesture() {
   const center = ps.length > 1 ? { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 } : ps[0];
   gesture = { x: center.x - r.left, y: center.y - r.top, vx: view.x, vy: view.y, zoom: view.zoom, distance: ps.length > 1 ? Math.max(1, Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y)) : 0 };
 }
+let singleOnControl = false;
 $("ref-viewport").addEventListener("pointerdown", (e) => {
-  if (e.target.closest("input,select,button,a") || e.pointerType === "mouse" && e.button !== 0) return;
-  $("ref-viewport").focus({ preventScroll: true });
-  if (!pointers.size) moved = false;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  const onControl = !!e.target.closest("input,select,button:not(.pin),a");
+  if (onControl && e.pointerType === "mouse") return;
+  if (!onControl) $("ref-viewport").focus({ preventScroll: true });
+  if (!pointers.size) { moved = false; singleOnControl = onControl; }
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   const el = e.target.closest("[data-ref-node]");
-  if (pointers.size > 1) nodeDrag = null;
+  // A second finger always joins the gesture, even when it lands on a node's input or button, so a
+  // pinch that touches a node still zooms instead of being swallowed by the control under it.
+  if (pointers.size > 1) { nodeDrag = null; singleOnControl = false; }
+  else if (onControl) nodeDrag = null;
   else if (el) {
     const id = el.dataset.refNode, ids = refSelection.has(id) ? new Set(refSelection) : e.ctrlKey || e.metaKey || e.shiftKey || multiSelecting ? new Set([...refSelection, id]) : new Set([id]);
     nodeDrag = { x: e.clientX, y: e.clientY, ids, positions: graph().nodes.filter((n) => ids.has(n.id)).map((n) => ({ n, x: n.x, y: n.y })) };
@@ -239,6 +290,7 @@ $("ref-viewport").addEventListener("pointerdown", (e) => {
 $("ref-viewport").addEventListener("pointermove", (e) => {
   if (!pointers.has(e.pointerId) || !gesture) return;
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (singleOnControl && pointers.size === 1) return;
   if (nodeDrag && pointers.size === 1) {
     const dx = e.clientX - nodeDrag.x, dy = e.clientY - nodeDrag.y;
     if (!moved && Math.hypot(dx, dy) < 5) return;
