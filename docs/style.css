@@ -2586,3 +2586,15 @@ dialog::backdrop {
     max-height: 250px;
   }
 }
+
+/* UE node colors come from GraphEditorSettings; compact operators have no function header. */
+.node:not(.ue-compact) .node-head { background: linear-gradient(color-mix(in srgb, var(--node-color) 52%, #111), color-mix(in srgb, var(--node-color) 30%, #111)); }
+.node.ue-compact .node-head { background: transparent; border-bottom: 0; min-height: 0; padding: 10px 12px 0; }
+.node.ue-compact .node-heading { justify-content: center; font-size: 19px; }
+.node.ue-compact .node-heading > span, .node.ue-compact .node-subtitle, .node.ue-compact .node-kind-label { display: none; }
+.add-user-pin { display: block; margin: 5px auto; min-height: 28px; padding: 4px 10px; color: #bcbcbc; border: 1px solid #505050; border-radius: 3px; font-size: 11px; }
+.remove-user-pin { flex: 0 0 auto; padding: 0; width: 20px; min-width: 20px; height: 22px; border-radius: 3px; color: #aaa; font-size: 16px; }
+.remove-user-pin:hover { background: #683838 !important; color: white; }
+@media (pointer: coarse) { .add-user-pin { min-height: 40px; }.remove-user-pin { min-width: 30px; width: 30px; height: 34px; } }
+
+.node input.pin-checkbox, .ref-node input.pin-checkbox { width: 14px; min-width: 14px; max-width: 14px; height: 14px; min-height: 14px; margin: 0 2px; padding: 0; accent-color: #c2c2c2; cursor: pointer; }

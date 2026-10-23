@@ -258,6 +258,8 @@ export const ueBuiltins = [
   ...[
     ["AND", "与"],
     ["OR", "或"],
+    ["NAND", "与非"],
+    ["NOR", "或非"],
     ["XOR", "异或"],
   ].map(([name, label]) =>
     pure(name, label, [
@@ -428,6 +430,7 @@ ueBuiltins.push(
     list.push(
       wildFn("EqualAny", "等于（任意类型）", "Equal (==)", [pin("A", T), pin("B", T), out("bool")]),
       wildFn("NotEqualAny", "不等于（任意类型）", "Not Equal (!=)", [pin("A", T), pin("B", T), out("bool")]),
+      wildFn("SelectIndex", "选择（整数索引）", "Select (Integer)", [pin("Index", "int32"), pin("Option0", T, "in", "[0]"), pin("Option1", T, "in", "[1]"), out(T)], { category: "flow" }),
       wildFn("SelectAny", "选择（任意类型）", "Select", [pin("PickA", "bool", "in", "Pick A"), pin("A", T), pin("B", T), out(T)], { category: "flow" }),
     );
     // ---- strings

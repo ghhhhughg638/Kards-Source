@@ -44,7 +44,7 @@ test("reference library searches, selects functions and copies an editable card 
 test("reference enum constants are selectable inline and keep their enum type", async ({ page }) => {
   await page.goto("/reference.html");
   await expect(page.locator("#ref-total")).toHaveText("2019 个");
-  await page.locator("#ref-search").fill("card_event_air_blitz");
+  await page.locator("#ref-search").fill("EnumCompareFaction");
   const items = page.locator("#ref-cards .ref-card");
   if (await items.count()) await items.first().click();
   else { await page.locator("#ref-search").fill("EnumCompareFaction"); await page.locator("#ref-cards .ref-card").first().click(); }

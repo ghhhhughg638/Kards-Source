@@ -1,8 +1,10 @@
+import { pinColor, nodeAppearance, dynamicPinSpec, canRemoveDynamicPin, addDynamicPin, removeDynamicPin, applyUEPalette } from "./ue-node-features.js";
 import { buildReferenceProject } from "./reference-graph.js";
 import { createWorkspace } from "./workspace.js";
-import { validateProject, setEnumTable, setTypeHierarchy } from "./model.js";
+import { validateProject, setEnumTable, setTypeHierarchy, resolveWildcards } from "./model.js";
 import { nodeChinese } from "./i18n.js";
 
+applyUEPalette(document.documentElement);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const factions = { Britain: "英国", Germany: "德国", Soviet: "苏联", Japan: "日本", USA: "美国", France: "法国", Finland: "芬兰", Italy: "意大利", Poland: "波兰", Neutral: "中立", Anzac: "澳新", ANZAC: "澳新", NotAvailable: "其他" };
@@ -97,7 +99,7 @@ function pinControl(n, p) {
     return `<select ${attrs} aria-label="${esc(`${n.definition.name} ${p.name} ${p.type}`)}">${vs.map((v) => `<option value="${esc(v)}" ${v === String(value) ? "selected" : ""}>${esc(library.enumLabels?.[p.type]?.[v] || v)}</option>`).join("")}</select>`;
   }
   if (value === "") return "";
-  if (typeof value === "boolean") return `<select ${attrs}><option value="true" ${value ? "selected" : ""}>true</option><option value="false" ${!value ? "selected" : ""}>false</option></select>`;
+  if (typeof value === "boolean") return `<input type="checkbox" class="pin-checkbox" ${attrs} ${value ? "checked" : ""} aria-label="${esc(p.name)} 默认布尔值">`;
   return `<input ${attrs} aria-label="${esc(p.name)}" value="${esc(value)}" type="${typeof value === "number" ? "number" : "text"}" />`;
 }
 function renderGraph(refit = true) {
@@ -105,7 +107,7 @@ function renderGraph(refit = true) {
   history.replaceState(null, "", `#${card.id}~${encodeURIComponent(g.id)}`);
   $("ref-empty").hidden = !!g.nodes.length;
   $("ref-empty").textContent = "此图没有可执行效果节点。可查看类默认值或切换其他函数。";
-  $("ref-nodes").innerHTML = g.nodes.map((n) => `<article class="ref-node ${esc(n.definition.kind || "function")}" style="left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="ref-node-head"><strong>${esc(nodeChinese(n.definition))}</strong><small>${esc(n.definition.name)}</small></div><div class="ref-node-body">${n.definition.pins.filter((p) => n.showAdvanced || !n.definition.advancedPins?.includes(p.id) || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id)).map((p) => `<div class="ref-pin-row ${p.direction === "out" ? "output" : ""}" data-ref-pin="${esc(p.id)}" style="--ref-pin:${p.type === "bool" ? "var(--bool)" : library.enums[p.type] ? "var(--enum)" : p.type === "exec" ? "var(--exec)" : "var(--object)"}">${p.direction === "in" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}<span class="ref-pin-label">${esc(p.name)}</span>${p.type !== "exec" ? `<span class="ref-pin-type" title="${esc(p.type)}">${esc(p.type)}</span>` : ""}${pinControl(n, p)}${p.direction === "out" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}</div>`).join("")}${$("ref-mode").value === "compact" && n.definition.advancedPins?.length ? `<button class="ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : ""}</div><div class="ref-node-note">${n.definition.reference ? `${esc(n.definition.reference.function)} · @${n.definition.reference.sourceOffset}` : "Function signature"}</div></article>`).join("");
+  $("ref-nodes").innerHTML = g.nodes.map((n) => `<article class="ref-node ${esc(n.definition.kind || "function")} ${nodeAppearance(n.definition, library.enums).compact ? "ue-compact" : ""}" style="--node-color:${nodeAppearance(n.definition, library.enums).color};left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="ref-node-head"><strong>${esc(nodeAppearance(n.definition, library.enums).compact ? nodeAppearance(n.definition, library.enums).title : nodeChinese(n.definition))}</strong><small>${esc(n.definition.name)}</small></div><div class="ref-node-body">${n.definition.pins.filter((p) => n.showAdvanced || !n.definition.advancedPins?.includes(p.id) || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id)).map((p) => `<div class="ref-pin-row ${p.direction === "out" ? "output" : ""}" data-ref-pin="${esc(p.id)}" style="--ref-pin:${pinColor(p.type, library.enums)}">${p.direction === "in" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}<span class="ref-pin-label">${esc(p.name)}</span>${p.type !== "exec" ? `<span class="ref-pin-type" title="${esc(p.type)}">${esc(p.type)}</span>` : ""}${pinControl(n, p)}${canRemoveDynamicPin(n.definition, p.id) ? `<button type="button" class="remove-user-pin" data-ref-remove-pin="${esc(p.id)}" data-pin-owner="${esc(n.id)}" aria-label="删除 ${esc(p.name)} 引脚">×</button>` : ""}${p.direction === "out" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}</div>`).join("")}${$("ref-mode").value === "compact" && n.definition.advancedPins?.length ? `<button class="ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : ""}${dynamicPinSpec(n.definition) ? `<button type="button" class="add-user-pin" data-ref-add-pin="${esc(n.id)}">＋ 添加引脚／分支</button>` : ""}</div><div class="ref-node-note">${n.definition.reference ? `${esc(n.definition.reference.function)} · @${n.definition.reference.sourceOffset}` : "Function signature"}</div></article>`).join("");
   // Size columns using real content height; busy native functions must not overlap.
   const columns = new Map();
   for (const n of g.nodes) {
@@ -117,7 +119,7 @@ function renderGraph(refit = true) {
   $("ref-nodes").querySelectorAll("[data-advanced-node]").forEach((b) => b.addEventListener("click", () => { const n = g.nodes.find((n) => n.id === b.dataset.advancedNode); n.showAdvanced = !n.showAdvanced; renderGraph(false); }));
   $("ref-nodes").querySelectorAll("[data-node-value]").forEach((el) => el.addEventListener("change", () => {
     const n = g.nodes.find((n) => n.id === el.dataset.nodeValue), p = n.definition.pins.find((p) => p.id === el.dataset.pinValue), current = n.values[p.id];
-    n.values[p.id] = typeof current === "boolean" ? el.value === "true" : typeof current === "number" ? Number(el.value) : el.value;
+    n.values[p.id] = typeof current === "boolean" ? el.checked : typeof current === "number" ? Number(el.value) : el.value;
     status("已调整参考选项，复制或导出时会保留；原版参考数据未被覆盖。");
   }));
   const source = g.kind === "event" ? card.functions.filter((f) => f.name.startsWith("ExecuteUbergraph_") || f.event) : card.functions.filter((f) => f.name === g.sourceName);
@@ -134,6 +136,15 @@ function renderGraph(refit = true) {
   }
   requestAnimationFrame(() => { if (refit) focusNode(); else transform(); drawWires(); });
 }
+$("ref-nodes").addEventListener("click", (e) => {
+  const add = e.target.closest("[data-ref-add-pin]"), remove = e.target.closest("[data-ref-remove-pin]");
+  if (!add && !remove) return;
+  const n = graph().nodes.find((n) => n.id === (add?.dataset.refAddPin || remove.dataset.pinOwner));
+  if (!n) return;
+  if (add) addDynamicPin(graph(), n, library.enums); else removeDynamicPin(graph(), n, remove.dataset.refRemovePin);
+  resolveWildcards(graph()); renderGraph(false);
+  status("已修改当前参考副本的引脚；复制或导出时保留，原版源数据未覆盖。");
+});
 function focusNode(id = focusedNode) {
   const g = graph(); if (!g) return;
   const n = g.nodes.find((n) => n.id === id) || g.nodes.find((n) => n.definition.event || n.definition.bp?.type === "entry") || g.nodes[0];
@@ -176,7 +187,7 @@ function drawWires() {
     const a = position(e.from, true), b = position(e.to, false); if (!a || !b) return "";
     const bend = Math.max(60, Math.abs(b.x - a.x) * 0.45);
     const type = g.nodes.find((n) => n.id === e.from.node)?.definition.pins.find((p) => p.id === e.from.pin)?.type;
-    return `<path class="ref-wire ${type !== "exec" ? "data" : e.from.pin === "false" ? "false" : e.from.pin.startsWith("Case_") ? "case" : ""}" d="M${a.x},${a.y} C${a.x + bend},${a.y} ${b.x - bend},${b.y} ${b.x},${b.y}" />`;
+    return `<path style="stroke:${pinColor(type, library.enums)}" class="ref-wire ${type !== "exec" ? "data" : e.from.pin === "false" ? "false" : e.from.pin.startsWith("Case_") ? "case" : ""}" d="M${a.x},${a.y} C${a.x + bend},${a.y} ${b.x - bend},${b.y} ${b.x},${b.y}" />`;
   }).join("");
 }
 function zoom(delta, point) {
