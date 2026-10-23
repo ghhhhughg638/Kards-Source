@@ -20,3 +20,11 @@ Regenerate with:
 ```sh
 python tools/generate-ue-editor-metadata.py --engine-source /path/to/UE_5.6/Engine/Source
 ```
+
+## Overrides and events
+
+The permanent Overrides & Events button lists reflected callbacks on the selected class and its known ancestors. Void callbacks are created in EventGraph; callbacks with outputs use function graphs. The supplement `engine-events.json` contains 101 declarations extracted from UE 5.6 Actor, ActorComponent, UserWidget, GameInstance, PlayerController, Pawn, Character and GameModeBase headers. The original card base has 96 events and 32 output overrides. Unknown declarations are not invented. `tools/generate-engine-events.py --engine-source ...` regenerates the supplement and its five engine enum definitions.
+
+Project-header callback classification applies to all classes, not only BaseCardObject. Existing callback implementations are opened instead of duplicated. Ordinary void functions have no mandatory terminal result; user-added early returns remain available.
+
+Callable Blueprint callbacks keep a separate function-call definition and an event-implementation definition. This preserves existing effect calls such as GiveBlitz while allowing a subclass of CardFunctions to implement that callback. Event implementations are limited to the current parent hierarchy.

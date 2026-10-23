@@ -123,3 +123,9 @@
 .ref-node.ue-compact .ref-node-head { background: transparent; border: 0; min-height: 0; text-align: center; padding: 12px 10px 4px; }
 .ref-node.ue-compact .ref-node-head strong { font-size: 19px; }
 .ref-node.ue-compact .ref-node-head small { display: none; }
+
+.ref-node-head { cursor: grab; }.ref-node:active .ref-node-head { cursor: grabbing; }
+.ref-node { user-select: none; }.ref-node input { user-select: text; }
+#ref-multi[aria-pressed="true"] { background: #33526a; border-color: var(--accent); }
+.ref-actions { flex-wrap: wrap; }.ref-toolbar { flex-wrap: wrap; }
+@media (max-width: 1024px) { .ref-toolbar { flex-wrap: nowrap; }#ref-copy-selected { font-size: 10px; padding: 4px; min-width: 54px; }.ref-navigation { gap: 3px; } }

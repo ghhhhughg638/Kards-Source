@@ -184,7 +184,7 @@ test("an On* function with output (reference) parameters is an override function
   assert.equal(find("OnStartOfTurn").event, true);
   assert(!overrides.some((d) => d.name === "OnStartOfTurn"));
   for (const d of catalog.nodes.filter((n) => n.event))
-    assert(!/&\s*\w+\s*[,)]/.test(d.signature.replace(/const [\w:<>*, ]+&/g, "")), `${d.name} has output parameters`);
+    assert(!/&\s*\w+\s*[,)]/.test(d.signature.replace(/const [\w:<>*, ]+&/g, "").replace(/UPARAM\s*\(\s*Ref\s*\)\s*[\w:<>*, ]+&/gi, "")), `${d.name} has output parameters`);
 });
 
 test("import rejects version 1 files and invalid names", () => {

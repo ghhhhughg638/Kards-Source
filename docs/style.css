@@ -2598,3 +2598,5 @@ dialog::backdrop {
 @media (pointer: coarse) { .add-user-pin { min-height: 40px; }.remove-user-pin { min-width: 30px; width: 30px; height: 34px; } }
 
 .node input.pin-checkbox, .ref-node input.pin-checkbox { width: 14px; min-width: 14px; max-width: 14px; height: 14px; min-height: 14px; margin: 0 2px; padding: 0; accent-color: #c2c2c2; cursor: pointer; }
+
+.ovr-row.is-event .ovr-icon { color: #f06464; }

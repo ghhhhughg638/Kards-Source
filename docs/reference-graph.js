@@ -171,6 +171,9 @@ function buildBody(fn, graph, library, prefix, entry, result, diagnostics, expan
   for (const s of body) {
     if (META.has(s.op)) continue;
     if (s.op === "Return") {
+      // Event bytecode ends with EX_Return too. This is an implicit end of
+      // execution, not a Blueprint function-result node.
+      if (graph.kind === "event" || !fn.params.some((p) => p.return || p.direction === "out")) continue;
       const n = result && !visible.has(s.at) ? { ...result, id: `${prefix}-${s.at}`, definition: structuredClone(result.definition), values: {}, folded: {} } : make(s, "Return", "functionResult");
       if (result) {
         n.definition.bp.extra = true; graph.nodes.push(n); visible.set(s.at, n); statements.set(n.id, s);
@@ -271,7 +274,7 @@ function buildBody(fn, graph, library, prefix, entry, result, diagnostics, expan
       if (s.op === "Jump") index = byAt.get(s.to);
       else if (s.op === "PushExecutionFlow") { stack = [...stack, s.to]; index += 1; }
       else if (s.op === "PopExecutionFlow") index = byAt.get(stack.at(-1)), stack = stack.slice(0, -1);
-      else if (s.op === "EndOfScript") return;
+      else if (s.op === "EndOfScript" || s.op === "Return") return;
       else index += 1;
     }
   };
@@ -474,7 +477,7 @@ export function buildReferenceProject(card, library, { expanded = true } = {}) {
       continue;
     }
     const params = (ps) => ps.map((p, i) => ({ id: `p${i}`, name: safe(p.name, "Param"), type: p.type, sourceName: p.name }));
-    const g = makeFunctionGraph(safe(f.name, "Function"), { pure: f.pure, inputs: params(f.params.filter((p) => p.direction === "in" && !p.return)), outputs: params(outputs), description: `Original function: ${f.name}` });
+    const g = makeFunctionGraph(safe(f.name, "Function"), { pure: f.pure, override: f.event ? { class: "UBaseCardObject", function: f.name, source: "Cooked Blueprint event signature" } : null, inputs: params(f.params.filter((p) => p.direction === "in" && !p.return)), outputs: params(outputs), description: `Original function: ${f.name}` });
     g.id = `fn-${card.id}-${safe(f.name)}`;
     // Boundary ids must follow the deterministic graph id.
     g.nodes = [];

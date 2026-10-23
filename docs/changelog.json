@@ -1,5 +1,28 @@
 [
   {
+    "version": "2.16.0",
+    "date": "2026-10-23",
+    "author": "Codex",
+    "title": {
+      "zh": "查看器节点编辑、跨页面粘贴与事件覆写入口",
+      "en": "Reference node editing, cross-page paste and override access"
+    },
+    "items": [
+      {
+        "zh": "移除事件图和无输出函数的隐式执行结束节点，保留有输出的函数返回及显式提前返回。",
+        "en": "Remove implicit terminal returns from event graphs and void reference functions, retaining output results and explicit early returns."
+      },
+      {
+        "zh": "查看器支持多选、拖动与复制节点，可追加粘贴到当前编辑器，保留内部连线、类型和必要依赖。",
+        "en": "Select, drag and copy reference nodes into the active editor without replacing the current card; retain internal wires, types and required dependencies."
+      },
+      {
+        "zh": "统一父类事件与覆写入口，查找继承成员，补充101个有UE源码证据的Actor/组件/Widget等事件或函数及5个枚举。",
+        "en": "Unify inherited override/event access and add 101 UE-source-backed Actor/component/Widget and other callbacks, plus five enums."
+      }
+    ]
+  },
+  {
     "version": "2.15.0",
     "date": "2026-10-23",
     "author": "Codex",

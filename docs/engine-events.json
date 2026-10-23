@@ -1,0 +1,3737 @@
+{
+  "engine": "5.6",
+  "enums": {
+    "EEndPlayReason": [
+      "Destroyed",
+      "LevelTransition",
+      "EndPlayInEditor",
+      "RemovedFromWorld",
+      "Quit"
+    ],
+    "EMovementMode": [
+      "MOVE_None",
+      "MOVE_Walking",
+      "MOVE_NavWalking",
+      "MOVE_Falling",
+      "MOVE_Swimming",
+      "MOVE_Flying",
+      "MOVE_Custom"
+    ],
+    "ETravelFailure": [
+      "NoLevel",
+      "LoadMapFailure",
+      "InvalidURL",
+      "PackageMissing",
+      "PackageVersion",
+      "NoDownload",
+      "TravelFailure",
+      "CheatCommands",
+      "PendingNetGameCreateFailure",
+      "CloudSaveFailure",
+      "ServerTravelFailure",
+      "ClientTravelFailure"
+    ],
+    "ENetworkFailure": [
+      "NetDriverAlreadyExists",
+      "NetDriverCreateFailure",
+      "NetDriverListenFailure",
+      "ConnectionLost",
+      "ConnectionTimeout",
+      "FailureReceived",
+      "OutdatedClient",
+      "OutdatedServer",
+      "PendingConnectionFailure",
+      "NetGuidMismatch",
+      "NetChecksumMismatch"
+    ],
+    "ETouchIndex": [
+      "Touch1",
+      "Touch2",
+      "Touch3",
+      "Touch4",
+      "Touch5",
+      "Touch6",
+      "Touch7",
+      "Touch8",
+      "Touch9",
+      "Touch10"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "engine.AActor.ReceiveBeginPlay",
+      "name": "ReceiveBeginPlay",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveBeginPlay()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveEndPlay",
+      "name": "ReceiveEndPlay",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveEndPlay(EEndPlayReason::Type EndPlayReason)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "EndPlayReason",
+          "name": "EndPlayReason",
+          "type": "EEndPlayReason",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveAnyDamage",
+      "name": "ReceiveAnyDamage",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveAnyDamage(float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "Damage",
+          "name": "Damage",
+          "type": "float",
+          "direction": "out"
+        },
+        {
+          "id": "DamageType",
+          "name": "DamageType",
+          "type": "class UDamageType*",
+          "direction": "out"
+        },
+        {
+          "id": "InstigatedBy",
+          "name": "InstigatedBy",
+          "type": "class AController*",
+          "direction": "out"
+        },
+        {
+          "id": "DamageCauser",
+          "name": "DamageCauser",
+          "type": "AActor*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveRadialDamage",
+      "name": "ReceiveRadialDamage",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveRadialDamage(float DamageReceived, const class UDamageType* DamageType, FVector Origin, const struct FHitResult& HitInfo, class AController* InstigatedBy, AActor* DamageCauser)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "DamageReceived",
+          "name": "DamageReceived",
+          "type": "float",
+          "direction": "out"
+        },
+        {
+          "id": "DamageType",
+          "name": "DamageType",
+          "type": "class UDamageType*",
+          "direction": "out"
+        },
+        {
+          "id": "Origin",
+          "name": "Origin",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "HitInfo",
+          "name": "HitInfo",
+          "type": "struct FHitResult",
+          "direction": "out"
+        },
+        {
+          "id": "InstigatedBy",
+          "name": "InstigatedBy",
+          "type": "class AController*",
+          "direction": "out"
+        },
+        {
+          "id": "DamageCauser",
+          "name": "DamageCauser",
+          "type": "AActor*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceivePointDamage",
+      "name": "ReceivePointDamage",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceivePointDamage(float Damage, const class UDamageType* DamageType, FVector HitLocation, FVector HitNormal, class UPrimitiveComponent* HitComponent, FName BoneName, FVector ShotFromDirection, class AController* InstigatedBy, AActor* DamageCauser, const FHitResult& HitInfo)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "Damage",
+          "name": "Damage",
+          "type": "float",
+          "direction": "out"
+        },
+        {
+          "id": "DamageType",
+          "name": "DamageType",
+          "type": "class UDamageType*",
+          "direction": "out"
+        },
+        {
+          "id": "HitLocation",
+          "name": "HitLocation",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "HitNormal",
+          "name": "HitNormal",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "HitComponent",
+          "name": "HitComponent",
+          "type": "class UPrimitiveComponent*",
+          "direction": "out"
+        },
+        {
+          "id": "BoneName",
+          "name": "BoneName",
+          "type": "FName",
+          "direction": "out"
+        },
+        {
+          "id": "ShotFromDirection",
+          "name": "ShotFromDirection",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "InstigatedBy",
+          "name": "InstigatedBy",
+          "type": "class AController*",
+          "direction": "out"
+        },
+        {
+          "id": "DamageCauser",
+          "name": "DamageCauser",
+          "type": "AActor*",
+          "direction": "out"
+        },
+        {
+          "id": "HitInfo",
+          "name": "HitInfo",
+          "type": "FHitResult",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveTick",
+      "name": "ReceiveTick",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveTick(float DeltaSeconds)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "DeltaSeconds",
+          "name": "DeltaSeconds",
+          "type": "float",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveAsyncPhysicsTick",
+      "name": "ReceiveAsyncPhysicsTick",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveAsyncPhysicsTick(float DeltaSeconds, float SimSeconds)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "DeltaSeconds",
+          "name": "DeltaSeconds",
+          "type": "float",
+          "direction": "out"
+        },
+        {
+          "id": "SimSeconds",
+          "name": "SimSeconds",
+          "type": "float",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorBeginOverlap",
+      "name": "ReceiveActorBeginOverlap",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorBeginOverlap(AActor* OtherActor)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "OtherActor",
+          "name": "OtherActor",
+          "type": "AActor*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorEndOverlap",
+      "name": "ReceiveActorEndOverlap",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorEndOverlap(AActor* OtherActor)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "OtherActor",
+          "name": "OtherActor",
+          "type": "AActor*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorBeginCursorOver",
+      "name": "ReceiveActorBeginCursorOver",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorBeginCursorOver()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorEndCursorOver",
+      "name": "ReceiveActorEndCursorOver",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorEndCursorOver()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorOnClicked",
+      "name": "ReceiveActorOnClicked",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorOnClicked(FKey ButtonPressed = EKeys::LeftMouseButton)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "ButtonPressed",
+          "name": "ButtonPressed",
+          "type": "FKey",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorOnReleased",
+      "name": "ReceiveActorOnReleased",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorOnReleased(FKey ButtonReleased = EKeys::LeftMouseButton)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "ButtonReleased",
+          "name": "ButtonReleased",
+          "type": "FKey",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorOnInputTouchBegin",
+      "name": "ReceiveActorOnInputTouchBegin",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorOnInputTouchBegin(const ETouchIndex::Type FingerIndex)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "FingerIndex",
+          "name": "FingerIndex",
+          "type": "ETouchIndex",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorOnInputTouchEnd",
+      "name": "ReceiveActorOnInputTouchEnd",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorOnInputTouchEnd(const ETouchIndex::Type FingerIndex)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "FingerIndex",
+          "name": "FingerIndex",
+          "type": "ETouchIndex",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorOnInputTouchEnter",
+      "name": "ReceiveActorOnInputTouchEnter",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorOnInputTouchEnter(const ETouchIndex::Type FingerIndex)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "FingerIndex",
+          "name": "FingerIndex",
+          "type": "ETouchIndex",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveActorOnInputTouchLeave",
+      "name": "ReceiveActorOnInputTouchLeave",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveActorOnInputTouchLeave(const ETouchIndex::Type FingerIndex)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "FingerIndex",
+          "name": "FingerIndex",
+          "type": "ETouchIndex",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveHit",
+      "name": "ReceiveHit",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveHit(class UPrimitiveComponent* MyComp, AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "MyComp",
+          "name": "MyComp",
+          "type": "class UPrimitiveComponent*",
+          "direction": "out"
+        },
+        {
+          "id": "Other",
+          "name": "Other",
+          "type": "AActor*",
+          "direction": "out"
+        },
+        {
+          "id": "OtherComp",
+          "name": "OtherComp",
+          "type": "class UPrimitiveComponent*",
+          "direction": "out"
+        },
+        {
+          "id": "bSelfMoved",
+          "name": "bSelfMoved",
+          "type": "bool",
+          "direction": "out"
+        },
+        {
+          "id": "HitLocation",
+          "name": "HitLocation",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "HitNormal",
+          "name": "HitNormal",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "NormalImpulse",
+          "name": "NormalImpulse",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "Hit",
+          "name": "Hit",
+          "type": "FHitResult",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.UserConstructionScript",
+      "name": "UserConstructionScript",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void UserConstructionScript()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.ReceiveDestroyed",
+      "name": "ReceiveDestroyed",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void ReceiveDestroyed()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.K2_OnBecomeViewTarget",
+      "name": "K2_OnBecomeViewTarget",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void K2_OnBecomeViewTarget( class APlayerController* PC )",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "PC",
+          "name": "PC",
+          "type": "class APlayerController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.K2_OnEndViewTarget",
+      "name": "K2_OnEndViewTarget",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void K2_OnEndViewTarget( class APlayerController* PC )",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "PC",
+          "name": "PC",
+          "type": "class APlayerController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AActor.K2_OnReset",
+      "name": "K2_OnReset",
+      "class": "AActor",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h",
+      "signature": "void K2_OnReset()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UActorComponent.ReceiveBeginPlay",
+      "name": "ReceiveBeginPlay",
+      "class": "UActorComponent",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/Components/ActorComponent.h",
+      "signature": "void ReceiveBeginPlay()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UActorComponent.ReceiveEndPlay",
+      "name": "ReceiveEndPlay",
+      "class": "UActorComponent",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/Components/ActorComponent.h",
+      "signature": "void ReceiveEndPlay(EEndPlayReason::Type EndPlayReason)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "EndPlayReason",
+          "name": "EndPlayReason",
+          "type": "EEndPlayReason",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UActorComponent.ReceiveTick",
+      "name": "ReceiveTick",
+      "class": "UActorComponent",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/Components/ActorComponent.h",
+      "signature": "void ReceiveTick(float DeltaSeconds)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "DeltaSeconds",
+          "name": "DeltaSeconds",
+          "type": "float",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UActorComponent.ReceiveAsyncPhysicsTick",
+      "name": "ReceiveAsyncPhysicsTick",
+      "class": "UActorComponent",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/Components/ActorComponent.h",
+      "signature": "void ReceiveAsyncPhysicsTick(float DeltaSeconds, float SimSeconds)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "DeltaSeconds",
+          "name": "DeltaSeconds",
+          "type": "float",
+          "direction": "out"
+        },
+        {
+          "id": "SimSeconds",
+          "name": "SimSeconds",
+          "type": "float",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnInitialized",
+      "name": "OnInitialized",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnInitialized()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.PreConstruct",
+      "name": "PreConstruct",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void PreConstruct(bool IsDesignTime)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "IsDesignTime",
+          "name": "IsDesignTime",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.Construct",
+      "name": "Construct",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void Construct()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.Destruct",
+      "name": "Destruct",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void Destruct()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.Tick",
+      "name": "Tick",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void Tick(FGeometry MyGeometry, float InDeltaTime)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "out"
+        },
+        {
+          "id": "InDeltaTime",
+          "name": "InDeltaTime",
+          "type": "float",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnPaint",
+      "name": "OnPaint",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnPaint(UPARAM(ref) FPaintContext& Context) const",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "Context",
+          "name": "Context",
+          "type": "FPaintContext",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.IsInteractable",
+      "name": "IsInteractable",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "bool IsInteractable() const",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnFocusReceived",
+      "name": "OnFocusReceived",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnFocusReceived(FGeometry MyGeometry, FFocusEvent InFocusEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InFocusEvent",
+          "name": "InFocusEvent",
+          "type": "FFocusEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnFocusLost",
+      "name": "OnFocusLost",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnFocusLost(FFocusEvent InFocusEvent)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "InFocusEvent",
+          "name": "InFocusEvent",
+          "type": "FFocusEvent",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnAddedToFocusPath",
+      "name": "OnAddedToFocusPath",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnAddedToFocusPath(FFocusEvent InFocusEvent)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "InFocusEvent",
+          "name": "InFocusEvent",
+          "type": "FFocusEvent",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnRemovedFromFocusPath",
+      "name": "OnRemovedFromFocusPath",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnRemovedFromFocusPath(FFocusEvent InFocusEvent)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "InFocusEvent",
+          "name": "InFocusEvent",
+          "type": "FFocusEvent",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnKeyChar",
+      "name": "OnKeyChar",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnKeyChar(FGeometry MyGeometry, FCharacterEvent InCharacterEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InCharacterEvent",
+          "name": "InCharacterEvent",
+          "type": "FCharacterEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnPreviewKeyDown",
+      "name": "OnPreviewKeyDown",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnPreviewKeyDown(FGeometry MyGeometry, FKeyEvent InKeyEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InKeyEvent",
+          "name": "InKeyEvent",
+          "type": "FKeyEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnKeyDown",
+      "name": "OnKeyDown",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnKeyDown(FGeometry MyGeometry, FKeyEvent InKeyEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InKeyEvent",
+          "name": "InKeyEvent",
+          "type": "FKeyEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnKeyUp",
+      "name": "OnKeyUp",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnKeyUp(FGeometry MyGeometry, FKeyEvent InKeyEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InKeyEvent",
+          "name": "InKeyEvent",
+          "type": "FKeyEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnAnalogValueChanged",
+      "name": "OnAnalogValueChanged",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnAnalogValueChanged(FGeometry MyGeometry, FAnalogInputEvent InAnalogInputEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InAnalogInputEvent",
+          "name": "InAnalogInputEvent",
+          "type": "FAnalogInputEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnMouseButtonDown",
+      "name": "OnMouseButtonDown",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "MouseEvent",
+          "name": "MouseEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnPreviewMouseButtonDown",
+      "name": "OnPreviewMouseButtonDown",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnPreviewMouseButtonDown(FGeometry MyGeometry, const FPointerEvent& MouseEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "MouseEvent",
+          "name": "MouseEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnMouseButtonUp",
+      "name": "OnMouseButtonUp",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnMouseButtonUp(FGeometry MyGeometry, const FPointerEvent& MouseEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "MouseEvent",
+          "name": "MouseEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnMouseMove",
+      "name": "OnMouseMove",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnMouseMove(FGeometry MyGeometry, const FPointerEvent& MouseEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "MouseEvent",
+          "name": "MouseEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnMouseEnter",
+      "name": "OnMouseEnter",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnMouseEnter(FGeometry MyGeometry, const FPointerEvent& MouseEvent)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "out"
+        },
+        {
+          "id": "MouseEvent",
+          "name": "MouseEvent",
+          "type": "FPointerEvent",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnMouseLeave",
+      "name": "OnMouseLeave",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnMouseLeave(const FPointerEvent& MouseEvent)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "MouseEvent",
+          "name": "MouseEvent",
+          "type": "FPointerEvent",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnMouseWheel",
+      "name": "OnMouseWheel",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnMouseWheel(FGeometry MyGeometry, const FPointerEvent& MouseEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "MouseEvent",
+          "name": "MouseEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnMouseButtonDoubleClick",
+      "name": "OnMouseButtonDoubleClick",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnMouseButtonDoubleClick(FGeometry InMyGeometry, const FPointerEvent& InMouseEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "InMyGeometry",
+          "name": "InMyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InMouseEvent",
+          "name": "InMouseEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnDragDetected",
+      "name": "OnDragDetected",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnDragDetected(FGeometry MyGeometry, const FPointerEvent& PointerEvent, UDragDropOperation*& Operation)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "PointerEvent",
+          "name": "PointerEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "Operation",
+          "name": "Operation",
+          "type": "UDragDropOperation*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnDragCancelled",
+      "name": "OnDragCancelled",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnDragCancelled(const FPointerEvent& PointerEvent, UDragDropOperation* Operation)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "PointerEvent",
+          "name": "PointerEvent",
+          "type": "FPointerEvent",
+          "direction": "out"
+        },
+        {
+          "id": "Operation",
+          "name": "Operation",
+          "type": "UDragDropOperation*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnDragEnter",
+      "name": "OnDragEnter",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnDragEnter(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "out"
+        },
+        {
+          "id": "PointerEvent",
+          "name": "PointerEvent",
+          "type": "FPointerEvent",
+          "direction": "out"
+        },
+        {
+          "id": "Operation",
+          "name": "Operation",
+          "type": "UDragDropOperation*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnDragLeave",
+      "name": "OnDragLeave",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnDragLeave(FPointerEvent PointerEvent, UDragDropOperation* Operation)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "PointerEvent",
+          "name": "PointerEvent",
+          "type": "FPointerEvent",
+          "direction": "out"
+        },
+        {
+          "id": "Operation",
+          "name": "Operation",
+          "type": "UDragDropOperation*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnDragOver",
+      "name": "OnDragOver",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "bool OnDragOver(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "PointerEvent",
+          "name": "PointerEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "Operation",
+          "name": "Operation",
+          "type": "UDragDropOperation*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnDrop",
+      "name": "OnDrop",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "bool OnDrop(FGeometry MyGeometry, FPointerEvent PointerEvent, UDragDropOperation* Operation)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "PointerEvent",
+          "name": "PointerEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "Operation",
+          "name": "Operation",
+          "type": "UDragDropOperation*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnTouchGesture",
+      "name": "OnTouchGesture",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnTouchGesture(FGeometry MyGeometry, const FPointerEvent& GestureEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "GestureEvent",
+          "name": "GestureEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnTouchStarted",
+      "name": "OnTouchStarted",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnTouchStarted(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InTouchEvent",
+          "name": "InTouchEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnTouchMoved",
+      "name": "OnTouchMoved",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnTouchMoved(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InTouchEvent",
+          "name": "InTouchEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnTouchEnded",
+      "name": "OnTouchEnded",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnTouchEnded(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InTouchEvent",
+          "name": "InTouchEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnMotionDetected",
+      "name": "OnMotionDetected",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InMotionEvent",
+          "name": "InMotionEvent",
+          "type": "FMotionEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnMouseCaptureLost",
+      "name": "OnMouseCaptureLost",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnMouseCaptureLost()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnTouchForceChanged",
+      "name": "OnTouchForceChanged",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnTouchForceChanged(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InTouchEvent",
+          "name": "InTouchEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnTouchFirstMove",
+      "name": "OnTouchFirstMove",
+      "class": "UUserWidget",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "FEventReply OnTouchFirstMove(FGeometry MyGeometry, const FPointerEvent& InTouchEvent)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "UUserWidget*",
+          "direction": "in"
+        },
+        {
+          "id": "MyGeometry",
+          "name": "MyGeometry",
+          "type": "FGeometry",
+          "direction": "in"
+        },
+        {
+          "id": "InTouchEvent",
+          "name": "InTouchEvent",
+          "type": "FPointerEvent",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "FEventReply",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnAnimationStarted",
+      "name": "OnAnimationStarted",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnAnimationStarted( const UWidgetAnimation* Animation )",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "Animation",
+          "name": "Animation",
+          "type": "UWidgetAnimation*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UUserWidget.OnAnimationFinished",
+      "name": "OnAnimationFinished",
+      "class": "UUserWidget",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/UMG/Public/Blueprint/UserWidget.h",
+      "signature": "void OnAnimationFinished( const UWidgetAnimation* Animation )",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "Animation",
+          "name": "Animation",
+          "type": "UWidgetAnimation*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UGameInstance.ReceiveInit",
+      "name": "ReceiveInit",
+      "class": "UGameInstance",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/Engine/GameInstance.h",
+      "signature": "void ReceiveInit()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UGameInstance.ReceiveShutdown",
+      "name": "ReceiveShutdown",
+      "class": "UGameInstance",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/Engine/GameInstance.h",
+      "signature": "void ReceiveShutdown()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UGameInstance.HandleNetworkError",
+      "name": "HandleNetworkError",
+      "class": "UGameInstance",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/Engine/GameInstance.h",
+      "signature": "void HandleNetworkError(ENetworkFailure::Type FailureType, bool bIsServer)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "FailureType",
+          "name": "FailureType",
+          "type": "ENetworkFailure",
+          "direction": "out"
+        },
+        {
+          "id": "bIsServer",
+          "name": "bIsServer",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.UGameInstance.HandleTravelError",
+      "name": "HandleTravelError",
+      "class": "UGameInstance",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/Engine/GameInstance.h",
+      "signature": "void HandleTravelError(ETravelFailure::Type FailureType)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "FailureType",
+          "name": "FailureType",
+          "type": "ETravelFailure",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.APawn.ReceivePossessed",
+      "name": "ReceivePossessed",
+      "class": "APawn",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Pawn.h",
+      "signature": "void ReceivePossessed(AController* NewController)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "NewController",
+          "name": "NewController",
+          "type": "AController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.APawn.ReceiveUnpossessed",
+      "name": "ReceiveUnpossessed",
+      "class": "APawn",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Pawn.h",
+      "signature": "void ReceiveUnpossessed(AController* OldController)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "OldController",
+          "name": "OldController",
+          "type": "AController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.APawn.ReceiveControllerChanged",
+      "name": "ReceiveControllerChanged",
+      "class": "APawn",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Pawn.h",
+      "signature": "void ReceiveControllerChanged(AController* OldController, AController* NewController)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "OldController",
+          "name": "OldController",
+          "type": "AController*",
+          "direction": "out"
+        },
+        {
+          "id": "NewController",
+          "name": "NewController",
+          "type": "AController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.APawn.ReceiveRestarted",
+      "name": "ReceiveRestarted",
+      "class": "APawn",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Pawn.h",
+      "signature": "void ReceiveRestarted()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.ACharacter.CanJumpInternal",
+      "name": "CanJumpInternal",
+      "class": "ACharacter",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Character.h",
+      "signature": "bool CanJumpInternal() const",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "ACharacter*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.ACharacter.OnLaunched",
+      "name": "OnLaunched",
+      "class": "ACharacter",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Character.h",
+      "signature": "void OnLaunched(FVector LaunchVelocity, bool bXYOverride, bool bZOverride)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "LaunchVelocity",
+          "name": "LaunchVelocity",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "bXYOverride",
+          "name": "bXYOverride",
+          "type": "bool",
+          "direction": "out"
+        },
+        {
+          "id": "bZOverride",
+          "name": "bZOverride",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.ACharacter.OnJumped",
+      "name": "OnJumped",
+      "class": "ACharacter",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Character.h",
+      "signature": "void OnJumped()",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.ACharacter.OnLanded",
+      "name": "OnLanded",
+      "class": "ACharacter",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Character.h",
+      "signature": "void OnLanded(const FHitResult& Hit)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "Hit",
+          "name": "Hit",
+          "type": "FHitResult",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.ACharacter.OnWalkingOffLedge",
+      "name": "OnWalkingOffLedge",
+      "class": "ACharacter",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Character.h",
+      "signature": "void OnWalkingOffLedge(const FVector& PreviousFloorImpactNormal, const FVector& PreviousFloorContactNormal, const FVector& PreviousLocation, float TimeDelta)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "PreviousFloorImpactNormal",
+          "name": "PreviousFloorImpactNormal",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "PreviousFloorContactNormal",
+          "name": "PreviousFloorContactNormal",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "PreviousLocation",
+          "name": "PreviousLocation",
+          "type": "FVector",
+          "direction": "out"
+        },
+        {
+          "id": "TimeDelta",
+          "name": "TimeDelta",
+          "type": "float",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.ACharacter.K2_OnEndCrouch",
+      "name": "K2_OnEndCrouch",
+      "class": "ACharacter",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Character.h",
+      "signature": "void K2_OnEndCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "HalfHeightAdjust",
+          "name": "HalfHeightAdjust",
+          "type": "float",
+          "direction": "out"
+        },
+        {
+          "id": "ScaledHalfHeightAdjust",
+          "name": "ScaledHalfHeightAdjust",
+          "type": "float",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.ACharacter.K2_OnStartCrouch",
+      "name": "K2_OnStartCrouch",
+      "class": "ACharacter",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Character.h",
+      "signature": "void K2_OnStartCrouch(float HalfHeightAdjust, float ScaledHalfHeightAdjust)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "HalfHeightAdjust",
+          "name": "HalfHeightAdjust",
+          "type": "float",
+          "direction": "out"
+        },
+        {
+          "id": "ScaledHalfHeightAdjust",
+          "name": "ScaledHalfHeightAdjust",
+          "type": "float",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.ACharacter.K2_OnMovementModeChanged",
+      "name": "K2_OnMovementModeChanged",
+      "class": "ACharacter",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Character.h",
+      "signature": "void K2_OnMovementModeChanged(EMovementMode PrevMovementMode, EMovementMode NewMovementMode, uint8 PrevCustomMode, uint8 NewCustomMode)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "PrevMovementMode",
+          "name": "PrevMovementMode",
+          "type": "EMovementMode",
+          "direction": "out"
+        },
+        {
+          "id": "NewMovementMode",
+          "name": "NewMovementMode",
+          "type": "EMovementMode",
+          "direction": "out"
+        },
+        {
+          "id": "PrevCustomMode",
+          "name": "PrevCustomMode",
+          "type": "uint8",
+          "direction": "out"
+        },
+        {
+          "id": "NewCustomMode",
+          "name": "NewCustomMode",
+          "type": "uint8",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.ACharacter.K2_UpdateCustomMovement",
+      "name": "K2_UpdateCustomMovement",
+      "class": "ACharacter",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/Character.h",
+      "signature": "void K2_UpdateCustomMovement(float DeltaTime)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "DeltaTime",
+          "name": "DeltaTime",
+          "type": "float",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.GetDefaultPawnClassForController",
+      "name": "GetDefaultPawnClassForController",
+      "class": "AGameModeBase",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "UClass* GetDefaultPawnClassForController(AController* InController)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "AGameModeBase*",
+          "direction": "in"
+        },
+        {
+          "id": "InController",
+          "name": "InController",
+          "type": "AController*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "UClass*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.ShouldReset",
+      "name": "ShouldReset",
+      "class": "AGameModeBase",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "bool ShouldReset(AActor* ActorToReset)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "AGameModeBase*",
+          "direction": "in"
+        },
+        {
+          "id": "ActorToReset",
+          "name": "ActorToReset",
+          "type": "AActor*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.K2_PostLogin",
+      "name": "K2_PostLogin",
+      "class": "AGameModeBase",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "void K2_PostLogin(APlayerController* NewPlayer)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "NewPlayer",
+          "name": "NewPlayer",
+          "type": "APlayerController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.K2_OnLogout",
+      "name": "K2_OnLogout",
+      "class": "AGameModeBase",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "void K2_OnLogout(AController* ExitingController)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "ExitingController",
+          "name": "ExitingController",
+          "type": "AController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.HandleStartingNewPlayer",
+      "name": "HandleStartingNewPlayer",
+      "class": "AGameModeBase",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "void HandleStartingNewPlayer(APlayerController* NewPlayer)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "NewPlayer",
+          "name": "NewPlayer",
+          "type": "APlayerController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.MustSpectate",
+      "name": "MustSpectate",
+      "class": "AGameModeBase",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "bool MustSpectate(APlayerController* NewPlayerController) const",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "AGameModeBase*",
+          "direction": "in"
+        },
+        {
+          "id": "NewPlayerController",
+          "name": "NewPlayerController",
+          "type": "APlayerController*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.CanSpectate",
+      "name": "CanSpectate",
+      "class": "AGameModeBase",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "bool CanSpectate(APlayerController* Viewer, APlayerState* ViewTarget)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "AGameModeBase*",
+          "direction": "in"
+        },
+        {
+          "id": "Viewer",
+          "name": "Viewer",
+          "type": "APlayerController*",
+          "direction": "in"
+        },
+        {
+          "id": "ViewTarget",
+          "name": "ViewTarget",
+          "type": "APlayerState*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.K2_OnChangeName",
+      "name": "K2_OnChangeName",
+      "class": "AGameModeBase",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "void K2_OnChangeName(AController* Other, const FString& NewName, bool bNameChange)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "Other",
+          "name": "Other",
+          "type": "AController*",
+          "direction": "out"
+        },
+        {
+          "id": "NewName",
+          "name": "NewName",
+          "type": "FString",
+          "direction": "out"
+        },
+        {
+          "id": "bNameChange",
+          "name": "bNameChange",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.ChoosePlayerStart",
+      "name": "ChoosePlayerStart",
+      "class": "AGameModeBase",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "AActor* ChoosePlayerStart(AController* Player)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "AGameModeBase*",
+          "direction": "in"
+        },
+        {
+          "id": "Player",
+          "name": "Player",
+          "type": "AController*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "AActor*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.FindPlayerStart",
+      "name": "FindPlayerStart",
+      "class": "AGameModeBase",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "AActor* FindPlayerStart(AController* Player, const FString& IncomingName = TEXT(\"\"))",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "AGameModeBase*",
+          "direction": "in"
+        },
+        {
+          "id": "Player",
+          "name": "Player",
+          "type": "AController*",
+          "direction": "in"
+        },
+        {
+          "id": "IncomingName",
+          "name": "IncomingName",
+          "type": "FString",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "AActor*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.PlayerCanRestart",
+      "name": "PlayerCanRestart",
+      "class": "AGameModeBase",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "bool PlayerCanRestart(APlayerController* Player)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "AGameModeBase*",
+          "direction": "in"
+        },
+        {
+          "id": "Player",
+          "name": "Player",
+          "type": "APlayerController*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "bool",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.SpawnDefaultPawnFor",
+      "name": "SpawnDefaultPawnFor",
+      "class": "AGameModeBase",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "APawn* SpawnDefaultPawnFor(AController* NewPlayer, AActor* StartSpot)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "AGameModeBase*",
+          "direction": "in"
+        },
+        {
+          "id": "NewPlayer",
+          "name": "NewPlayer",
+          "type": "AController*",
+          "direction": "in"
+        },
+        {
+          "id": "StartSpot",
+          "name": "StartSpot",
+          "type": "AActor*",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "APawn*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.SpawnDefaultPawnAtTransform",
+      "name": "SpawnDefaultPawnAtTransform",
+      "class": "AGameModeBase",
+      "event": false,
+      "pure": false,
+      "kind": "function",
+      "category": "functions",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "APawn* SpawnDefaultPawnAtTransform(AController* NewPlayer, const FTransform& SpawnTransform)",
+      "pins": [
+        {
+          "id": "exec-in",
+          "name": "Exec",
+          "type": "exec",
+          "direction": "in"
+        },
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "target",
+          "name": "Target",
+          "type": "AGameModeBase*",
+          "direction": "in"
+        },
+        {
+          "id": "NewPlayer",
+          "name": "NewPlayer",
+          "type": "AController*",
+          "direction": "in"
+        },
+        {
+          "id": "SpawnTransform",
+          "name": "SpawnTransform",
+          "type": "FTransform",
+          "direction": "in"
+        },
+        {
+          "id": "return",
+          "name": "Return Value",
+          "type": "APawn*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.InitStartSpot",
+      "name": "InitStartSpot",
+      "class": "AGameModeBase",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "void InitStartSpot(AActor* StartSpot, AController* NewPlayer)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "StartSpot",
+          "name": "StartSpot",
+          "type": "AActor*",
+          "direction": "out"
+        },
+        {
+          "id": "NewPlayer",
+          "name": "NewPlayer",
+          "type": "AController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.K2_OnRestartPlayer",
+      "name": "K2_OnRestartPlayer",
+      "class": "AGameModeBase",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "void K2_OnRestartPlayer(AController* NewPlayer)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "NewPlayer",
+          "name": "NewPlayer",
+          "type": "AController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.InitializeHUDForPlayer",
+      "name": "InitializeHUDForPlayer",
+      "class": "AGameModeBase",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": true,
+      "implementable": false,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "void InitializeHUDForPlayer(APlayerController* NewPlayer)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "NewPlayer",
+          "name": "NewPlayer",
+          "type": "APlayerController*",
+          "direction": "out"
+        }
+      ]
+    },
+    {
+      "id": "engine.AGameModeBase.K2_OnSwapPlayerControllers",
+      "name": "K2_OnSwapPlayerControllers",
+      "class": "AGameModeBase",
+      "event": true,
+      "pure": false,
+      "kind": "event",
+      "category": "events",
+      "nativeEvent": false,
+      "implementable": true,
+      "source": "Engine/Source/Runtime/Engine/Classes/GameFramework/GameModeBase.h",
+      "signature": "void K2_OnSwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC)",
+      "pins": [
+        {
+          "id": "exec-out",
+          "name": "Then",
+          "type": "exec",
+          "direction": "out"
+        },
+        {
+          "id": "OldPC",
+          "name": "OldPC",
+          "type": "APlayerController*",
+          "direction": "out"
+        },
+        {
+          "id": "NewPC",
+          "name": "NewPC",
+          "type": "APlayerController*",
+          "direction": "out"
+        }
+      ]
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { CLIP_KEY, CLIP_TAG, nodeClip } from "./node-clipboard.js";
 import { pinColor, nodeAppearance, dynamicPinSpec, canRemoveDynamicPin, addDynamicPin, removeDynamicPin, applyUEPalette } from "./ue-node-features.js";
 import { buildReferenceProject } from "./reference-graph.js";
 import { createWorkspace } from "./workspace.js";
@@ -15,6 +16,15 @@ function showPanel(panel) {
   if (panel === "graph") requestAnimationFrame(() => { if (graph()) { renderGraph(!viewReady); viewReady = true; } });
 }
 let viewReady = false, focusedNode;
+let refSelection = new Set(), multiSelecting = false;
+function paintSelection() {
+  for (const el of $("ref-nodes").children) el.classList.toggle("selected", refSelection.has(el.dataset.refNode));
+  $("ref-copy-selected").disabled = !refSelection.size;
+  $("ref-paste-editor").disabled = !refSelection.size;
+  $("ref-copy-selected").textContent = `复制节点 (${refSelection.size})`;
+}
+$("ref-select-all").onclick = () => { refSelection = new Set(graph()?.nodes.filter((n) => !n.definition.fixed).map((n) => n.id)); paintSelection(); $("ref-viewport").focus(); };
+$("ref-multi").onclick = () => { multiSelecting = !multiSelecting; $("ref-multi").setAttribute("aria-pressed", String(multiSelecting)); };
 $("ref-browse").onclick = () => showPanel("library");
 $("ref-close-library").onclick = () => showPanel("graph");
 $("ref-close-details").onclick = () => { document.querySelector(".ref-layout").dataset.panel = "graph"; };
@@ -110,11 +120,18 @@ function renderGraph(refit = true) {
   $("ref-nodes").innerHTML = g.nodes.map((n) => `<article class="ref-node ${esc(n.definition.kind || "function")} ${nodeAppearance(n.definition, library.enums).compact ? "ue-compact" : ""}" style="--node-color:${nodeAppearance(n.definition, library.enums).color};left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="ref-node-head"><strong>${esc(nodeAppearance(n.definition, library.enums).compact ? nodeAppearance(n.definition, library.enums).title : nodeChinese(n.definition))}</strong><small>${esc(n.definition.name)}</small></div><div class="ref-node-body">${n.definition.pins.filter((p) => n.showAdvanced || !n.definition.advancedPins?.includes(p.id) || g.edges.some((e) => e.to.node === n.id && e.to.pin === p.id)).map((p) => `<div class="ref-pin-row ${p.direction === "out" ? "output" : ""}" data-ref-pin="${esc(p.id)}" style="--ref-pin:${pinColor(p.type, library.enums)}">${p.direction === "in" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}<span class="ref-pin-label">${esc(p.name)}</span>${p.type !== "exec" ? `<span class="ref-pin-type" title="${esc(p.type)}">${esc(p.type)}</span>` : ""}${pinControl(n, p)}${canRemoveDynamicPin(n.definition, p.id) ? `<button type="button" class="remove-user-pin" data-ref-remove-pin="${esc(p.id)}" data-pin-owner="${esc(n.id)}" aria-label="删除 ${esc(p.name)} 引脚">×</button>` : ""}${p.direction === "out" ? `<i class="ref-dot ${p.type === "exec" ? "exec" : ""}"></i>` : ""}</div>`).join("")}${$("ref-mode").value === "compact" && n.definition.advancedPins?.length ? `<button class="ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${n.definition.advancedPins.length})`} ▾</button>` : ""}${dynamicPinSpec(n.definition) ? `<button type="button" class="add-user-pin" data-ref-add-pin="${esc(n.id)}">＋ 添加引脚／分支</button>` : ""}</div><div class="ref-node-note">${n.definition.reference ? `${esc(n.definition.reference.function)} · @${n.definition.reference.sourceOffset}` : "Function signature"}</div></article>`).join("");
   // Size columns using real content height; busy native functions must not overlap.
   const columns = new Map();
+  refSelection = new Set([...refSelection].filter((id) => g.nodes.some((n) => n.id === id)));
   for (const n of g.nodes) {
-    const ys = columns.get(n.x) || 60; n.y = ys;
+    const ys = columns.get(n.x) || 60;
     const el = [...$("ref-nodes").children].find((e) => e.dataset.refNode === n.id);
-    el.style.top = `${ys}px`; columns.set(n.x, ys + el.offsetHeight + 65);
-    el.addEventListener("click", (e) => { if (!e.target.closest("input,select,button")) inspect(n); });
+    if (!g.referenceManualLayout) n.y = ys;
+    el.style.top = `${n.y}px`; columns.set(n.x, ys + el.offsetHeight + 65);
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("input,select,button")) return;
+      if (e.ctrlKey || e.metaKey || e.shiftKey || multiSelecting) { if (refSelection.has(n.id)) refSelection.delete(n.id); else refSelection.add(n.id); }
+      else refSelection = new Set([n.id]);
+      inspect(n);
+    });
   }
   $("ref-nodes").querySelectorAll("[data-advanced-node]").forEach((b) => b.addEventListener("click", () => { const n = g.nodes.find((n) => n.id === b.dataset.advancedNode); n.showAdvanced = !n.showAdvanced; renderGraph(false); }));
   $("ref-nodes").querySelectorAll("[data-node-value]").forEach((el) => el.addEventListener("change", () => {
@@ -134,6 +151,7 @@ function renderGraph(refit = true) {
     row.classList.add("ref-connected"); row.title = "点击沿连线定位节点";
     row.addEventListener("click", (e) => { if (!e.target.closest("input,select,button")) { e.stopPropagation(); focusNode(target); } });
   }
+  paintSelection();
   requestAnimationFrame(() => { if (refit) focusNode(); else transform(); drawWires(); });
 }
 $("ref-nodes").addEventListener("click", (e) => {
@@ -158,9 +176,8 @@ $("ref-locate").onchange = () => focusNode($("ref-locate").value);
 $("ref-readable").onclick = () => focusNode();
 function inspect(n) {
   focusedNode = n.id;
-  if (narrow.matches) document.querySelector(".ref-layout").dataset.panel = "details";
-  $("ref-nodes").querySelectorAll(".selected").forEach((e) => e.classList.remove("selected"));
-  [...$("ref-nodes").children].find((e) => e.dataset.refNode === n.id)?.classList.add("selected");
+  if (narrow.matches && !multiSelecting) document.querySelector(".ref-layout").dataset.panel = "details";
+  paintSelection();
   $("ref-details").innerHTML = `<h3>${esc(n.definition.name)}</h3><p class="ref-muted">${esc(n.definition.signature || "")}</p>${n.definition.reference?.signatureEvidence ? '<p class="ref-muted">参数类型来自源调用反射；缺少原始参数名的输入按 Arg0、Arg1 标记。</p>' : ""}${n.definition.pins.filter((p) => p.type !== "exec").map((p) => `<div class="ref-detail-pin"><strong>${esc(p.name)} · ${esc(p.type)}</strong><code>${esc(n.folded?.[p.id]?.text ?? n.values[p.id] ?? p.direction)}</code></div>`).join("")}<details><summary>源位置与表达式</summary><pre>${esc(JSON.stringify({ source: n.definition.reference, folded: n.folded }, null, 2))}</pre></details>`;
 }
 function transform() {
@@ -173,7 +190,9 @@ function fit() {
   const nodes = graph()?.nodes || []; if (!nodes.length) { view = { x: 30, y: 30, zoom: 1 }; transform(); return; }
   const bounds = $("ref-viewport").getBoundingClientRect();
   const right = Math.max(...nodes.map((n) => n.x + 360)), bottom = Math.max(...[...$("ref-nodes").children].map((e) => parseFloat(e.style.top) + e.offsetHeight));
-  view = { x: 20, y: 25, zoom: Math.max(0.035, Math.min(1, (bounds.width - 40) / right, (bounds.height - 50) / bottom)) }; transform();
+  const left = Math.min(...nodes.map((n) => n.x)), top = Math.min(...nodes.map((n) => n.y));
+  const zoom = Math.max(0.035, Math.min(1, (bounds.width - 40) / Math.max(1, right - left), (bounds.height - 50) / Math.max(1, bottom - top)));
+  view = { x: 20 - left * zoom, y: 25 - top * zoom, zoom }; transform();
 }
 function drawWires() {
   const g = graph(); if (!g) return;
@@ -197,7 +216,7 @@ function zoom(delta, point) {
 }
 $("ref-viewport").addEventListener("wheel", (e) => { if (e.target.closest("select,input")) return; e.preventDefault(); const r = $("ref-viewport").getBoundingClientRect(); zoom(e.deltaY > 0 ? 0.9 : 1.1, { x: e.clientX - r.left, y: e.clientY - r.top }); }, { passive: false });
 const pointers = new Map();
-let gesture, moved = false, suppressClickUntil = 0;
+let gesture, nodeDrag, moved = false, suppressClickUntil = 0;
 function resetGesture() {
   const ps = [...pointers.values()], r = $("ref-viewport").getBoundingClientRect();
   if (!ps.length) { gesture = null; return; }
@@ -205,14 +224,35 @@ function resetGesture() {
   gesture = { x: center.x - r.left, y: center.y - r.top, vx: view.x, vy: view.y, zoom: view.zoom, distance: ps.length > 1 ? Math.max(1, Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y)) : 0 };
 }
 $("ref-viewport").addEventListener("pointerdown", (e) => {
-  if (e.target.closest("input,select,button,a") || (e.pointerType === "mouse" && (e.button !== 0 || e.target.closest(".ref-node")))) return;
+  if (e.target.closest("input,select,button,a") || e.pointerType === "mouse" && e.button !== 0) return;
+  $("ref-viewport").focus({ preventScroll: true });
   if (!pointers.size) moved = false;
-  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); resetGesture();
-  // Capture only after movement: a stationary tap must still reach its node.
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const el = e.target.closest("[data-ref-node]");
+  if (pointers.size > 1) nodeDrag = null;
+  else if (el) {
+    const id = el.dataset.refNode, ids = refSelection.has(id) ? new Set(refSelection) : e.ctrlKey || e.metaKey || e.shiftKey || multiSelecting ? new Set([...refSelection, id]) : new Set([id]);
+    nodeDrag = { x: e.clientX, y: e.clientY, ids, positions: graph().nodes.filter((n) => ids.has(n.id)).map((n) => ({ n, x: n.x, y: n.y })) };
+  } else { nodeDrag = null; if (!e.shiftKey) { refSelection.clear(); paintSelection(); } }
+  resetGesture();
 });
 $("ref-viewport").addEventListener("pointermove", (e) => {
   if (!pointers.has(e.pointerId) || !gesture) return;
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (nodeDrag && pointers.size === 1) {
+    const dx = e.clientX - nodeDrag.x, dy = e.clientY - nodeDrag.y;
+    if (!moved && Math.hypot(dx, dy) < 5) return;
+    moved = true; suppressClickUntil = Date.now() + 400;
+    refSelection = new Set(nodeDrag.ids); paintSelection();
+    $("ref-viewport").setPointerCapture(e.pointerId);
+    graph().referenceManualLayout = true;
+    for (const item of nodeDrag.positions) {
+      item.n.x = item.x + dx / view.zoom; item.n.y = item.y + dy / view.zoom;
+      const el = [...$("ref-nodes").children].find((el) => el.dataset.refNode === item.n.id);
+      el.style.left = `${item.n.x}px`; el.style.top = `${item.n.y}px`;
+    }
+    drawWires(); return;
+  }
   const ps = [...pointers.values()], r = $("ref-viewport").getBoundingClientRect();
   const center = ps.length > 1 ? { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 } : ps[0];
   const x = center.x - r.left, y = center.y - r.top;
@@ -226,7 +266,15 @@ $("ref-viewport").addEventListener("pointermove", (e) => {
 });
 function endPointer(e) {
   if (moved) suppressClickUntil = Date.now() + 400;
-  pointers.delete(e.pointerId); resetGesture();
+  if (nodeDrag && moved) {
+    for (const item of nodeDrag.positions) {
+      item.n.x = Math.round(item.n.x / 10) * 10; item.n.y = Math.round(item.n.y / 10) * 10;
+      const el = [...$("ref-nodes").children].find((el) => el.dataset.refNode === item.n.id);
+      if (el) { el.style.left = `${item.n.x}px`; el.style.top = `${item.n.y}px`; }
+    }
+    drawWires();
+  }
+  nodeDrag = null; pointers.delete(e.pointerId); resetGesture();
 }
 for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) $("ref-viewport").addEventListener(name, endPointer);
 $("ref-viewport").addEventListener("click", (e) => { if (Date.now() < suppressClickUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
@@ -234,6 +282,22 @@ $("ref-fit").onclick = fit; $("ref-zoom-in").onclick = () => zoom(1.2); $("ref-z
 $("ref-graph").onchange = () => { project.activeGraph = $("ref-graph").value; renderGraph(); };
 for (const id of ["ref-search", "ref-faction", "ref-type", "ref-with-logic"]) $(id).addEventListener(id === "ref-search" ? "input" : "change", () => { page = 0; renderList(); });
 $("ref-prev").onclick = () => { page -= 1; renderList(); }; $("ref-next").onclick = () => { page += 1; renderList(); };
+function copySelectedNodes() {
+  const clip = nodeClip(project, graph(), refSelection);
+  if (!clip.nodes.length) { status("先选择要复制的节点；函数入口不能跨图粘贴。", true); return false; }
+  try { localStorage.setItem(CLIP_KEY, JSON.stringify(clip)); } catch { status("浏览器存储空间不足，复制失败。", true); return false; }
+  navigator.clipboard?.writeText(CLIP_TAG + JSON.stringify(clip)).catch(() => {});
+  status(`已复制 ${clip.nodes.length} 个节点和 ${clip.edges.length} 条内部连线。返回编辑器按 Ctrl+V，或点“粘贴到当前编辑器”。`);
+  return true;
+}
+$("ref-copy-selected").onclick = copySelectedNodes;
+$("ref-paste-editor").onclick = () => { if (copySelectedNodes()) location.href = "./index.html?paste=reference"; };
+window.addEventListener("keydown", (e) => {
+  if (e.target.closest("input,select,textarea") || e.target.isContentEditable) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c" && refSelection.size && !getSelection()?.toString()) { e.preventDefault(); copySelectedNodes(); }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a" && document.activeElement === $("ref-viewport")) { e.preventDefault(); $("ref-select-all").click(); }
+  if (e.key === "Escape") { refSelection.clear(); paintSelection(); document.querySelector(".ref-layout").dataset.panel = "graph"; }
+});
 $("ref-copy").onclick = () => {
   try {
     const copy = validateProject(structuredClone(project)); copy.id = crypto.randomUUID();

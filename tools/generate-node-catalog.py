@@ -63,7 +63,7 @@ for path in sorted(root.glob('*/Public/*.h'), key=lambda p: p.relative_to(root).
         decl=re.match(r'([\w:<>, *&]+?)\s+(\w+)\s*\((.*)\)\s*(?:const\s*)?(?:override\s*)?$',sig,re.S)
         if not decl: continue
         ret,name,params=decl.groups()
-        pure='BlueprintPure' in flags
+        pure='BlueprintPure' in flags and not re.search(r'BlueprintPure\s*=\s*false', flags)
         parsed=[]
         for param in split_params(params):
             refinput=bool(re.search(r'UPARAM\s*\(\s*[Rr]ef\s*\)',param))
@@ -76,7 +76,8 @@ for path in sorted(root.glob('*/Public/*.h'), key=lambda p: p.relative_to(root).
         # Unreal turns a BlueprintImplementableEvent/NativeEvent into an Event only when it has no Return
         # Node (void, no output/non-const reference parameters); with outputs it is an overridable function.
         implementable='BlueprintImplementableEvent' in flags or 'BlueprintNativeEvent' in flags
-        event=source=='BaseCardObject' and implementable and ret.strip()=='void' and not any(o for _,_,o in parsed)
+        callback_event=implementable and ret.strip()=='void' and not any(o for _,_,o in parsed)
+        event=callback_event and cls=='UBaseCardObject'  # preserve historical definition IDs
         pins=[]
         if not pure:
             if not event: pins.append({'id':'exec-in','name':'执行','type':'exec','direction':'in'})
@@ -89,6 +90,19 @@ for path in sorted(root.glob('*/Public/*.h'), key=lambda p: p.relative_to(root).
             pins.append({'id':pname,'name':pname,'type':clean,'direction':direction})
         if ret.strip()!='void': pins.append({'id':'return','name':'Return Value','type':ret.strip(),'direction':'out'})
         nodes.append({'id':f'{cls}.{name}','name':name,'class':cls,'category':category(name,source,pure,event),'pure':pure,'event':event,'static':is_static,'nativeEvent':'BlueprintNativeEvent' in flags,'implementable':'BlueprintImplementableEvent' in flags,'kind':'event' if event else 'pure' if pure else 'function','source':path.relative_to(root).as_posix(),'signature':re.sub(r'\s+',' ',sig),'pins':pins})
+        # A callable Blueprint event has two editor representations. Keep the
+        # existing call ID and provide a separate implementation event, or vice
+        # versa for BaseCardObject's historical event IDs.
+        if callback_event:
+            primary=nodes[-1]
+            primary['callable']='BlueprintCallable' in flags
+            event_pins=[{'id':'exec-out','name':'然后','type':'exec','direction':'out'}]+[{'id':pname,'name':pname,'type':typ.replace('const ','').replace('&','').strip(),'direction':'out'} for typ,pname,_ in parsed]
+            call_pins=[{'id':'exec-in','name':'执行','type':'exec','direction':'in'},{'id':'exec-out','name':'然后','type':'exec','direction':'out'},{'id':'target','name':'Target','type':cls+'*','direction':'in'}]+[{'id':pname,'name':pname,'type':typ.replace('const ','').replace('&','').strip(),'direction':'in'} for typ,pname,_ in parsed]
+            if event and primary['callable']:
+                nodes.append({**primary,'id':f'call.{cls}.{name}','event':False,'kind':'function','category':category(name,source,False),'nativeEvent':False,'implementable':False,'callVariant':True,'pins':call_pins})
+            elif not event:
+                primary.update(nativeEvent=False,implementable=False,callVariant=True)
+                nodes.append({**primary,'id':f'event.{cls}.{name}','event':True,'kind':'event','category':'events','nativeEvent':'BlueprintNativeEvent' in flags,'implementable':'BlueprintImplementableEvent' in flags,'callVariant':False,'pins':event_pins})
     for m in re.finditer(r'\bUPROPERTY\s*\(',text):
         enclosing=[c for c in class_matches if c.start()<m.start()]
         if not enclosing: continue
