@@ -130,3 +130,33 @@ test("AND / compare nodes are slim: no subtitle, footer or wide add-pin button",
   expect(size[1]).toBeLessThan(120);
   await expect(and.locator(".node-subtitle")).toBeHidden();
 });
+
+test("dragging a node moves it and re-routes only its own wires", async ({ page }) => {
+  await page.goto("/reference.html#1a1410e4609e6a61");
+  await expect(page.locator(".ref-node").first()).toBeVisible();
+  const picked = await page.evaluate(() => {
+    const wires = [...document.querySelectorAll("#ref-wires path")];
+    return wires.length;
+  });
+  expect(picked).toBeGreaterThan(5);
+  const before = await page.evaluate(() => [...document.querySelectorAll("#ref-wires path")].map((p) => p.getAttribute("d")));
+  const view = page.viewportSize();
+  let node, box;
+  for (const candidate of await page.locator(".ref-node").all()) {
+    const b = await candidate.boundingBox();
+    if (b && b.x > 0 && b.y > 0 && b.x + 60 < view.width && b.y + 40 < view.height) { node = candidate; box = b; break; }
+  }
+  expect(node, "a node on screen").toBeTruthy();
+  await page.mouse.move(box.x + 20, box.y + 10);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + 20 + i * 5, box.y + 10 + i * 3);
+  await page.mouse.up();
+  const after = await node.boundingBox();
+  expect(after.x - box.x).toBeGreaterThan(40);
+  expect(after.y - box.y).toBeGreaterThan(20);
+  const now = await page.evaluate(() => [...document.querySelectorAll("#ref-wires path")].map((p) => p.getAttribute("d")));
+  expect(now.length).toBe(before.length);
+  const changed = now.filter((d, i) => d !== before[i]).length;
+  expect(changed).toBeGreaterThan(0);
+  expect(changed).toBeLessThan(before.length);
+});

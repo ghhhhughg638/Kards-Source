@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.18.2",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "修复带 Cast 的卡打不开;查看器拖动节点更流畅",
+      "en": "Fix cards with a Cast failing to open; smoother node dragging in the viewer"
+    },
+    "items": [
+      {
+        "zh": "修复 2.18.0 的一个错误:含“转换为(Cast To)”的原版卡牌在查看器里打不开(提示读取 replace 失败)。现在全部 1709 张有逻辑的卡都能正常打开,并增加了对全库的检查",
+        "en": "Fixes a 2.18.0 bug where original cards containing Cast To would not open in the viewer (a 'replace of undefined' error). All 1709 cards with logic now open, and a whole-library check was added"
+      },
+      {
+        "zh": "拖动节点时只重新计算和这个节点相连的连线,不再每一帧测量所有引脚、重画所有连线;拖动按帧合并。大图上每次移动的耗时约减半",
+        "en": "Dragging a node now only re-routes the wires attached to it instead of measuring every pin and redrawing every wire on each move, and moves are batched per frame; each move on a large graph costs about half as much"
+      }
+    ]
+  },
+  {
     "version": "2.18.1",
     "date": "2026-10-23",
     "author": "Claude",
