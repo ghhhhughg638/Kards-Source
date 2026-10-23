@@ -1,5 +1,39 @@
 [
   {
+    "version": "2.17.2",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "打开着的页面也会自动提示更新",
+      "en": "Open tabs and installed apps now notice updates"
+    },
+    "items": [
+      {
+        "zh": "以前只在刚打开页面时检查一次更新,页面开着不动就永远不会提示。现在回到页面、窗口重新获得焦点、网络恢复时都会检查(最多每 10 分钟一次),页面一直开着也每 10 分钟检查一次;发现新版本弹出更新提示,同一版本在一次使用中只问一次,正在操作其他对话框时不会打断",
+        "en": "The update check used to run only once right after opening, so a page left open never asked. It now also runs when the tab comes back to the foreground, the window regains focus or the network returns (at most every 10 minutes), and every 10 minutes while open. A release is offered once per session and never interrupts another dialog"
+      },
+      {
+        "zh": "新增端到端测试:模拟发布两个构建,验证打开着的页面、缓存的旧页面、设置里的「强制刷新」和顶栏「刷新」都能更新到新版本且卡牌数据不丢",
+        "en": "New end-to-end tests: two builds are published in a simulation and an open tab, a stale cached page, Settings → Force refresh and the top-bar Refresh all reach the new build without losing the card"
+      }
+    ]
+  },
+  {
+    "version": "2.17.1",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "设置里可以查看版本号",
+      "en": "Version info in Settings"
+    },
+    "items": [
+      {
+        "zh": "设置最上方新增「版本」:显示当前版本号和构建编号,并与已发布的最新版本对比,提示「已是最新」或「有新版本」;可点「检查更新」或「强制刷新」。本地开发副本会注明未发布构建",
+        "en": "Settings now starts with a Version block: the running version and build id, compared with the published one (\"Up to date\" / \"Update available\"), with Check for updates and Force refresh buttons. Local development copies say they are not a published build"
+      }
+    ]
+  },
+  {
     "version": "2.17.0",
     "date": "2026-10-23",
     "author": "Claude",

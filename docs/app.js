@@ -2153,10 +2153,11 @@ async function restoreLocalBackup(file) {
 function openSettings() {
   openModal(
     "设置 / Settings",
-    `<label class="check-row"><input type="checkbox" id="set-block" ${settings.blockCopy ? "checked" : ""}> ${bi2("阻止长按选中文字和复制", "Block long-press text selection and copy")}</label><p class="detail-description">${bi2("开启后长按不会再出现蓝色选中框和复制菜单；输入框里仍可正常编辑。", "Stops the blue selection and copy menu on long press. Text boxes still work normally.")}</p><div class="field"><label class="detail-label" for="set-drag">${bi2("鼠标左键拖动空白处", "Mouse: drag on empty canvas")}</label><select id="set-drag"><option value="marquee" ${settings.dragMode === "marquee" ? "selected" : ""}>框选节点 / Box select</option><option value="pan" ${settings.dragMode === "pan" ? "selected" : ""}>平移画布 / Pan</option></select><p class="detail-description">${bi2("框选时：按住空格、鼠标中键或 Alt 拖动可平移。手机上用「多选」按钮进入框选/点选多个节点。", "With box select: hold Space, middle mouse or Alt to pan. On phones use the Multi-select button to box-select or tap several nodes.")}</p></div><label class="check-row"><input type="checkbox" id="set-rpan" ${settings.rightPan ? "checked" : ""}> ${bi2("鼠标右键拖动空白处平移", "Right-drag on empty canvas pans")}</label><p class="detail-description">${bi2("如果浏览器的鼠标手势/画笔/截图工具在右键拖动时被触发，请关闭它；平移仍可用空格+左键、鼠标中键或 Alt+左键。", "Turn this off if your browser's mouse gestures / draw / capture tools react to right-drag. You can still pan with Space+left, middle mouse or Alt+left.")}</p>${installEvent ? `<div class="field"><span class="detail-label">${bi2("桌面应用", "Desktop app")}</span><div class="rs-custom-row"><button id="install-now" class="secondary-button" type="button">${bi2("安装为应用…", "Install as app…")}</button></div></div>` : ""}<div class="field"><span class="detail-label">${bi2("本地数据备份", "Local data backup")}</span><p class="detail-description">${bi2("把这个浏览器里保存的全部卡牌原样导出成一个文件（即使有卡牌打不开也能导出）；换设备或清除浏览器数据前先备份。", "Exports everything this browser has saved as one file, even cards that cannot be opened. Do this before switching devices or clearing browser data.")}</p><div class="rs-custom-row"><button id="bk-export" class="secondary-button" type="button">${bi2("导出全部本地数据", "Export all local data")}</button><button id="bk-import" class="secondary-button" type="button">${bi2("恢复备份…", "Restore backup…")}</button></div></div>`,
+    `${versionFieldHtml()}<label class="check-row"><input type="checkbox" id="set-block" ${settings.blockCopy ? "checked" : ""}> ${bi2("阻止长按选中文字和复制", "Block long-press text selection and copy")}</label><p class="detail-description">${bi2("开启后长按不会再出现蓝色选中框和复制菜单；输入框里仍可正常编辑。", "Stops the blue selection and copy menu on long press. Text boxes still work normally.")}</p><div class="field"><label class="detail-label" for="set-drag">${bi2("鼠标左键拖动空白处", "Mouse: drag on empty canvas")}</label><select id="set-drag"><option value="marquee" ${settings.dragMode === "marquee" ? "selected" : ""}>框选节点 / Box select</option><option value="pan" ${settings.dragMode === "pan" ? "selected" : ""}>平移画布 / Pan</option></select><p class="detail-description">${bi2("框选时：按住空格、鼠标中键或 Alt 拖动可平移。手机上用「多选」按钮进入框选/点选多个节点。", "With box select: hold Space, middle mouse or Alt to pan. On phones use the Multi-select button to box-select or tap several nodes.")}</p></div><label class="check-row"><input type="checkbox" id="set-rpan" ${settings.rightPan ? "checked" : ""}> ${bi2("鼠标右键拖动空白处平移", "Right-drag on empty canvas pans")}</label><p class="detail-description">${bi2("如果浏览器的鼠标手势/画笔/截图工具在右键拖动时被触发，请关闭它；平移仍可用空格+左键、鼠标中键或 Alt+左键。", "Turn this off if your browser's mouse gestures / draw / capture tools react to right-drag. You can still pan with Space+left, middle mouse or Alt+left.")}</p>${installEvent ? `<div class="field"><span class="detail-label">${bi2("桌面应用", "Desktop app")}</span><div class="rs-custom-row"><button id="install-now" class="secondary-button" type="button">${bi2("安装为应用…", "Install as app…")}</button></div></div>` : ""}<div class="field"><span class="detail-label">${bi2("本地数据备份", "Local data backup")}</span><p class="detail-description">${bi2("把这个浏览器里保存的全部卡牌原样导出成一个文件（即使有卡牌打不开也能导出）；换设备或清除浏览器数据前先备份。", "Exports everything this browser has saved as one file, even cards that cannot be opened. Do this before switching devices or clearing browser data.")}</p><div class="rs-custom-row"><button id="bk-export" class="secondary-button" type="button">${bi2("导出全部本地数据", "Export all local data")}</button><button id="bk-import" class="secondary-button" type="button">${bi2("恢复备份…", "Restore backup…")}</button></div></div>`,
   );
   $("bk-export").onclick = exportLocalBackup;
   $("bk-import").onclick = () => $("backup-input").click();
+  wireVersionField();
   $("set-block").onchange = (e) => {
     settings.blockCopy = e.target.checked;
     applySettings();
@@ -3918,10 +3919,67 @@ window.addEventListener("storage", (e) => {
     /* keep what is on screen */
   }
 });
-// ---- update check: ask before replacing the page with a newer deployed version
-let updateAsked = false;
+// ---------------------------------------------------------------- version info (Settings)
+// Shows which build this page runs and compares it with what is published, so it is easy to tell
+// whether this device is in sync.
+const shortSha = (sha) => String(sha || "").slice(0, 7);
+function versionFieldHtml() {
+  const stamped = isStamped(BUILD),
+    page = document.querySelector('meta[name="build"]')?.content;
+  const build = stamped
+    ? `v${esc(BUILD.version)} <small>· ${bi2("构建", "build")} <code>${esc(shortSha(BUILD.sha))}</code></small>`
+    : `<span>${bi2("本地开发版（未发布构建）", "Local development copy (not a published build)")}</span>`;
+  const mismatch =
+    stamped && page && !page.startsWith("__") && page !== BUILD.sha
+      ? `<p class="detail-description version-warn">${bi2("页面与脚本不是同一次构建，点「强制刷新」修复。", "The page and its script come from different builds — press Force refresh.")}</p>`
+      : "";
+  return `<div class="field version-field"><span class="detail-label">${bi2("版本", "Version")}</span><div class="version-line">${build}</div><p class="detail-description" id="ver-status">${stamped ? bi2("正在检查最新版本…", "Checking for the latest version…") : bi2("本地副本不会检查更新。", "Local copies do not check for updates.")}</p>${mismatch}<div class="rs-custom-row"><button id="ver-check" class="secondary-button" type="button" ${stamped ? "" : "disabled"}>${bi2("检查更新", "Check for updates")}</button><button id="ver-refresh" class="secondary-button" type="button">${bi2("强制刷新", "Force refresh")}</button></div></div>`;
+}
+async function publishedVersion() {
+  const controller = new AbortController(),
+    timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`./version.json?t=${Date.now()}`, { cache: "no-store", signal: controller.signal });
+    if (!response.ok) throw new Error(String(response.status));
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+async function runVersionCheck() {
+  const out = $("ver-status");
+  if (!out || !isStamped(BUILD)) return;
+  out.innerHTML = bi2("正在检查最新版本…", "Checking for the latest version…");
+  try {
+    const latest = await publishedVersion();
+    if (!$("ver-status")) return;
+    const tag = `v${esc(latest.version || "?")} · <code>${esc(shortSha(latest.sha))}</code>`;
+    out.innerHTML = isOutdated(BUILD, latest)
+      ? `<b class="version-old">${bi2("有新版本", "Update available")}</b> ${tag} — ${bi2("点「强制刷新」更新。", "press Force refresh to update.")}`
+      : `<b class="version-ok">${bi2("已是最新", "Up to date")}</b> ${tag}`;
+  } catch {
+    if ($("ver-status")) out.innerHTML = bi2("无法连接，检查网络后重试。", "Could not reach the site — check your connection and retry.");
+  }
+}
+function wireVersionField() {
+  $("ver-check")?.addEventListener("click", runVersionCheck);
+  $("ver-refresh")?.addEventListener("click", () => {
+    $("modal").close();
+    forceRefresh();
+  });
+  runVersionCheck();
+}
+// ---- update check: ask before replacing the page with a newer deployed version.
+// It runs shortly after start and again whenever the page comes back to the foreground, regains
+// focus or the network returns (at most every 10 minutes), so a tab or installed app that stays
+// open for days still notices a new release. A version that was already offered is not asked twice
+// in the same session; the Settings version block always shows the current state.
+let askedFor = "",
+  lastUpdateCheck = 0;
+const UPDATE_CHECK_EVERY = 10 * 60 * 1000;
 async function checkForUpdate() {
-  if (updateAsked || !isStamped(BUILD)) return;
+  if (!isStamped(BUILD) || Date.now() - lastUpdateCheck < UPDATE_CHECK_EVERY) return;
+  lastUpdateCheck = Date.now();
   try {
     const stamp = `t=${Date.now()}`;
     const fetchJson = async (file) => {
@@ -3936,14 +3994,19 @@ async function checkForUpdate() {
       }
     };
     const latest = await fetchJson("version.json");
-    if (!isOutdated(BUILD, latest)) return;
+    if (!isOutdated(BUILD, latest) || askedFor === latest.sha) return;
+    // Never cover a dialog the user is working in; look again at the next check.
+    if ($("modal").open) {
+      lastUpdateCheck = 0;
+      return;
+    }
     let log = [];
     try {
       log = await fetchJson("changelog.json");
     } catch {
       /* the dialog still works without the notes */
     }
-    updateAsked = true;
+    askedFor = latest.sha;
     showUpdateDialog(latest, entriesSince(log, BUILD.version));
   } catch {
     /* offline or blocked: never bother the user about it */
@@ -4052,6 +4115,10 @@ async function boot() {
     persist();
     window.__kardsBooted = true;
     setTimeout(checkForUpdate, 1500);
+    document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && checkForUpdate());
+    window.addEventListener("focus", checkForUpdate);
+    window.addEventListener("online", checkForUpdate);
+    setInterval(() => document.visibilityState === "visible" && checkForUpdate(), UPDATE_CHECK_EVERY);
   } catch (e) {
     $("source-status").textContent = "节点库载入失败";
     openModal(
