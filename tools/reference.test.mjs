@@ -181,6 +181,22 @@ test("a literal array feeding a loop becomes one Make Array node, and a re-fetch
   validateProject(structuredClone(build("card_unit_3_7_inch_mountain_howitzer")));
 });
 
+test("a counted loop becomes a For Loop and constant temporaries become pin values", () => {
+  const anzac = build("card_event_anzac_spirit").graphs.find((x) => x.kind === "event");
+  const loop = anzac.nodes.find((n) => n.definition.id === "ue.ForLoop");
+  assert.ok(loop, "For Loop node");
+  assert.equal(String(loop.values.FirstIndex), "0");
+  assert.equal(String(loop.values.LastIndex), "1");
+  assert.ok(anzac.edges.some((e) => e.from.node === loop.id && e.from.pin === "LoopBody"));
+  assert.ok(!anzac.nodes.some((n) => /Temp_int_Variable/.test(n.definition.name) && n.definition.kind === "getter"));
+  validateProject(structuredClone(build("card_event_anzac_spirit")));
+
+  const espionage = build("card_event_espionage_skirm").graphs.find((x) => x.kind === "event");
+  assert.ok(!espionage.nodes.some((n) => n.definition.name === "Set Temp_text_Variable"));
+  const note = espionage.nodes.find((n) => n.definition.name === "ShowNotification");
+  assert.equal(note.values.arg1, "No cards in enemy hand.");
+});
+
 test("call outputs and event parameters are wired from their producing pin, not through a detached getter", () => {
   const g = build("card_event_forward_base_anzac").graphs.find((x) => x.kind === "event");
   assert.ok(!g.nodes.some((n) => /^Get K2Node_Event_/.test(n.definition.name)), "no detached event-parameter getters");

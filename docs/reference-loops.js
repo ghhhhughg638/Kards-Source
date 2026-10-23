@@ -18,7 +18,108 @@ export function collapseForEachLoops(graph) {
   foldMakeArrays(graph);
   let collapsed = 0, guard = 0;
   while (guard++ < 60 && collapseOne(graph, templates)) collapsed++;
+  const forLoop = builtins.find((d) => d.id === "ue.ForLoop");
+  while (forLoop && guard++ < 120 && collapseForLoop(graph, forLoop)) collapsed++;
+  foldConstantTemps(graph);
   return collapsed;
+}
+
+const COUNT = /^Temp_int_Variable(_\d+)?$/;
+
+// ForLoop(First, Last):   T = First ; loop: if (T <= Last) { <body> ; T = T + 1 ; goto loop } else <completed>
+function collapseForLoop(graph, template) {
+  const node = (id) => graph.nodes.find((n) => n.id === id);
+  const into = (n, pin) => graph.edges.filter((e) => e.to.node === n.id && (pin === undefined || e.to.pin === pin));
+  const from = (n, pin) => graph.edges.filter((e) => e.from.node === n.id && (pin === undefined || e.from.pin === pin));
+  const source = (n, pin) => { const e = into(n, pin)[0]; return e && { node: node(e.from.node), pin: e.from.pin }; };
+  const target = (n, pin) => { const e = from(n, pin)[0]; return e && { node: node(e.to.node), pin: e.to.pin }; };
+  const preds = (n) => into(n, "exec-in").map((e) => node(e.from.node));
+  for (const branch of graph.nodes) {
+    if (branch.definition.name !== "Branch") continue;
+    const test = source(branch, "condition")?.node;
+    if (test?.definition.name !== "LessEqual_IntInt") continue;
+    const getter = source(test, "arg0")?.node, name = getter?.definition.name.slice(4);
+    if (!getter?.definition.name.startsWith("Get ") || !COUNT.test(name)) continue;
+    const setters = graph.nodes.filter((n) => n.definition.name === `Set ${name}`);
+    const increment = setters.find((n) => target(n, "exec-out")?.node === branch && source(n, "value")?.node.definition.name === "Add_IntInt");
+    const init = setters.find((n) => n !== increment && target(n, "exec-out")?.node === branch);
+    if (!increment || !init || setters.length !== 2 || preds(branch).length !== 2) continue;
+    const add = source(increment, "value").node;
+    if (source(add, "arg0")?.node.definition.name !== `Get ${name}` || into(add, "arg1").length || String(add.values?.arg1) !== "1") continue;
+    const region = new Set([branch, test, init, increment, add]);
+    const getters = graph.nodes.filter((n) => n.definition.name === `Get ${name}`);
+    const bodyStart = target(branch, "true"), completed = target(branch, "false");
+    if ((bodyStart && region.has(bodyStart.node)) || (completed && region.has(completed.node))) continue;
+    const loop = { id: `loop-${branch.id}`, x: branch.x, y: branch.y, title: "", comment: "", values: {}, folded: {}, definition: structuredClone(template) };
+    let serial = 0;
+    const edge = (f, t) => ({ id: `${loop.id}-edge-${serial++}`, from: f, to: t });
+    const added = into(init, "exec-in").map((e) => edge(e.from, { node: loop.id, pin: "exec-in" }));
+    if (!added.length) continue;
+    const bind = (src, pin, valueNode, valuePin) => {
+      const w = source(valueNode, valuePin);
+      if (w) added.push(edge({ node: w.node.id, pin: w.pin }, { node: loop.id, pin }));
+      else if (valueNode.values?.[valuePin] !== undefined) loop.values[pin] = valueNode.values[valuePin];
+    };
+    bind(null, "FirstIndex", init, "value");
+    bind(null, "LastIndex", test, "arg1");
+    if (bodyStart) added.push(edge({ node: loop.id, pin: "LoopBody" }, { node: bodyStart.node.id, pin: bodyStart.pin }));
+    if (completed) added.push(edge({ node: loop.id, pin: "Completed" }, { node: completed.node.id, pin: completed.pin }));
+    for (const g of getters) for (const e of from(g)) if (!region.has(node(e.to.node))) added.push(edge({ node: loop.id, pin: "Index" }, e.to));
+    const doomed = new Set([...region, ...getters]);
+    graph.edges = graph.edges.filter((e) => !doomed.has(node(e.from.node)) && !doomed.has(node(e.to.node)));
+    graph.nodes = graph.nodes.filter((n) => !doomed.has(n));
+    graph.nodes.push(loop);
+    graph.edges.push(...added);
+    return true;
+  }
+  return false;
+}
+
+// Compiler temporaries that only carry a constant (text and enum literals, Make Literal ...) are just the
+// constant: write it on the pin that reads it and drop the assignment.
+function foldConstantTemps(graph) {
+  const node = (id) => graph.nodes.find((n) => n.id === id);
+  const into = (n, pin) => graph.edges.filter((e) => e.to.node === n.id && (pin === undefined || e.to.pin === pin));
+  const from = (n, pin) => graph.edges.filter((e) => e.from.node === n.id && (pin === undefined || e.from.pin === pin));
+  const TEMP_SET = /^Set Temp_[a-z]+_Variable(_\d+)?$/i;
+  const pinType = (n, id) => n.definition.pins.find((p) => p.id === id)?.type;
+  const constant = (n) => (n.definition.name.match(TEMP_SET) && !into(n, "value").length && n.values?.value !== undefined && n.values.value !== "" ? n.values.value : undefined);
+  const gone = new Set(), added = [];
+  const place = (consumers, setter) => {
+    const value = constant(setter), type = pinType(setter, "value");
+    if (consumers.some((e) => pinType(node(e.to.node), e.to.pin) !== type || into(node(e.to.node), e.to.pin).length > 1)) return false;
+    for (const e of consumers) node(e.to.node).values = { ...node(e.to.node).values, [e.to.pin]: value };
+    return true;
+  };
+  const drops = new Set();
+  // direct wire from the assignment's own output
+  for (const setter of graph.nodes) {
+    if (constant(setter) === undefined) continue;
+    const out = from(setter, "value-out");
+    if (!out.length || graph.nodes.some((n) => n.definition.name === `Get ${setter.definition.name.slice(4)}`) || !place(out, setter)) continue;
+    for (const e of out) drops.add(e);
+    gone.add(setter);
+  }
+  // through a getter whose every writer assigns the same constant
+  const writers = new Map();
+  for (const n of graph.nodes) if (TEMP_SET.test(n.definition.name)) (writers.get(n.definition.name.slice(4)) || writers.set(n.definition.name.slice(4), []).get(n.definition.name.slice(4))).push(n);
+  for (const [name, list] of writers) {
+    if (list.some((n) => gone.has(n)) || list.some((n) => constant(n) === undefined || constant(n) !== constant(list[0]) || pinType(n, "value") !== pinType(list[0], "value"))) continue;
+    const getters = graph.nodes.filter((n) => n.definition.name === `Get ${name}`);
+    const consumers = getters.flatMap((g) => from(g));
+    if (list.some((n) => from(n, "value-out").length) || !getters.length || !place(consumers, list[0])) continue;
+    for (const e of consumers) drops.add(e);
+    getters.forEach((g) => gone.add(g)); list.forEach((n) => gone.add(n));
+  }
+  if (!gone.size) return;
+  // splice the assignments out of the execution chain
+  for (const n of gone) {
+    if (n.definition.kind === "getter") continue;
+    for (const inn of into(n, "exec-in")) for (const out of from(n).filter((e) => pinType(n, e.from.pin) === "exec"))
+      if (!gone.has(node(inn.from.node)) && !gone.has(node(out.to.node))) added.push({ id: `fold-${n.id}-${added.length}`, from: inn.from, to: out.to });
+  }
+  graph.edges = graph.edges.filter((e) => !drops.has(e) && !gone.has(node(e.from.node)) && !gone.has(node(e.to.node))).concat(added);
+  graph.nodes = graph.nodes.filter((n) => !gone.has(n));
 }
 
 function collapseOne(graph, templates) {

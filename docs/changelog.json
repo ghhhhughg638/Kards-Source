@@ -17,6 +17,10 @@
         "en": "Loops over a literal array (e.g. Corps Command's left_most / right_most) are now one Make Array node feeding a For Each Loop, and loops whose array comes from a call that the compiler repeats on every pass (GetCardsToTheLeft, GetDeckByside…) show that call once feeding a For Each Loop"
       },
       {
+        "zh": "计数循环(For Loop,如“澳新精神”的 0 到 1 次)现在是一个 For Loop 节点,不再是 Temp_int、小于等于、加一、分支;只装着常量的临时变量(文本、枚举、布尔字面量)直接写在读取它的引脚上,图里不再有对应的赋值和读取节点",
+        "en": "Counted loops (e.g. ANZAC Spirit's 0 to 1) are now one For Loop node instead of Temp_int, Less Equal, Add and Branch; temporaries that only carry a constant (text, enum, bool literals) are written straight on the pin that reads them, so their assignment and getter nodes are gone"
+      },
+      {
         "zh": "事件参数和函数返回值的临时变量读取不再单独悬空,直接连到来源引脚",
         "en": "Temporary variable reads of event parameters and call results are wired straight to their source pin instead of hanging loose"
       }
