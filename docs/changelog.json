@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.17.3",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "与/或/比较/运算节点恢复成普通节点样式",
+      "en": "AND / OR / compare / arithmetic nodes look like normal nodes again"
+    },
+    "items": [
+      {
+        "zh": "与、或、比较(<、>、==)、加减乘除等节点不再用没有标题栏的紧凑样式,改回和其他节点一样的标题栏加引脚行;编辑器和原版蓝图库都一样",
+        "en": "AND, OR, comparison (<, >, ==) and arithmetic nodes no longer use the headerless compact style; they have the same title bar and pin rows as every other node, in the editor and in the original-card viewer"
+      }
+    ]
+  },
+  {
     "version": "2.17.2",
     "date": "2026-10-23",
     "author": "Claude",

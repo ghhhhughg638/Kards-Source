@@ -43,7 +43,8 @@ export function pinColor(type, enums = {}) {
 
 export function nodeAppearance(d, enums = {}) {
   const meta = functionMetadata(d), kind = d.kind || (d.event ? "event" : d.pure ? "pure" : "function");
-  const compact = !!meta.compactTitle && !d.pins.some((p) => p.type === "exec");
+  // AND / OR / compare / arithmetic nodes keep the same header and body as every other node.
+  const compact = false;
   let color = colors.FunctionCallNodeTitleColor;
   if (/event/i.test(kind)) color = colors.EventNodeTitleColor;
   else if (/Entry|Result|Exit/.test(kind)) color = colors.FunctionTerminatorNodeTitleColor;

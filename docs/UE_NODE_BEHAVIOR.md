@@ -13,7 +13,7 @@ The editor and reference view share node capabilities and colors in `ue-node-fea
 
 ## Presentation
 
-`ue-editor-metadata.js` is generated from UE 5.6 `GraphEditorSettings.cpp`, `KismetMathLibrary.h` and `KismetStringLibrary.h`. Linear color values are converted to sRGB for the browser. Boolean pins/wires are maroon, bytes/enums dark teal, and object, class, numeric and struct pins have separate colors. Container pins use the element/key color. Pure-function header colors are separate from data-type colors; compact AND/OR and arithmetic nodes use a dark body without the regular function header.
+`ue-editor-metadata.js` is generated from UE 5.6 `GraphEditorSettings.cpp`, `KismetMathLibrary.h` and `KismetStringLibrary.h`. Linear color values are converted to sRGB for the browser. Boolean pins/wires are maroon, bytes/enums dark teal, and object, class, numeric and struct pins have separate colors. Container pins use the element/key color. Pure-function header colors are separate from data-type colors; AND/OR, comparison and arithmetic nodes use the same header and body as every other node (since 2.17.3; the earlier headerless compact style was dropped).
 
 Regenerate with:
 
