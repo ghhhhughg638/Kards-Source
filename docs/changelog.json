@@ -9,8 +9,12 @@
     },
     "items": [
       {
-        "zh": "原版卡牌里的数组循环(如“双日出航线”)以前显示成编译后的一大串计数变量、小于、数组长度、加一、分支节点。现在还原成一个 For Each Loop(或带 Break 的 For Each Loop With Break),连好数组、循环体、完成、数组元素和索引。约 96% 的循环已还原,全库节点总数减少约 17%",
-        "en": "Array loops in original cards (e.g. The Double Sunrise) used to show the compiled counter, Less, Array Length, Add and Branch nodes. They now appear as one For Each Loop (or For Each Loop With Break) with array, loop body, completed, element and index wired. About 96% of loops are restored and the library has about 17% fewer nodes"
+        "zh": "原版卡牌里的数组循环(如“双日出航线”)以前显示成编译后的一大串计数变量、小于、数组长度、加一、分支节点。现在还原成一个 For Each Loop(或带 Break 的 For Each Loop With Break),连好数组、循环体、完成、数组元素和索引。约 98% 的循环已还原,全库节点总数减少约 17%",
+        "en": "Array loops in original cards (e.g. The Double Sunrise) used to show the compiled counter, Less, Array Length, Add and Branch nodes. They now appear as one For Each Loop (or For Each Loop With Break) with array, loop body, completed, element and index wired. About 98% of loops are restored and the library has about 17% fewer nodes"
+      },
+      {
+        "zh": "用字面量数组做的循环(如“军团指挥”的 left_most / right_most),现在是一个 构造数组 节点接 For Each Loop;每圈重新调用一次函数再取元素的循环(如 GetCardsToTheLeft、GetDeckByside),现在只剩一次调用接 For Each Loop",
+        "en": "Loops over a literal array (e.g. Corps Command's left_most / right_most) are now one Make Array node feeding a For Each Loop, and loops whose array comes from a call that the compiler repeats on every pass (GetCardsToTheLeft, GetDeckByside…) show that call once feeding a For Each Loop"
       },
       {
         "zh": "事件参数和函数返回值的临时变量读取不再单独悬空,直接连到来源引脚",

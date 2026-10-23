@@ -163,6 +163,24 @@ test("a ForEachLoopWithBreak expansion turns the 'break' assignment into the Bre
   validateProject(structuredClone(project));
 });
 
+test("a literal array feeding a loop becomes one Make Array node, and a re-fetched call result becomes one call", () => {
+  const corps = build("card_event_corps_command");
+  const g = corps.graphs.find((x) => (x.sourceName || x.name) === "_DoOnCardPlayedOrGotchaTriggered");
+  const make = g.nodes.filter((n) => n.definition.id === "ue.MakeArray");
+  assert.equal(make.length, 1);
+  assert.deepEqual([make[0].values.Item0, make[0].values.Item1], ["left_most", "right_most"]);
+  assert.ok(!g.nodes.some((n) => n.definition.name === "Make / Set Array" || /K2Node_MakeArray_Array/.test(n.definition.name)));
+  const loop = g.nodes.find((n) => n.definition.id === "ue.ForEachLoop");
+  assert.ok(g.edges.some((e) => e.from.node === make[0].id && e.to.node === loop.id && e.to.pin === "Array"));
+  validateProject(structuredClone(corps));
+
+  const howitzer = build("card_unit_3_7_inch_mountain_howitzer").graphs.find((x) => (x.sourceName || x.name) === "EventGraph");
+  assert.equal(howitzer.nodes.filter((n) => n.definition.name === "GetCardsToTheLeft").length, 1, "the call is not repeated per iteration");
+  assert.equal(howitzer.nodes.filter((n) => n.definition.id === "ue.ForEachLoop").length, 2);
+  assert.ok(!howitzer.nodes.some((n) => /Temp_int_Loop_Counter/.test(n.definition.name)));
+  validateProject(structuredClone(build("card_unit_3_7_inch_mountain_howitzer")));
+});
+
 test("call outputs and event parameters are wired from their producing pin, not through a detached getter", () => {
   const g = build("card_event_forward_base_anzac").graphs.find((x) => x.kind === "event");
   assert.ok(!g.nodes.some((n) => /^Get K2Node_Event_/.test(n.definition.name)), "no detached event-parameter getters");
@@ -174,7 +192,7 @@ test("call outputs and event parameters are wired from their producing pin, not 
 
 test("loop collapsing never leaves the graph with dangling or mistyped wires", () => {
   setEnumTable(library.enums);
-  for (const name of ["card_event_the_double_sunrise", "card_unit_17th_infantry_brigade", "card_event_blockade", "card_event_mass_deployment", "card_location_british_scen3", "card_event_vanguard_ita"]) {
+  for (const name of ["card_event_the_double_sunrise", "card_unit_17th_infantry_brigade", "card_event_blockade", "card_event_mass_deployment", "card_location_british_scen3", "card_event_vanguard_ita", "card_event_corps_command", "card_event_support_column", "card_unit_3_7_inch_mountain_howitzer", "card_event_defend_the_empire"]) {
     const project = build(name);
     for (const g of project.graphs) {
       const ids = new Set(g.nodes.map((n) => n.id));
