@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.14.1",
+    "date": "2026-10-23",
+    "author": "Codex",
+    "title": {
+      "zh": "原版卡牌中文名称与效果搜索",
+      "en": "Chinese card names and effect search"
+    },
+    "items": [
+      {
+        "zh": "从游戏简体中文本地化资源提取卡名与效果，缺失条目补充并标记参考译文，覆盖全部2019张原版蓝图。",
+        "en": "Use game localization for Chinese names and effects, with marked supplemental translations for missing entries across all 2,019 original Blueprints."
+      },
+      {
+        "zh": "支持中文卡名、多个效果关键词及英文混合搜索，结果显示中文效果摘要并保留英文原文。",
+        "en": "Search Chinese names, multiple effect keywords and English together; show Chinese effect previews while retaining original English text."
+      }
+    ]
+  },
+  {
     "version": "2.14.0",
     "date": "2026-10-23",
     "author": "Codex",

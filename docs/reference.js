@@ -49,16 +49,19 @@ const snapshot = (key) => {
   return url.href;
 };
 
+const searchText = (s) => String(s ?? "").normalize("NFKC").toLowerCase().replace(/<[^>]*>/g, "").replace(/[\s\p{P}]+/gu, "");
+const plainText = (s) => String(s ?? "").replace(/<[^>]*>/g, "");
 function filteredCards() {
-  const query = $("ref-search").value.trim().toLowerCase(), faction = $("ref-faction").value, type = $("ref-type").value;
-  return library.cards.filter((c) => (!faction || c.faction === faction) && (!type || c.type === type) && (!$("ref-with-logic").checked || !c.dataOnly) && `${c.name} ${c.title} ${c.text} ${c.package} ${(c.functionNames || []).join(" ")}`.toLowerCase().includes(query));
+  const terms = $("ref-search").value.trim().split(/\s+/).map(searchText).filter(Boolean), faction = $("ref-faction").value, type = $("ref-type").value;
+  return library.cards.filter((c) => (!faction || c.faction === faction) && (!type || c.type === type) && (!$("ref-with-logic").checked || !c.dataOnly) && terms.every((term) => c.searchIndex.includes(term)));
+
 }
 function renderList() {
   const cards = filteredCards(); page = Math.min(page, Math.max(0, Math.ceil(cards.length / pageSize) - 1));
   $("ref-result-count").textContent = `${cards.length} 个匹配 / ${library.cards.length} 个蓝图`;
   $("ref-page").textContent = `${page + 1} / ${Math.max(1, Math.ceil(cards.length / pageSize))}`;
   $("ref-prev").disabled = page === 0; $("ref-next").disabled = (page + 1) * pageSize >= cards.length;
-  $("ref-cards").innerHTML = cards.slice(page * pageSize, (page + 1) * pageSize).map((c) => `<button type="button" class="ref-card ${c.id === card?.id ? "active" : ""}" data-card="${esc(c.id)}"><strong>${esc(c.title)}</strong><small>${esc(c.name)}</small><span class="ref-card-tags">${esc(factions[c.faction] || c.faction)} · ${esc(c.type)} · ${c.cost} 费 · ${c.dataOnly ? "仅默认数据" : `${c.functionCount} 函数`}</span></button>`).join("") || '<p class="ref-muted">没有匹配的卡牌。</p>';
+  $("ref-cards").innerHTML = cards.slice(page * pageSize, (page + 1) * pageSize).map((c) => `<button type="button" class="ref-card ${c.id === card?.id ? "active" : ""}" data-card="${esc(c.id)}"><strong>${esc(c.zh.title || c.title)}</strong>${c.zh.title && c.zh.title !== c.title ? `<span class="ref-card-english">${esc(c.title)}</span>` : ""}<small>${esc(c.name)}</small>${c.zh.text || c.text ? `<span class="ref-card-effect">${esc(plainText(c.zh.text || c.text))}</span>` : ""}<span class="ref-card-tags">${esc(factions[c.faction] || c.faction)} · ${esc(c.type)} · ${c.cost} 费 · ${c.dataOnly ? "仅默认数据" : `${c.functionCount} 函数`}${Object.values(c.zh.origins || {}).includes("reference") ? " · 参考译文" : ""}</span></button>`).join("") || '<p class="ref-muted">没有匹配的卡牌，可试试“总部 伤害”等效果关键词。</p>';
   $("ref-cards").querySelectorAll("[data-card]").forEach((b) => b.addEventListener("click", async () => { await openCard(b.dataset.card); if (narrow.matches) showPanel("graph"); }));
 }
 async function openCard(id, graphName) {
@@ -73,10 +76,10 @@ async function openCard(id, graphName) {
       if (cache.size > 12) cache.delete(cache.keys().next().value);
     }
     if (ticket !== request) return;
-    card = payload; document.querySelector(".ref-heading strong").textContent = card.card.title; project = buildReferenceProject(card, library, { expanded: $("ref-mode").value === "expanded" });
+    card = { ...payload, translation: library.cards.find((c) => c.id === id)?.zh || {} }; document.querySelector(".ref-heading strong").textContent = card.translation.title || card.card.title; project = buildReferenceProject(card, library, { expanded: $("ref-mode").value === "expanded" });
     setEnumTable(library.enums); setTypeHierarchy(project.types);
     if (graphName) project.activeGraph = project.graphs.find((g) => g.id === graphName || g.sourceName === graphName)?.id || project.activeGraph;
-    $("ref-summary").innerHTML = `<h2>${esc(card.card.title)}</h2><div class="ref-package">${esc(card.name)} · ${esc(card.package)}</div><div class="ref-badges"><span class="ref-badge">${esc(factions[card.card.faction] || card.card.faction)}</span><span class="ref-badge">${esc(card.card.type)} · ${esc(card.card.rarity)}</span><span class="ref-badge">${card.card.cost} 费 · ${card.card.operationCost} 行动 · ${card.card.attack}/${card.card.defense}</span><span class="ref-badge">${card.functions.length} 函数</span></div><p>${esc(card.card.text)}</p>`;
+    $("ref-summary").innerHTML = `<h2>${esc(card.translation.title || card.card.title)}</h2>${card.translation.title && card.translation.title !== card.card.title ? `<p class="ref-original-text">${esc(card.card.title)}</p>` : ""}<div class="ref-package">${esc(card.name)} · ${esc(card.package)}</div><div class="ref-badges"><span class="ref-badge">${esc(factions[card.card.faction] || card.card.faction)}</span><span class="ref-badge">${esc(card.card.type)} · ${esc(card.card.rarity)}</span><span class="ref-badge">${card.card.cost} 费 · ${card.card.operationCost} 行动 · ${card.card.attack}/${card.card.defense}</span><span class="ref-badge">${card.functions.length} 函数</span></div><p>${esc(plainText(card.translation.text || card.card.text))}</p>${card.translation.text && card.translation.text !== card.card.text ? `<p class="ref-original-text">英文原文：${esc(card.card.text)}</p>` : ""}${Object.values(card.translation.origins || {}).includes("reference") ? '<p class="ref-translation-note">包含参考译文：解包未提供对应中文时补译，英文原文保留。</p>' : ""}`;
     $("ref-defaults").textContent = JSON.stringify({ package: card.package, parent: card.parent, defaults: card.defaults, provenance: card.provenance }, null, 2);
     $("ref-graph").innerHTML = project.graphs.map((g) => `<option value="${esc(g.id)}" ${g.id === project.activeGraph ? "selected" : ""}>${esc(g.sourceName || g.name)}${g.pure ? " · Pure" : ""}</option>`).join("");
     for (const id of ["ref-graph", "ref-copy", "ref-export"]) $(id).disabled = false;
@@ -240,8 +243,15 @@ window.addEventListener("resize", () => {
   viewportWidth = innerWidth;
 });
 try {
-  const response = await fetch(snapshot("./reference-data/index.json")); if (!response.ok) throw new Error(`索引加载失败 (${response.status})`);
-  library = await response.json(); $("ref-total").textContent = `${library.cards.length} 个`;
+  const [response, chineseResponse] = await Promise.all([fetch(snapshot("./reference-data/index.json")), fetch(snapshot("./reference-data/zh-Hans.json"))]); if (!response.ok) throw new Error(`索引加载失败 (${response.status})`);
+  if (!chineseResponse.ok) throw new Error(`中文索引加载失败 (${chineseResponse.status})`);
+  const chinese = await chineseResponse.json();
+  library = await response.json();
+  for (const c of library.cards) {
+    c.zh = chinese.cards[c.id] || {};
+    c.searchIndex = searchText(`${c.name} ${c.title} ${c.text} ${c.zh.title || ""} ${c.zh.text || ""} ${c.package} ${factions[c.faction] || c.faction} ${(c.functionNames || []).join(" ")}`);
+  }
+  $("ref-total").textContent = `${library.cards.length} 个`;
   for (const [id, key] of [["ref-faction", "faction"], ["ref-type", "type"]]) for (const v of [...new Set(library.cards.map((c) => c[key]))].sort()) { const option = document.createElement("option"); option.value = v; option.textContent = key === "faction" ? factions[v] || v : v; $(id).append(option); }
   renderList(); status(`${library.counts.cards} 张卡 · ${library.counts.functions} 个函数 · ${library.counts.statements} 条源指令 · Codex`);
   const [id, fn] = location.hash.slice(1).split("~");

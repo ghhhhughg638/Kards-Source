@@ -13,7 +13,7 @@ import {
 } from "./model.js";
 
 export const APP_NAME = "KARDS Blueprint Studio";
-export const APP_VERSION = "2.14.0";
+export const APP_VERSION = "2.14.1";
 export const ENGINE_VERSION = "5.6";
 export const DEFAULT_PARENT = "UBaseCardObject";
 export const DEFAULT_PACKAGE_PATH = "/Game/KARDS/Cards";

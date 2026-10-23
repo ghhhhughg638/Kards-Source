@@ -1,0 +1,25 @@
+{
+  "counts": {
+    "title": 2019,
+    "text": 1868
+  },
+  "methods": {
+    "game": 3837,
+    "exactSource": 2,
+    "reference": 48
+  },
+  "cards": 2019,
+  "total": 2019,
+  "missing": [],
+  "sourceMismatches": [],
+  "resources": [
+    {
+      "path": "Localization/Game/zh-Hans/Game.locres",
+      "sha256": "a2bd3344d2c9bdae96191f688dde511c49fe504d2102ce1703db586567722caa"
+    },
+    {
+      "path": "Localization/Game/zh-CN/Game.locres",
+      "sha256": "93deb9435f314d83c2549edece1854a99e91ef10f98d7f575d3f93edef6c5317"
+    }
+  ]
+}

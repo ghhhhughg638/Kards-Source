@@ -3665,6 +3665,7 @@ const SITE_FILES = [
   "./reference-graph.js",
   "./reference-types.js",
   "./reference-data/index.json",
+  "./reference-data/zh-Hans.json",
   "./style.css",
   "./polish.css",
   "./app.js",

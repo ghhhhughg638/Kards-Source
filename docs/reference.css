@@ -80,7 +80,8 @@
  #ref-graph { flex: 1; width: 0; max-width: none; min-width: 0; font-size: 16px; min-height: 44px; }
  .ref-actions { display: none; position: absolute; z-index: 15; top: 55px; right: 6px; width: min(290px, calc(100vw - 12px)); padding: 12px; border: 1px solid #555; border-radius: 4px; background: #2a2a2a; box-shadow: 0 8px 24px #0009; }
  .ref-actions.open { display: flex; flex-direction: column; align-items: stretch; }
- .ref-actions select { min-width: 0; flex: 1; }
+ .ref-actions select { min-width: 0; flex: 1; font-size: 16px; min-height: 44px; }
+ .ref-pin-row input, .ref-pin-row select { font-size: 16px; min-height: 30px; }
  .ref-button { min-height: 44px; }
  .ref-navigation { padding: 5px 6px; flex: 0 0 auto; }
  .ref-navigation .ref-button { min-width: 40px; padding: 6px 9px; }
@@ -112,3 +113,8 @@
 .ref-connected .ref-dot { box-shadow: 0 0 0 2px #ffffff12; }
 
 .ref-heading strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.ref-card-english { color: #aaa; font-size: 11px; }
+.ref-card-effect { color: #c9c9c9; font-size: 12px; line-height: 1.6; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.ref-card-summary .ref-original-text { font-size: 11px; color: #a0a0a0; }
+.ref-card-summary .ref-translation-note { font-size: 11px; color: #c1ac75; }
