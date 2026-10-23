@@ -737,3 +737,10 @@ html.block-copy .node .pin-input { -webkit-user-select: text; user-select: text;
 .statusbar .credits { color: #8a8a8a; font-size: 10px; white-space: nowrap; }
 .statusbar .credits b { color: #bdbdbd; font-weight: 600; }
 @media (max-width: 800px) { .statusbar .credits, .statusbar .credits + .separator { display: none; } }
+
+/* Settings: version block */
+.version-field .version-line { font-size: 15px; font-weight: 600; margin: 2px 0 4px; }
+.version-field .version-line small { font-size: 11px; font-weight: 400; color: #9a9a9a; }
+.version-field code { font: 11px var(--mono); color: #cfcfcf; background: #1d1d1d; padding: 1px 5px; border-radius: 2px; }
+.version-ok { color: #8fd18a; }
+.version-old, .version-warn { color: #e0b252; }

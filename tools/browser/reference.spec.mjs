@@ -109,3 +109,12 @@ test.describe("touch gestures", () => {
     await expect(page.locator("#ref-zoom")).not.toHaveText(before);
   });
 });
+
+test("Settings shows the running version block (a local copy says it is not a published build)", async ({ page }) => {
+  await page.goto("/index.html");
+  await page.locator("#settings").click();
+  await expect(page.locator(".version-field")).toBeVisible();
+  await expect(page.locator(".version-field .version-line")).toContainText("本地开发版");
+  await expect(page.locator("#ver-check")).toBeDisabled();
+  await expect(page.locator("#ver-refresh")).toBeEnabled();
+});

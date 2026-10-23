@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.17.1",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "设置里可以查看版本号",
+      "en": "Version info in Settings"
+    },
+    "items": [
+      {
+        "zh": "设置最上方新增「版本」:显示当前版本号和构建编号,并与已发布的最新版本对比,提示「已是最新」或「有新版本」;可点「检查更新」或「强制刷新」。本地开发副本会注明未发布构建",
+        "en": "Settings now starts with a Version block: the running version and build id, compared with the published one (\"Up to date\" / \"Update available\"), with Check for updates and Force refresh buttons. Local development copies say they are not a published build"
+      }
+    ]
+  },
+  {
     "version": "2.17.0",
     "date": "2026-10-23",
     "author": "Claude",
