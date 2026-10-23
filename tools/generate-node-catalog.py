@@ -63,7 +63,7 @@ for path in sorted(root.glob('*/Public/*.h'), key=lambda p: p.relative_to(root).
         decl=re.match(r'([\w:<>, *&]+?)\s+(\w+)\s*\((.*)\)\s*(?:const\s*)?(?:override\s*)?$',sig,re.S)
         if not decl: continue
         ret,name,params=decl.groups()
-        pure='BlueprintPure' in flags
+        pure='BlueprintPure' in flags and not re.search(r'BlueprintPure\s*=\s*false', flags)
         parsed=[]
         for param in split_params(params):
             refinput=bool(re.search(r'UPARAM\s*\(\s*[Rr]ef\s*\)',param))
@@ -76,7 +76,7 @@ for path in sorted(root.glob('*/Public/*.h'), key=lambda p: p.relative_to(root).
         # Unreal turns a BlueprintImplementableEvent/NativeEvent into an Event only when it has no Return
         # Node (void, no output/non-const reference parameters); with outputs it is an overridable function.
         implementable='BlueprintImplementableEvent' in flags or 'BlueprintNativeEvent' in flags
-        event=source=='BaseCardObject' and implementable and ret.strip()=='void' and not any(o for _,_,o in parsed)
+        event=implementable and ret.strip()=='void' and not any(o for _,_,o in parsed)
         pins=[]
         if not pure:
             if not event: pins.append({'id':'exec-in','name':'执行','type':'exec','direction':'in'})

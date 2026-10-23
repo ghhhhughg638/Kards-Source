@@ -1,3 +1,4 @@
+import { CLIP_KEY, CLIP_TAG, nodeClip, importClipDependencies } from "./node-clipboard.js";
 import { pinColor as uePinColor, nodeAppearance, dynamicPinSpec, canRemoveDynamicPin, addDynamicPin, removeDynamicPin, applyUEPalette } from "./ue-node-features.js";
 import { setUiLanguage, tr } from "./ui-i18n.js";
 import { createWorkspace } from "./workspace.js";
@@ -37,7 +38,7 @@ import {
   resultDefinition,
   makeVariable,
   newParam,
-  overridableFunctions,
+  overridableMembers,
   overrideSignature,
   syncDefinitions,
   typeChoices,
@@ -338,6 +339,7 @@ function undo() {
   if (!history.length) return;
   future.push(JSON.stringify(project));
   project = JSON.parse(history.pop());
+  enums = { ...catalogEnums, ...project.enums }; setEnumTable(enums); setTypeHierarchy({ ...classes, ...project.types });
   selection.clear();
   pending = null;
   selectedEdge = null;
@@ -348,6 +350,7 @@ function redo() {
   if (!future.length) return;
   history.push(JSON.stringify(project));
   project = JSON.parse(future.pop());
+  enums = { ...catalogEnums, ...project.enums }; setEnumTable(enums); setTypeHierarchy({ ...classes, ...project.types });
   selection.clear();
   pending = null;
   selectedEdge = null;
@@ -727,7 +730,7 @@ function myBlueprintMarkup() {
     head(
       "函数",
       "Functions",
-      add("function", "新建函数") + add("override", "重载父类函数", "⤴"),
+      add("function", "新建函数") + add("override", "覆写函数与事件", "⤴"),
     ) +
     project.graphs.filter((g) => g.kind === "function").map(row).join("") +
     head("宏", "Macros", add("macro", "新建宏")) +
@@ -801,7 +804,7 @@ function newItemMenu() {
     `<button class="secondary-button new-item" data-new-item="${kind}">${bi2(zh, en)}</button>`;
   openModal(
     "新建",
-    `<div class="new-menu">${item("function", "新建函数", "New function")}${item("override", "重载父类函数", "Override parent function")}${item("macro", "新建宏", "New macro")}${item("variable", "新建变量", "New variable")}${item("dispatcher", "新建事件分发器", "New event dispatcher")}</div><p class="detail-description">EventGraph 是唯一的事件图，不能再新建。更多逻辑请写在函数、宏或自定义事件里。</p>`,
+    `<div class="new-menu">${item("function", "新建函数", "New function")}${item("override", "覆写函数与事件", "Override functions and events")}${item("macro", "新建宏", "New macro")}${item("variable", "新建变量", "New variable")}${item("dispatcher", "新建事件分发器", "New event dispatcher")}</div><p class="detail-description">EventGraph 是唯一的事件图，不能再新建。更多逻辑请写在函数、宏或自定义事件里。</p>`,
   );
   $("modal-content")
     .querySelectorAll("[data-new-item]")
@@ -967,11 +970,12 @@ function functionDialog(id, kind = "function") {
       $("modal").close();
     };
 }
+$("open-overrides").onclick = () => overrideDialog();
 function overrideDialog() {
   const parent = project.asset.parentClass,
-    all = overridableFunctions(catalog, parent);
+    all = overridableMembers(catalog, parent, { ...classes, ...project.types });
   if (!all.length)
-    return openModal("重载父类函数 / Override", "<p>没有可以重载的父类函数。</p>");
+    return openModal("覆写函数与事件 / Overrides & Events", "<p>没有可以重载的父类函数。</p>");
   const paramText = (d) => {
     const s = overrideSignature(d),
       list = (a) => a.map((p) => `${p.type} ${p.name}`).join(", ");
@@ -982,11 +986,11 @@ function overrideDialog() {
   );
   let query = "";
   openModal(
-    "重载父类函数 / Override",
-    `<input id="ovr-search" class="modal-search" placeholder="搜索重载 / Search overrides…" autocomplete="off" aria-label="搜索重载"><div id="ovr-count" class="ovr-count"></div><div id="ovr-list" class="ovr-list"></div><p class="detail-description">${bi2("每个重载会新建一个函数图，签名取自父类。只有带返回节点（有输出）的才是重载函数；没有输出的（如 OnStartOfTurn）是事件，请从节点库的「事件」里添加。", "Each override creates a function graph with the parent's signature. Only members with a Return Node (outputs) are overrides; those without (e.g. OnStartOfTurn) are Events: add them from the Events category of the palette.")}</p>`,
+    "覆写函数与事件 / Overrides & Events",
+    `<input id="ovr-search" class="modal-search" placeholder="搜索重载 / Search overrides…" autocomplete="off" aria-label="搜索重载"><div id="ovr-count" class="ovr-count"></div><div id="ovr-list" class="ovr-list"></div><p class="detail-description">${bi2("事件（无输出）添加到 EventGraph；带输出的覆写创建函数图。列表包含已知父类继承成员，已有实现会定位到原节点或函数。", "Events without outputs go to EventGraph; overrides with outputs create function graphs. Inherited members are included; existing implementations are opened.")}</p>`,
     parent,
   );
-  const used = (d) => project.graphs.some((g) => g.override?.function === d.name);
+  const used = (d) => project.graphs.some((g) => g.override?.function === d.name || g.nodes.some((n) => n.definition.event && n.definition.name === d.name));
   const visible = () =>
     all.filter(
       (d) =>
@@ -999,7 +1003,7 @@ function overrideDialog() {
       ? list
           .map(
             (d) =>
-              `<button type="button" class="ovr-row is-fn" data-ovr="${esc(d.id)}" title="${esc(d.signature || d.name)}"><span class="ovr-icon">ƒ</span><span class="ovr-main"><strong>${esc(d.name)}</strong><small>${esc(nodeChinese(d))}</small><code>${esc(paramText(d))}</code></span><span class="ovr-state ${used(d) ? "done" : ""}">${used(d) ? bi2("已重载", "Overridden") : bi2("函数", "Function")}</span></button>`,
+              `<button type="button" class="ovr-row ${d.event ? "is-event" : "is-fn"}" data-ovr="${esc(d.id)}" title="${esc(d.signature || d.name)}"><span class="ovr-icon">${d.event ? "ϟ" : "ƒ"}</span><span class="ovr-main"><strong>${esc(d.name)}</strong><small>${esc(nodeChinese(d))}</small><code>${esc(paramText(d))}</code></span><span class="ovr-state ${used(d) ? "done" : ""}">${used(d) ? bi2("已实现", "Implemented") : d.event ? bi2("事件", "Event") : bi2("函数", "Function")}</span></button>`,
           )
           .join("")
       : `<p class="detail-description">${bi2("没有匹配的项。", "No matches.")}</p>`;
@@ -1014,6 +1018,14 @@ function overrideDialog() {
       project.activeGraph = known.id;
       render();
       persist();
+      return;
+    }
+    if (def.event) {
+      const eventGraph = project.graphs.find((g) => g.kind === "event");
+      const existing = eventGraph.nodes.find((n) => n.definition.event && n.definition.name === def.name);
+      project.activeGraph = eventGraph.id;
+      if (existing) { selection = new Set([existing.id]); render(); persist(); return; }
+      addNode(def.id);
       return;
     }
     const sig = overrideSignature(def);
@@ -1580,6 +1592,10 @@ function centerPoint() {
 function addNode(id, point, sourceEndpoint = null) {
   const def = fullCatalog().find((d) => d.id === id);
   if (!def) return;
+  if (def.event) {
+    const existing = graph().nodes.find((n) => n.definition.event && n.definition.name === def.name);
+    if (existing) { selection = new Set([existing.id]); render(); toast("此事件已有实现，已选中原节点。"); return; }
+  }
   point = point || freeSpotNearCenter(estimateSize(def));
   if (def.action === "newCustomEvent") return customEventDialog(null, point);
   mutate(() => {
@@ -2704,8 +2720,7 @@ function deleteSelection() {
 // Nodes (with the wires between them) go to an in-app clipboard that also lives in the browser's
 // storage, so they can be pasted into another graph, another card or another tab; the same text is
 // offered to the system clipboard as well.
-const CLIP_KEY = "kards-blueprint-studio.clipboard",
-  CLIP_TAG = "KARDS-BP-NODES:";
+
 let pasteCount = 0,
   pasteHintUntil = 0,
   lastPointer = null;
@@ -2728,13 +2743,7 @@ function copyNodes() {
     (n) => selection.has(n.id) && copyable(n),
   );
   if (!nodes.length) return toast("先选中要复制的节点", true);
-  const ids = new Set(nodes.map((n) => n.id)),
-    text = JSON.stringify({
-      format: "kards-bp-nodes",
-      version: 1,
-      nodes: clone(nodes),
-      edges: clone(graph().edges.filter((e) => ids.has(e.from.node) && ids.has(e.to.node))),
-    });
+  const text = JSON.stringify(nodeClip({ ...project, enums }, graph(), new Set(nodes.map((n) => n.id))));
   try {
     localStorage.setItem(CLIP_KEY, text);
   } catch {
@@ -2777,7 +2786,8 @@ function pasteNodes(text) {
   for (const n of data.nodes)
     if (n.definition.bp?.type === "result" && graph().kind === "function" && !graph().pure)
       n.definition = resultDefinition(graph(), true);
-  const fits = data.nodes.filter((n) => allowedInGraph(n.definition, graph())),
+  const existingEvents = new Set(graph().nodes.filter((n) => n.definition.event).map((n) => n.definition.name));
+  const fits = data.nodes.filter((n) => allowedInGraph(n.definition, graph()) && !(n.definition.event && existingEvents.has(n.definition.name))),
     skipped = data.nodes.length - fits.length;
   if (!fits.length) return toast("这些节点不能放进当前图表（例如事件只能放在 EventGraph）", true);
   const left = Math.min(...fits.map((n) => n.x)),
@@ -2793,22 +2803,26 @@ function pasteNodes(text) {
     shift = pasteCount * 40;
   pasteCount += 1;
   const made = new Map();
-  mutate(() => {
+  const candidate = clone(project);
+  try {
+    importClipDependencies(candidate, data, uid);
+    const into = candidate.graphs.find((g) => g.id === candidate.activeGraph);
     for (const n of fits) {
-      const copy = clone(n);
-      copy.id = uid();
+      const copy = clone(n); copy.id = uid();
       copy.x = Math.round((target.x + (n.x - left) + shift) / 10) * 10;
       copy.y = Math.round((target.y + (n.y - top) + shift) / 10) * 10;
-      made.set(n.id, copy.id);
-      graph().nodes.push(copy);
+      made.set(n.id, copy.id); into.nodes.push(copy);
     }
-    for (const e of data.edges || [])
-      if (made.has(e.from?.node) && made.has(e.to?.node))
-        graph().edges.push({
-          id: uid(),
-          from: { node: made.get(e.from.node), pin: e.from.pin },
-          to: { node: made.get(e.to.node), pin: e.to.pin },
-        });
+    for (const e of data.edges || []) if (made.has(e.from?.node) && made.has(e.to?.node)) into.edges.push({ id: uid(), from: { node: made.get(e.from.node), pin: e.from.pin }, to: { node: made.get(e.to.node), pin: e.to.pin } });
+    setEnumTable({ ...catalogEnums, ...candidate.enums }); setTypeHierarchy({ ...classes, ...candidate.types });
+    validateProject(candidate);
+  } catch (error) {
+    setEnumTable(enums); setTypeHierarchy({ ...classes, ...project.types });
+    return toast(`无法粘贴：${error.message}`, true);
+  }
+  mutate(() => {
+    project = candidate; enums = { ...catalogEnums, ...project.enums };
+    setEnumTable(enums); setTypeHierarchy({ ...classes, ...project.types });
   });
   // nodes whose definition no longer exists here (another card's functions) were dropped by the sync
   const alive = [...made.values()].filter((id) => graph().nodes.some((n) => n.id === id));
@@ -3672,6 +3686,8 @@ const SITE_FILES = [
   "./update.js",
   "./sw.js",
   "./catalog.json",
+  "./engine-events.json",
+  "./node-clipboard.js",
   "./reasons.json",
   "./changelog.json",
   "./version.json",
@@ -3999,17 +4015,20 @@ async function boot() {
     if (!tried) return reloadFresh(BUILD.sha);
   }
   try {
-    const response = await fetch("./catalog.json");
+    const [response, engineResponse] = await Promise.all([fetch("./catalog.json"), fetch("./engine-events.json")]);
     if (!response.ok) throw new Error("节点库载入失败");
+    if (!engineResponse.ok) throw new Error("UE 事件库载入失败");
+    const engineData = await engineResponse.json(), engineEvents = engineData.nodes;
     const data = await response.json();
     classes = { ...engineClasses, ...data.classes };
     setTypeHierarchy(classes);
     catalog = [
-      ...builtins,
+      ...builtins.map((d) => { const e = engineEvents.find((e) => e.class === d.class && e.name === d.name); return e ? { ...e, id: d.id, label: d.label, english: d.english } : d; }),
+      ...engineEvents.filter((e) => !builtins.some((d) => d.class === e.class && d.name === e.name)),
       ...typeNodes(classes, data.properties || []),
       ...data.nodes.map((d) => expandEnumExecs(d, data.enums)),
     ];
-    catalogEnums = data.enums;
+    catalogEnums = { ...data.enums, ...engineData.enums };
     enums = data.enums;
     setEnumTable(enums);
     properties = data.properties || [];
@@ -4022,7 +4041,7 @@ async function boot() {
     }
     $("catalog-count").textContent = catalog.length;
     $("source-status").textContent =
-      `${data.nodes.length} 函数 · ${Object.keys(data.classes || {}).length} 类 · ${builtins.length} UE 节点`;
+      `${data.nodes.length} 项目函数 + ${engineEvents.length} UE 事件/覆写 · ${Object.keys(data.classes || {}).length} 类 · ${builtins.length} UE 节点`;
     let restored = false;
     workspace.load();
     if (workspace.adopted)
@@ -4095,4 +4114,10 @@ $("lang-select").onchange = (e) => {
   render();
   setUiLanguage(langMode);
 };
-boot();
+boot().then(() => {
+  const params = new URLSearchParams(location.search);
+  if (params.get("paste") === "reference" && window.__kardsBooted) {
+    params.delete("paste"); window.history.replaceState(null, "", location.pathname + (params.size ? `?${params}` : "") + location.hash);
+    pasteNodes("");
+  }
+});

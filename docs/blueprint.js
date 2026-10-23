@@ -13,7 +13,7 @@ import {
 } from "./model.js";
 
 export const APP_NAME = "KARDS Blueprint Studio";
-export const APP_VERSION = "2.15.0";
+export const APP_VERSION = "2.16.0";
 export const ENGINE_VERSION = "5.6";
 export const DEFAULT_PARENT = "UBaseCardObject";
 export const DEFAULT_PACKAGE_PATH = "/Game/KARDS/Cards";
@@ -391,7 +391,7 @@ export function ensureBoundaryNodes(g) {
   const want = [];
   const isMacro = g.kind === "macro";
   want.push([isMacro ? "macroEntry" : "entry", entryDefinition(g), 60]);
-  if (isMacro || !g.pure || g.outputs.length)
+  if (isMacro || g.outputs.length)
     want.push([isMacro ? "macroExit" : "result", resultDefinition(g), 760]);
   for (const [type, def, x] of want) {
     const existing = g.nodes.filter(
@@ -403,11 +403,13 @@ export function ensureBoundaryNodes(g) {
           type === "result" ? resultDefinition(g, !!n.definition.bp.extra) : def;
     else g.nodes.push(makeNode(def, x, 120));
   }
-  // A function without outputs that is pure has no Return Node at all (not even extra ones).
+  // No forced terminal node for void functions. Keep user-added early returns
+  // in impure functions; output functions still require their result boundary.
   if (!isMacro && !want.some(([type]) => type === "result"))
     g.nodes = g.nodes.filter(
-      (n) => !(n.definition.bp?.type === "result" && n.definition.bp.graphId === g.id),
+      (n) => !(n.definition.bp?.type === "result" && n.definition.bp.graphId === g.id && (g.pure || !n.definition.bp.extra)),
     );
+  if (!isMacro && !g.outputs.length && !g.pure) for (const n of g.nodes) if (n.definition.bp?.type === "result") n.definition = resultDefinition(g, true);
   return g;
 }
 
@@ -564,17 +566,24 @@ export function referencesGraph(project, graphId) {
 // ---------------------------------------------------------------- overrides
 // Functions of the parent class that Blueprint can override (BlueprintImplementableEvent /
 // BlueprintNativeEvent with outputs). Void events with no outputs live in the Event Graph.
-export function overridableFunctions(catalog, parentClass = DEFAULT_PARENT) {
+export function overridableMembers(catalog, parentClass = DEFAULT_PARENT, classes = {}) {
+  const parents = new Set();
+  for (let name = parentClass; name && !parents.has(name); name = classes[name]?.parent) parents.add(name);
+  const names = new Set();
   return catalog
     .filter(
       (d) =>
-        d.class === parentClass &&
-        (d.nativeEvent || d.implementable) &&
-        !d.event &&
+        parents.has(d.class) &&
+        (d.nativeEvent || d.implementable || d.event) &&
         d.kind !== "getter" &&
         d.kind !== "setter",
     )
+    .sort((a, b) => [...parents].indexOf(a.class) - [...parents].indexOf(b.class))
+    .filter((d) => { if (names.has(d.name)) return false; names.add(d.name); return true; })
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+export function overridableFunctions(catalog, parentClass = DEFAULT_PARENT, classes = {}) {
+  return overridableMembers(catalog, parentClass, classes).filter((d) => !d.event);
 }
 export function overrideSignature(def) {
   const data = def.pins.filter((p) => p.type !== "exec" && p.id !== "target");

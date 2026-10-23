@@ -36,17 +36,21 @@
           <button id="ref-more" class="ref-button ref-mobile-only" type="button" aria-expanded="false" aria-controls="ref-actions">更多 ⋯</button>
           <div id="ref-actions" class="ref-actions">
             <label class="ref-mode-label">逻辑显示 <select id="ref-mode"><option value="expanded">完整展开</option><option value="compact">精简参考</option></select></label>
+            <button id="ref-select-all" class="ref-button" type="button">全选节点</button>
+            <button id="ref-multi" class="ref-button" type="button" aria-pressed="false">多选模式</button>
+            <button id="ref-paste-editor" class="ref-button ref-primary" type="button" disabled>粘贴到当前编辑器</button>
             <button id="ref-info" class="ref-button" type="button">卡牌信息</button>
-            <button id="ref-copy" class="ref-button ref-primary" type="button" disabled>复制到工作区</button>
+            <button id="ref-copy" class="ref-button ref-primary" type="button" disabled>整张蓝图另存</button>
             <button id="ref-export" class="ref-button" type="button" disabled>导出参考蓝图</button>
           </div>
         </div>
         <div id="ref-viewport" class="ref-viewport" tabindex="0" aria-label="蓝图参考画布，拖动平移，滚轮缩放">
           <div id="ref-stage" class="ref-stage"><svg id="ref-wires" class="ref-wires" aria-hidden="true"></svg><div id="ref-nodes"></div></div>
           <div id="ref-empty" class="ref-empty">选择卡牌后显示参考图</div>
-          <span class="ref-canvas-hint">拖动平移 · 双指或滚轮缩放 · 点击节点查看详情</span>
+          <span class="ref-canvas-hint">拖动节点移动 · 空白处平移 · Ctrl/Shift 多选 · Ctrl+C 复制</span>
         </div>
         <div class="ref-navigation" aria-label="画布导航">
+          <button id="ref-copy-selected" class="ref-button" type="button" disabled>复制节点 (0)</button>
           <button id="ref-zoom-out" class="ref-button" type="button" aria-label="缩小">−</button>
           <button id="ref-readable" class="ref-button" type="button" title="按可读比例显示当前节点"><span id="ref-zoom">100%</span></button>
           <button id="ref-zoom-in" class="ref-button" type="button" aria-label="放大">＋</button>
