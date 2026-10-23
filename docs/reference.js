@@ -359,7 +359,9 @@ function endPointer(e) {
   }
   nodeDrag = null; pointers.delete(e.pointerId); resetGesture();
 }
-for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) $("ref-viewport").addEventListener(name, endPointer);
+// A finger that lands on a node is captured by that node; handing the capture to the canvas makes the node
+// "lose" it, and that event bubbles up here. It is not the finger lifting, so only the canvas's own counts.
+for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) $("ref-viewport").addEventListener(name, (e) => { if (name === "lostpointercapture" && e.target !== $("ref-viewport")) return; endPointer(e); });
 $("ref-viewport").addEventListener("click", (e) => { if (Date.now() < suppressClickUntil) { e.preventDefault(); e.stopPropagation(); } }, true);
 $("ref-fit").onclick = fit; $("ref-zoom-in").onclick = () => zoom(1.2); $("ref-zoom-out").onclick = () => zoom(1 / 1.2);
 $("ref-graph").onchange = () => { project.activeGraph = $("ref-graph").value; renderGraph(); };

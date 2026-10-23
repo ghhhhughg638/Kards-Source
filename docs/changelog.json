@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.18.3",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "修复手机/触屏上拖不动查看器里的节点",
+      "en": "Fix dragging nodes with a finger in the viewer"
+    },
+    "items": [
+      {
+        "zh": "手指按在节点上拖动时,浏览器会先把触摸交给这个节点,我们再改交给画布,被误判成手指已经抬起,拖动当场结束,只能拖动画布。现在改正了:手指在节点上拖就是拖节点,在空白处拖就是平移画布。电脑上的鼠标拖动本来就正常",
+        "en": "When a finger landed on a node the browser first gave the touch to that node and we then handed it to the canvas; that hand-over was mistaken for the finger lifting, ending the drag at once, so only the canvas could be dragged. A finger on a node now drags the node and a finger on empty canvas pans. Mouse dragging on desktop was already fine"
+      }
+    ]
+  },
+  {
     "version": "2.18.2",
     "date": "2026-10-23",
     "author": "Claude",
