@@ -197,6 +197,20 @@ test("a counted loop becomes a For Loop and constant temporaries become pin valu
   assert.equal(note.values.arg1, "No cards in enemy hand.");
 });
 
+test("a switch on int comes back as one Switch node and a Select reads its condition directly", () => {
+  const g = build("card_event_foreign_support_skirm").graphs.find((x) => (x.sourceName || x.name) === "RandomChooseCards");
+  const sw = g.nodes.find((n) => n.definition.id === "ue.SwitchOnInt");
+  assert.ok(sw, "Switch on Int");
+  assert.deepEqual(sw.definition.pins.filter((p) => p.type === "exec" && p.direction === "out").map((p) => p.id), ["1", "2", "3", "Default"]);
+  assert.ok(!g.nodes.some((n) => /K2Node_SwitchInteger/.test(n.definition.name)));
+  assert.equal(g.edges.filter((e) => e.from.node === sw.id).length, 3, "three cases are wired");
+  const scen = build("card_location_british_scen1").graphs.find((x) => x.kind === "event");
+  const select = scen.nodes.find((n) => n.definition.name === "Select");
+  const index = scen.edges.find((e) => e.to.node === select.id && e.to.pin === "index");
+  assert.equal(scen.nodes.find((n) => n.id === index.from.node).definition.name, "Greater_IntInt");
+  assert.ok(!scen.nodes.some((n) => /^Get K2Node_Select_Default|^Get Temp_bool_Variable/.test(n.definition.name)));
+});
+
 test("call outputs and event parameters are wired from their producing pin, not through a detached getter", () => {
   const g = build("card_event_forward_base_anzac").graphs.find((x) => x.kind === "event");
   assert.ok(!g.nodes.some((n) => /^Get K2Node_Event_/.test(n.definition.name)), "no detached event-parameter getters");

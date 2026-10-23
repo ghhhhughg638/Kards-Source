@@ -23,6 +23,10 @@
       {
         "zh": "事件参数和函数返回值的临时变量读取不再单独悬空,直接连到来源引脚",
         "en": "Temporary variable reads of event parameters and call results are wired straight to their source pin instead of hanging loose"
+      },
+      {
+        "zh": "Switch on Int(如“外国援助”里按费用分 1/2/3 的分支)现在是一个 Switch on Int 节点,不再是一串“不等于”加分支;Select 节点直接读取它的条件,不再绕一个临时变量,也不再挂一个没有来源的 default 读取节点",
+        "en": "Switch on Int (e.g. Foreign Support splitting by cost 1/2/3) is now one Switch on Int node instead of a chain of Not Equal and Branch; Select nodes read their condition directly instead of through a temporary and no longer carry an unsourced default getter"
       }
     ]
   },

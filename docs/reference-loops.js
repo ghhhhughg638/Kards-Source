@@ -20,7 +20,10 @@ export function collapseForEachLoops(graph) {
   while (guard++ < 60 && collapseOne(graph, templates)) collapsed++;
   const forLoop = builtins.find((d) => d.id === "ue.ForLoop");
   while (forLoop && guard++ < 120 && collapseForLoop(graph, forLoop)) collapsed++;
+  const switchInt = builtins.find((d) => d.id === "ue.SwitchOnInt");
+  while (switchInt && guard++ < 180 && collapseSwitchInt(graph, switchInt)) collapsed++;
   foldConstantTemps(graph);
+  forwardPureTemps(graph);
   return collapsed;
 }
 
@@ -320,4 +323,92 @@ function foldMakeArrays(graph) {
     graph.nodes.push(make);
     graph.edges.push(...added);
   }
+}
+
+// A compiler temporary assigned once from a pure expression is that expression: wire the readers to it.
+// The Select node's unassigned "default" temporary is not a value at all.
+function forwardPureTemps(graph) {
+  const node = (id) => graph.nodes.find((n) => n.id === id);
+  const into = (n, pin) => graph.edges.filter((e) => e.to.node === n.id && (pin === undefined || e.to.pin === pin));
+  const from = (n, pin) => graph.edges.filter((e) => e.from.node === n.id && (pin === undefined || e.from.pin === pin));
+  const isPure = (n) => n.definition.pins.every((p) => p.type !== "exec") && n.definition.kind !== "getter";
+  const gone = new Set(), drops = new Set(), added = [];
+  for (const g of graph.nodes.filter((n) => /^Get K2Node_Select_Default/.test(n.definition.name) && !graph.referenceProducers?.get(`local:${n.definition.name.slice(4).toLowerCase()}`)?.length)) {
+    gone.add(g);
+  }
+  const names = new Set(graph.nodes.filter((n) => /^Set Temp_[a-z]+_Variable(_\d+)?$/i.test(n.definition.name)).map((n) => n.definition.name.slice(4)));
+  for (const name of names) {
+    const writers = graph.nodes.filter((n) => n.definition.name === `Set ${name}`);
+    if (writers.length !== 1) continue;
+    const [setter] = writers, wire = into(setter, "value")[0], src = wire && node(wire.from.node);
+    if (!src || !isPure(src) || gone.has(src)) continue;
+    const getters = graph.nodes.filter((n) => n.definition.name === `Get ${name}`);
+    const readers = [...getters.flatMap((g) => from(g)), ...from(setter, "value-out")];
+    if (!readers.length) continue;
+    const typeOf = (id, pin, n) => n.definition.pins.find((p) => p.id === pin)?.type;
+    const from_ = src.definition.pins.find((p) => p.id === wire.from.pin)?.type;
+    if (readers.some((e) => into(node(e.to.node), e.to.pin).length > 1 || typeOf(null, e.to.pin, node(e.to.node)) !== from_)) continue;
+    for (const e of readers) { drops.add(e); added.push({ id: `fwd-${setter.id}-${added.length}`, from: wire.from, to: e.to }); }
+    getters.forEach((g) => gone.add(g)); gone.add(setter);
+    for (const inn of into(setter, "exec-in")) for (const out of from(setter).filter((e) => setter.definition.pins.find((p) => p.id === e.from.pin)?.type === "exec"))
+      added.push({ id: `fwd-${setter.id}-${added.length}`, from: inn.from, to: out.to });
+  }
+  if (!gone.size) return;
+  graph.edges = graph.edges.filter((e) => !drops.has(e) && !gone.has(node(e.from.node)) && !gone.has(node(e.to.node))).concat(added.filter((e) => !gone.has(node(e.from.node)) && !gone.has(node(e.to.node))));
+  graph.nodes = graph.nodes.filter((n) => !gone.has(n));
+}
+
+// Switch on Int compiles to a chain of tests whose results go through a temporary that the viewer cannot see:
+//   t = (Selection != 1) ; if (t) { t = (Selection != 2) ; if (t) { ... default } else <case 2> } else <case 1>
+// The comparisons are left as loose pure nodes just before their Branch.
+function collapseSwitchInt(graph, template) {
+  const node = (id) => graph.nodes.find((n) => n.id === id);
+  const into = (n, pin) => graph.edges.filter((e) => e.to.node === n.id && (pin === undefined || e.to.pin === pin));
+  const from = (n, pin) => graph.edges.filter((e) => e.from.node === n.id && (pin === undefined || e.from.pin === pin));
+  const target = (n, pin) => { const e = from(n, pin)[0]; return e && { node: node(e.to.node), pin: e.to.pin }; };
+  const tests = graph.nodes.filter((n) => n.definition.name === "Branch" && /^Get K2Node_SwitchInteger_CmpSuccess/.test(node(into(n, "condition")[0]?.from.node)?.definition.name || ""));
+  const compareFor = (branch) => {
+    const index = graph.nodes.indexOf(branch);
+    for (let i = index - 1; i >= 0 && i >= index - 6; i--) {
+      const n = graph.nodes[i];
+      if (n.definition.name === "NotEqual_IntInt" && !from(n).length) return n;
+    }
+  };
+  const info = new Map(tests.map((b) => [b, compareFor(b)]));
+  if ([...info.values()].some((c) => !c)) { for (const [b, c] of info) if (!c) info.delete(b); }
+  const chained = new Set([...info.keys()].map((b) => target(b, "true")?.node).filter((n) => info.has(n)));
+  for (const first of info.keys()) {
+    if (chained.has(first)) continue;
+    const chain = [first];
+    for (let next = target(first, "true")?.node; info.has(next) && !chain.includes(next); next = target(next, "true")?.node) chain.push(next);
+    const compares = chain.map((b) => info.get(b));
+    const selection = into(compares[0], "arg0")[0];
+    const cases = compares.map((c) => String(c.values?.arg1));
+    if (!selection || compares.some((c) => into(c, "arg1").length || !/^-?\d+$/.test(String(c.values?.arg1)) || into(c, "arg0")[0]?.from.node !== selection.from.node || into(c, "arg0")[0]?.from.pin !== selection.from.pin) || new Set(cases).size !== cases.length) continue;
+    if (!into(first, "exec-in").length) continue;
+    const definition = structuredClone(template);
+    const exec = (id, name, direction) => ({ id, name, type: "exec", direction });
+    definition.pins = [
+      ...definition.pins.filter((p) => p.id === "exec-in" || p.id === "Selection"),
+      ...cases.map((k) => exec(k, k, "out")),
+      definition.pins.find((p) => p.id === "Default"),
+    ];
+    const loop = { id: `switch-${first.id}`, x: first.x, y: first.y, title: "", comment: "", values: {}, folded: {}, definition };
+    let serial = 0;
+    const edge = (f, t) => ({ id: `${loop.id}-edge-${serial++}`, from: f, to: t });
+    const added = [...into(first, "exec-in").map((e) => edge(e.from, { node: loop.id, pin: "exec-in" })), edge(selection.from, { node: loop.id, pin: "Selection" })];
+    chain.forEach((b, i) => { const t = target(b, "false"); if (t) added.push(edge({ node: loop.id, pin: cases[i] }, { node: t.node.id, pin: t.pin })); });
+    const def = target(chain[chain.length - 1], "true");
+    if (def) added.push(edge({ node: loop.id, pin: "Default" }, { node: def.node.id, pin: def.pin }));
+    const getters = chain.map((b) => node(into(b, "condition")[0].from.node));
+    const doomed = new Set([...chain, ...compares, ...getters.filter((g) => from(g).every((e) => chain.includes(node(e.to.node))))]);
+    // entries into the middle of the chain would be lost: only collapse a self-contained chain
+    if (chain.slice(1).some((b) => into(b, "exec-in").some((e) => !chain.includes(node(e.from.node))))) continue;
+    graph.edges = graph.edges.filter((e) => !doomed.has(node(e.from.node)) && !doomed.has(node(e.to.node)));
+    graph.nodes = graph.nodes.filter((n) => !doomed.has(n));
+    graph.nodes.push(loop);
+    graph.edges.push(...added);
+    return true;
+  }
+  return false;
 }
