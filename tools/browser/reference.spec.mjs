@@ -79,9 +79,9 @@ test("viewer nodes use the editor node styling; AND/OR/compare nodes look like e
   await expect(page.locator(".ref-node").first()).toBeVisible();
   expect(await page.locator(".ref-node.node").count()).toBeGreaterThan(5);
   expect(await page.locator(".ref-node.ue-compact").count()).toBe(0);
-  const operator = page.locator(".ref-node .node-subtitle", { hasText: /BooleanAND|BooleanOR|EqualEqual|Less_|Greater_/ }).first();
-  await expect(operator).toBeVisible();
-  await expect(operator.locator("xpath=ancestor::*[contains(@class,'node-head')]")).toBeVisible();
+  const operator = page.locator(".ref-node.ue-slim").first();
+  await expect(operator.locator(".node-head")).toBeVisible();
+  expect(await operator.locator(".pin").count()).toBeGreaterThan(1);
   expect(await page.locator(".ref-node .pin").count()).toBeGreaterThan(10);
   expect(await page.locator(".ref-pin-row, .ref-dot").count()).toBe(0);
 });
@@ -119,4 +119,44 @@ test("Settings shows the running version block (a local copy says it is not a pu
   await expect(page.locator(".version-field .version-line")).toContainText("本地开发版");
   await expect(page.locator("#ver-check")).toBeDisabled();
   await expect(page.locator("#ver-refresh")).toBeEnabled();
+});
+
+test("AND / compare nodes are slim: no subtitle, footer or wide add-pin button", async ({ page }) => {
+  await page.goto("/reference.html#1a1410e4609e6a61");
+  await expect(page.locator(".ref-node").first()).toBeVisible();
+  const and = page.locator(".ref-node.ue-slim").first();
+  const size = await and.evaluate((n) => [n.offsetWidth, n.offsetHeight]);
+  expect(size[0]).toBeLessThan(170);
+  expect(size[1]).toBeLessThan(120);
+  await expect(and.locator(".node-subtitle")).toBeHidden();
+});
+
+test("dragging a node moves it and re-routes only its own wires", async ({ page }) => {
+  await page.goto("/reference.html#1a1410e4609e6a61");
+  await expect(page.locator(".ref-node").first()).toBeVisible();
+  const picked = await page.evaluate(() => {
+    const wires = [...document.querySelectorAll("#ref-wires path")];
+    return wires.length;
+  });
+  expect(picked).toBeGreaterThan(5);
+  const before = await page.evaluate(() => [...document.querySelectorAll("#ref-wires path")].map((p) => p.getAttribute("d")));
+  const view = page.viewportSize();
+  let node, box;
+  for (const candidate of await page.locator(".ref-node").all()) {
+    const b = await candidate.boundingBox();
+    if (b && b.x > 0 && b.y > 0 && b.x + 60 < view.width && b.y + 40 < view.height) { node = candidate; box = b; break; }
+  }
+  expect(node, "a node on screen").toBeTruthy();
+  await page.mouse.move(box.x + 20, box.y + 10);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + 20 + i * 5, box.y + 10 + i * 3);
+  await page.mouse.up();
+  const after = await node.boundingBox();
+  expect(after.x - box.x).toBeGreaterThan(40);
+  expect(after.y - box.y).toBeGreaterThan(20);
+  const now = await page.evaluate(() => [...document.querySelectorAll("#ref-wires path")].map((p) => p.getAttribute("d")));
+  expect(now.length).toBe(before.length);
+  const changed = now.filter((d, i) => d !== before[i]).length;
+  expect(changed).toBeGreaterThan(0);
+  expect(changed).toBeLessThan(before.length);
 });

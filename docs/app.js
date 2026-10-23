@@ -1894,7 +1894,7 @@ function nodeBody(n) {
         .join("")}</select></div>`
     : "";
   const spec = dynamicPinSpec(n.definition);
-  const add = spec ? `<button type="button" class="add-user-pin" data-add-user-pin="${esc(n.id)}" ${n.definition.pins.length >= 126 || spec.kind === "operands" && spec.pins.length >= 26 ? "disabled" : ""}>＋ ${spec.kind === "exec" || spec.kind.includes("Cases") ? "添加分支" : "添加引脚"}</button>` : "";
+  const add = spec ? `<button type="button" class="add-user-pin" data-add-user-pin="${esc(n.id)}" ${n.definition.pins.length >= 126 || spec.kind === "operands" && spec.pins.length >= 26 ? "disabled" : ""} title="${spec.kind === "exec" || spec.kind.includes("Cases") ? "添加分支" : "添加引脚"}">＋${nodeAppearance(n.definition, enums).slim ? "" : ` ${spec.kind === "exec" || spec.kind.includes("Cases") ? "添加分支" : "添加引脚"}`}</button>` : "";
   return enumPicker + Array.from(
     { length: Math.max(ins.length, outs.length) },
     (_, i) =>
@@ -2019,7 +2019,7 @@ function renderNodes() {
   $("nodes").innerHTML = graph()
     .nodes.map(
       (n) =>
-        `<article class="node ue-${nodeKind(n.definition)} ${nodeAppearance(n.definition, enums).compact ? "ue-compact" : ""} tier-${nodeTier(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeAppearance(n.definition, enums).compact && !n.title ? nodeAppearance(n.definition, enums).title : nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
+        `<article class="node ue-${nodeKind(n.definition)} ${nodeAppearance(n.definition, enums).compact ? "ue-compact" : ""} ${nodeAppearance(n.definition, enums).slim ? "ue-slim" : ""} tier-${nodeTier(n.definition)} ${selection.has(n.id) ? "selected" : ""}" data-node-id="${esc(n.id)}" style="left:${n.x}px;top:${n.y}px;--node-color:${color(n.definition)}">${n.comment ? `<div class="node-comment">${esc(n.comment)}</div>` : ""}<div class="node-head" title="${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")} · ${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}"><div class="node-heading"><span>${icon(n.definition)}</span><strong>${esc(nodeAppearance(n.definition, enums).compact && !n.title ? nodeAppearance(n.definition, enums).title : nodeHeading(n))}</strong></div>${langMode === "both" ? `<div class="node-subtitle">${esc(nodeEnglish(n.definition))}</div>` : ""}</div><div class="node-kind-label">${esc(kindLabels[nodeKind(n.definition)] || "FUNCTION")}<span>${esc((n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, ""))}</span></div><div class="node-body">${nodeBody(n)}</div></article>`,
     )
     .join("");
   nodeObserver.disconnect();

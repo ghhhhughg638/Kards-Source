@@ -221,6 +221,17 @@ test("a compiled dynamic cast becomes one Cast node with Success and Failed outp
   validateProject(structuredClone(project));
 });
 
+test("every node of every card has the texts the viewer renders", async () => {
+  const { nodeChinese, nodeEnglish } = await import("../docs/i18n.js");
+  setEnumTable(library.enums);
+  for (const card of library.cards.filter((c) => !c.dataOnly)) {
+    for (const g of build(card.name).graphs) for (const n of g.nodes) {
+      assert.equal(typeof nodeChinese(n.definition), "string", `${card.name}: ${n.definition.name}`);
+      assert.equal(typeof nodeEnglish(n.definition), "string", `${card.name}: ${n.definition.name}`);
+    }
+  }
+});
+
 test("call outputs and event parameters are wired from their producing pin, not through a detached getter", () => {
   const g = build("card_event_forward_base_anzac").graphs.find((x) => x.kind === "event");
   assert.ok(!g.nodes.some((n) => /^Get K2Node_Event_/.test(n.definition.name)), "no detached event-parameter getters");

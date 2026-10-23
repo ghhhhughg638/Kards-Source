@@ -134,9 +134,9 @@ function nodeHtml(n, g) {
   const ins = shown.filter((p) => p.direction === "in"), outs = shown.filter((p) => p.direction === "out");
   const rows = Array.from({ length: Math.max(ins.length, outs.length) }, (_, i) => `<div class="pin-pair">${ins[i] ? pinRow(g, n, ins[i], look) : '<div class="pin-row"></div>'}${outs[i] ? pinRow(g, n, outs[i], look) : '<div class="pin-row output"></div>'}</div>`).join("");
   const advanced = $("ref-mode").value === "compact" && d.advancedPins?.length ? `<button class="pin-input advanced-toggle ref-advanced" data-advanced-node="${esc(n.id)}">${n.showAdvanced ? "收起参数" : `更多参数 (${d.advancedPins.length})`} ▾</button>` : "";
-  const add = dynamicPinSpec(d) ? `<button type="button" class="add-user-pin" data-ref-add-pin="${esc(n.id)}">＋ 添加引脚／分支</button>` : "";
+  const add = dynamicPinSpec(d) ? `<button type="button" class="add-user-pin" data-ref-add-pin="${esc(n.id)}" title="添加引脚／分支">${look.slim ? "＋" : "＋ 添加引脚／分支"}</button>` : "";
   const owner = (d.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "");
-  return `<article class="node ref-node ue-${kind} ${look.compact ? "ue-compact" : ""} tier-${nodeTier(d)} ${refSelection.has(n.id) ? "selected" : ""}" style="--node-color:${look.color};left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="node-head" title="${esc(kindLabels[kind] || "FUNCTION")} · ${esc(owner)}"><div class="node-heading"><span>${nodeIcon(d)}</span><strong>${esc(look.compact ? look.title : nodeChinese(d))}</strong></div><div class="node-subtitle">${esc(nodeEnglish(d))}</div></div><div class="node-kind-label">${esc(kindLabels[kind] || "FUNCTION")}<span>${esc(owner)}</span></div><div class="node-body">${rows}${advanced}${add}</div><div class="ref-node-note">${d.reference ? `${esc(d.reference.function)} · @${d.reference.sourceOffset}` : "Function signature"}</div></article>`;
+  return `<article class="node ref-node ue-${kind} ${look.compact ? "ue-compact" : ""} ${look.slim ? "ue-slim" : ""} tier-${nodeTier(d)} ${refSelection.has(n.id) ? "selected" : ""}" style="--node-color:${look.color};left:${n.x}px;top:${n.y}px" data-ref-node="${esc(n.id)}"><div class="node-head" title="${esc(kindLabels[kind] || "FUNCTION")} · ${esc(owner)}"><div class="node-heading"><span>${nodeIcon(d)}</span><strong>${esc(look.compact ? look.title : nodeChinese(d))}</strong></div><div class="node-subtitle">${esc(nodeEnglish(d))}</div></div><div class="node-kind-label">${esc(kindLabels[kind] || "FUNCTION")}<span>${esc(owner)}</span></div><div class="node-body">${rows}${advanced}${add}</div><div class="ref-node-note">${d.reference ? `${esc(d.reference.function)} · @${d.reference.sourceOffset}` : "Function signature"}</div></article>`;
 }
 function renderGraph(refit = true) {
   const g = graph(); if (!g) return;
@@ -239,20 +239,45 @@ function fit() {
   const zoom = Math.max(0.035, Math.min(1, (bounds.width - 40) / Math.max(1, right - left), (bounds.height - 50) / Math.max(1, bottom - top)));
   view = { x: 20 - left * zoom, y: 25 - top * zoom, zoom }; transform();
 }
+// Pin positions are measured once per render (relative to their node), so dragging a node only has to
+// re-route the wires that touch it instead of re-measuring every pin of every node.
+let pinOffsets = new Map(), edgesByNode = new Map();
+function wirePath(g, e, nodes) {
+  const na = nodes.get(e.from.node), nb = nodes.get(e.to.node);
+  const oa = pinOffsets.get(`${e.from.node}\u0000${e.from.pin}`), ob = pinOffsets.get(`${e.to.node}\u0000${e.to.pin}`);
+  if (!na || !nb || !oa || !ob) return "";
+  const ax = na.x + oa.x, ay = na.y + oa.y, bx = nb.x + ob.x, by = nb.y + ob.y;
+  const dx = Math.max(65, Math.abs(bx - ax) * 0.5);
+  return `M${ax} ${ay} C${ax + dx} ${ay}, ${bx - dx} ${by}, ${bx} ${by}`;
+}
 function drawWires() {
   const g = graph(); if (!g) return;
-  const stage = $("ref-stage").getBoundingClientRect(), pins = new Map();
-  for (const el of $("ref-nodes").children) for (const row of el.querySelectorAll("[data-ref-pin]")) {
-    const dot = row.querySelector(".pin"); if (!dot) continue;
-    const r = dot.getBoundingClientRect();
-    pins.set(`${el.dataset.refNode}\u0000${row.dataset.refPin}`, { x: (r.x + r.width / 2 - stage.x) / view.zoom, y: (r.y + r.height / 2 - stage.y) / view.zoom });
+  const stage = $("ref-stage").getBoundingClientRect(), nodes = new Map(g.nodes.map((n) => [n.id, n]));
+  pinOffsets = new Map();
+  for (const el of $("ref-nodes").children) {
+    const n = nodes.get(el.dataset.refNode); if (!n) continue;
+    for (const row of el.querySelectorAll("[data-ref-pin]")) {
+      const dot = row.querySelector(".pin"); if (!dot) continue;
+      const r = dot.getBoundingClientRect();
+      pinOffsets.set(`${el.dataset.refNode}\u0000${row.dataset.refPin}`, { x: (r.x + r.width / 2 - stage.x) / view.zoom - n.x, y: (r.y + r.height / 2 - stage.y) / view.zoom - n.y });
+    }
   }
-  $("ref-wires").innerHTML = g.edges.map((e) => {
-    const a = pins.get(`${e.from.node}\u0000${e.from.pin}`), b = pins.get(`${e.to.node}\u0000${e.to.pin}`); if (!a || !b) return "";
-    const dx = Math.max(65, Math.abs(b.x - a.x) * 0.5);
-    const type = g.nodes.find((n) => n.id === e.from.node)?.definition.pins.find((p) => p.id === e.from.pin)?.type;
-    return `<path style="stroke:${pinColor(type, library.enums)}" class="edge ref-wire ${type !== "exec" ? "data" : ""}" d="M${a.x} ${a.y} C${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}" />`;
+  const typeOf = new Map(g.nodes.map((n) => [n.id, new Map(n.definition.pins.map((p) => [p.id, p.type]))]));
+  edgesByNode = new Map();
+  $("ref-wires").innerHTML = g.edges.map((e, i) => {
+    for (const id of [e.from.node, e.to.node]) (edgesByNode.get(id) || edgesByNode.set(id, []).get(id)).push(i);
+    const d = wirePath(g, e, nodes); if (!d) return `<path data-i="${i}" d=""/>`;
+    const type = typeOf.get(e.from.node)?.get(e.from.pin);
+    return `<path data-i="${i}" style="stroke:${pinColor(type, library.enums)}" class="edge ref-wire ${type !== "exec" ? "data" : ""}" d="${d}" />`;
   }).join("");
+}
+function updateWires(ids) {
+  const g = graph(); if (!g) return;
+  const nodes = new Map(g.nodes.map((n) => [n.id, n])), paths = $("ref-wires").children, done = new Set();
+  for (const id of ids) for (const i of edgesByNode.get(id) || []) {
+    if (done.has(i)) continue; done.add(i);
+    paths[i]?.setAttribute("d", wirePath(g, g.edges[i], nodes));
+  }
 }
 function zoom(delta, point) {
   const old = view.zoom, next = Math.max(0.035, Math.min(2, old * delta));
@@ -283,7 +308,8 @@ $("ref-viewport").addEventListener("pointerdown", (e) => {
   else if (onControl) nodeDrag = null;
   else if (el) {
     const id = el.dataset.refNode, ids = refSelection.has(id) ? new Set(refSelection) : e.ctrlKey || e.metaKey || e.shiftKey || multiSelecting ? new Set([...refSelection, id]) : new Set([id]);
-    nodeDrag = { x: e.clientX, y: e.clientY, ids, positions: graph().nodes.filter((n) => ids.has(n.id)).map((n) => ({ n, x: n.x, y: n.y })) };
+    const els = new Map([...$("ref-nodes").children].map((c) => [c.dataset.refNode, c]));
+    nodeDrag = { x: e.clientX, y: e.clientY, ids, els, positions: graph().nodes.filter((n) => ids.has(n.id)).map((n) => ({ n, x: n.x, y: n.y, el: els.get(n.id) })), frame: 0, dx: 0, dy: 0 };
   } else { nodeDrag = null; if (!e.shiftKey) { refSelection.clear(); paintSelection(); } }
   resetGesture();
 });
@@ -294,16 +320,11 @@ $("ref-viewport").addEventListener("pointermove", (e) => {
   if (nodeDrag && pointers.size === 1) {
     const dx = e.clientX - nodeDrag.x, dy = e.clientY - nodeDrag.y;
     if (!moved && Math.hypot(dx, dy) < 5) return;
+    if (!moved) { refSelection = new Set(nodeDrag.ids); paintSelection(); $("ref-viewport").setPointerCapture(e.pointerId); graph().referenceManualLayout = true; }
     moved = true; suppressClickUntil = Date.now() + 400;
-    refSelection = new Set(nodeDrag.ids); paintSelection();
-    $("ref-viewport").setPointerCapture(e.pointerId);
-    graph().referenceManualLayout = true;
-    for (const item of nodeDrag.positions) {
-      item.n.x = item.x + dx / view.zoom; item.n.y = item.y + dy / view.zoom;
-      const el = [...$("ref-nodes").children].find((el) => el.dataset.refNode === item.n.id);
-      el.style.left = `${item.n.x}px`; el.style.top = `${item.n.y}px`;
-    }
-    drawWires(); return;
+    nodeDrag.dx = dx; nodeDrag.dy = dy;
+    if (!nodeDrag.frame) nodeDrag.frame = requestAnimationFrame(applyNodeDrag);
+    return;
   }
   const ps = [...pointers.values()], r = $("ref-viewport").getBoundingClientRect();
   const center = ps.length > 1 ? { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 } : ps[0];
@@ -316,15 +337,25 @@ $("ref-viewport").addEventListener("pointermove", (e) => {
   view.y = y - (gesture.y - gesture.vy) * next / gesture.zoom;
   view.zoom = next; transform();
 });
+function applyNodeDrag() {
+  const drag = nodeDrag; if (!drag) return;
+  drag.frame = 0;
+  for (const item of drag.positions) {
+    item.n.x = item.x + drag.dx / view.zoom; item.n.y = item.y + drag.dy / view.zoom;
+    item.el.style.left = `${item.n.x}px`; item.el.style.top = `${item.n.y}px`;
+  }
+  updateWires(drag.ids);
+}
 function endPointer(e) {
   if (moved) suppressClickUntil = Date.now() + 400;
   if (nodeDrag && moved) {
+    if (nodeDrag.frame) cancelAnimationFrame(nodeDrag.frame);
+    applyNodeDrag();
     for (const item of nodeDrag.positions) {
       item.n.x = Math.round(item.n.x / 10) * 10; item.n.y = Math.round(item.n.y / 10) * 10;
-      const el = [...$("ref-nodes").children].find((el) => el.dataset.refNode === item.n.id);
-      if (el) { el.style.left = `${item.n.x}px`; el.style.top = `${item.n.y}px`; }
+      item.el.style.left = `${item.n.x}px`; item.el.style.top = `${item.n.y}px`;
     }
-    drawWires();
+    updateWires(nodeDrag.ids);
   }
   nodeDrag = null; pointers.delete(e.pointerId); resetGesture();
 }

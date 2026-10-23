@@ -435,7 +435,7 @@ function collapseCast(graph) {
     if (!objectIn || into(setAs, "exec-in").length === 0) continue;
     const className = cast.definition.name.slice(8);
     const definition = {
-      ...structuredClone(cast.definition), kind: "cast", pure: false,
+      ...structuredClone(cast.definition), kind: "cast", pure: false, targetClass: resultPin.type.replace(/\*$/, ""),
       pins: [
         { id: "exec-in", name: "Exec", type: "exec", direction: "in" },
         { id: "Object", name: "Object", type: "UObject*", direction: "in" },
