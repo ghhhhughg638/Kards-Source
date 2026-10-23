@@ -3919,8 +3919,6 @@ window.addEventListener("storage", (e) => {
     /* keep what is on screen */
   }
 });
-// ---- update check: ask before replacing the page with a newer deployed version
-let updateAsked = false;
 // ---------------------------------------------------------------- version info (Settings)
 // Shows which build this page runs and compares it with what is published, so it is easy to tell
 // whether this device is in sync.
@@ -3971,8 +3969,17 @@ function wireVersionField() {
   });
   runVersionCheck();
 }
+// ---- update check: ask before replacing the page with a newer deployed version.
+// It runs shortly after start and again whenever the page comes back to the foreground, regains
+// focus or the network returns (at most every 10 minutes), so a tab or installed app that stays
+// open for days still notices a new release. A version that was already offered is not asked twice
+// in the same session; the Settings version block always shows the current state.
+let askedFor = "",
+  lastUpdateCheck = 0;
+const UPDATE_CHECK_EVERY = 10 * 60 * 1000;
 async function checkForUpdate() {
-  if (updateAsked || !isStamped(BUILD)) return;
+  if (!isStamped(BUILD) || Date.now() - lastUpdateCheck < UPDATE_CHECK_EVERY) return;
+  lastUpdateCheck = Date.now();
   try {
     const stamp = `t=${Date.now()}`;
     const fetchJson = async (file) => {
@@ -3987,14 +3994,19 @@ async function checkForUpdate() {
       }
     };
     const latest = await fetchJson("version.json");
-    if (!isOutdated(BUILD, latest)) return;
+    if (!isOutdated(BUILD, latest) || askedFor === latest.sha) return;
+    // Never cover a dialog the user is working in; look again at the next check.
+    if ($("modal").open) {
+      lastUpdateCheck = 0;
+      return;
+    }
     let log = [];
     try {
       log = await fetchJson("changelog.json");
     } catch {
       /* the dialog still works without the notes */
     }
-    updateAsked = true;
+    askedFor = latest.sha;
     showUpdateDialog(latest, entriesSince(log, BUILD.version));
   } catch {
     /* offline or blocked: never bother the user about it */
@@ -4103,6 +4115,10 @@ async function boot() {
     persist();
     window.__kardsBooted = true;
     setTimeout(checkForUpdate, 1500);
+    document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && checkForUpdate());
+    window.addEventListener("focus", checkForUpdate);
+    window.addEventListener("online", checkForUpdate);
+    setInterval(() => document.visibilityState === "visible" && checkForUpdate(), UPDATE_CHECK_EVERY);
   } catch (e) {
     $("source-status").textContent = "节点库载入失败";
     openModal(
