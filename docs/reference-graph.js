@@ -9,6 +9,7 @@ const CALLS = new Set(["VirtualFunction", "LocalVirtualFunction", "FinalFunction
 const ASSIGN = new Set(["Let", "LetBool", "LetObj", "LetValueOnPersistentFrame"]);
 const META = new Set(["ComputedJump", "PushExecutionFlow", "PopExecutionFlow", "Jump", "EndOfScript"]);
 const TEMP = /^(CallFunc_|Temp_|K2Node_|UberGraph)/;
+const TEMP_CALL = /^CallFunc_/;
 const pin = (id, name, type, direction) => ({ id, name, type, direction });
 const safe = (s, prefix = "Ref") => {
   let n = String(s).replace(/[^A-Za-z0-9_]/g, "_").slice(0, 58);
@@ -16,6 +17,9 @@ const safe = (s, prefix = "Ref") => {
   return n;
 };
 const peel = (x) => x?.op === "Context" ? peel(x.value) : x;
+// A call on a library's default object (Array_Get on Default__KismetArrayLibrary) is a static
+// function: Unreal shows no Target pin for it, only the real arguments.
+const isLibraryCall = (x) => x?.op === "Context" && x.object?.op === "ObjectConst" && /^Default__/.test(String(x.object.value || ""));
 const variable = (x) => x?.op === "Variable" ? x.name : null;
 const isEnum = (t, library) => Object.hasOwn(library.enums || {}, t);
 const isConst = (x) => x && (/Const$/.test(x.op) || ["True", "False", "Self", "NoObject", "Nothing"].includes(x.op));
@@ -150,7 +154,7 @@ function buildBody(fn, graph, library, prefix, entry, result, diagnostics, expan
     }
     n.definition.signature = c.signature;
     if (sig?.evidence) n.definition.reference.signatureEvidence = sig.evidence;
-    if (expression.op === "Context") input(n, "target", "Target", expressionType(expression.object, library), resolve(expression.object));
+    if (expression.op === "Context" && !isLibraryCall(expression)) input(n, "target", "Target", expressionType(expression.object, library), resolve(expression.object));
     const params = sig?.params.filter((p) => !p.return) || c.args.map((a, i) => ({ name: `Arg${i}`, type: expressionType(a, library), direction: variable(a)?.startsWith(`CallFunc_${c.name}_`) ? "out" : "in" }));
     params.forEach((p, i) => {
       if (p.direction === "out") {
@@ -296,6 +300,11 @@ function buildBody(fn, graph, library, prefix, entry, result, diagnostics, expan
     if (node === n || !input || !output || !compatible(output.type, input.type) || graph.edges.some((e) => e.to.node === n.id && e.to.pin === id)) continue;
     graph.edges.push({ id: `data-${prefix}-${graph.edges.length}`, from: { node: node.id, pin: port }, to: { node: n.id, pin: id } });
   }
+  // Remember who wrote each call-output variable, so data expressions built later can be wired from
+  // the producing pin instead of a getter that is connected to nothing.
+  const merged = graph.referenceProducers || new Map();
+  for (const [key, list] of producers) merged.set(key, [...(merged.get(key) || []), ...list]);
+  Object.defineProperty(graph, "referenceProducers", { value: merged, enumerable: false, writable: true, configurable: true });
   return { visible, statements, input, resolve };
 }
 
@@ -376,6 +385,16 @@ export function expandDataExpressions(graph, library) {
     }
     const key = expr.op === "Variable" ? `${origin?.function}:${expr.scope}:${expr.name}:${type}` : null;
     if (key && getters.has(key)) return getters.get(key);
+    if (expr.op === "Variable") {
+      // A call-output variable (CallFunc_*) has exactly one writer: wire straight from that pin.
+      const writers = graph.referenceProducers?.get(`${expr.scope === "member" ? "member" : "local"}:${expr.name?.toLowerCase()}`);
+      const output = writers?.length === 1 && writers[0].node.definition.pins.find((p) => p.id === writers[0].port);
+      if (output && TEMP_CALL.test(expr.name) && compatible(output.type, type === "unknown" ? output.type : type)) {
+        const direct = { node: writers[0].node.id, pin: writers[0].port };
+        getters.set(key, direct);
+        return direct;
+      }
+    }
     const n = { id: `expanded-${graph.id}-${sequence++}`, x: 0, y: 0, title: "", comment: "", values: {}, folded: {}, showAdvanced: true, definition: { id: `reference.data.${expr.op}`, name: expr.op, class: "Reference", category: "cards", kind: "pure", pure: true, pins: [], reference: { ...origin, expression: expr, expanded: true } } };
     graph.nodes.push(n);
     if (CALLS.has(c?.op)) {
@@ -385,7 +404,7 @@ export function expandDataExpressions(graph, library) {
         n.definition.name = `${/NotEqual/.test(c.name) ? "Not Equal" : "Equal"} (${enumType})`;
         n.definition.enumComparison = enumType;
       }
-      if (expr.op === "Context") fill(n, "target", "Target", expressionType(expr.object, library), expr.object);
+      if (expr.op === "Context" && !isLibraryCall(expr)) fill(n, "target", "Target", expressionType(expr.object, library), expr.object);
       const params = sig?.params.filter((p) => !p.return) || [];
       (c.args || []).forEach((a, i) => {
         const p = params[i];

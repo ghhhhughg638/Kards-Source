@@ -23,6 +23,7 @@ import {
   compatible,
 } from "./model.js";
 import { typeNodes, engineClasses } from "./ue-nodes.js";
+import { nodeIcon, nodeTier, pinEnglish, kindEnglish } from "./node-look.js";
 import {
   allowedInGraph,
   arrayOf,
@@ -252,25 +253,7 @@ const graph = () => project.graphs.find((g) => g.id === project.activeGraph),
       allowedInGraph(d, graph()) && (!d.event || canImplementEvent(d)) && !(d.callVariant && d.callable === false),
     ),
   color = (d) => nodeAppearance(d, enums).color,
-  icon = (d) =>
-    ({
-      event: "ϟ",
-      flow: "◇",
-      variable: "≡",
-      pure: "ƒ",
-      getter: "●",
-      setter: "●",
-      cast: "↪",
-      conversion: "⇄",
-      function: "ƒ",
-      functionEntry: "→",
-      functionResult: "←",
-      macroEntry: "⇥",
-      macroExit: "⇤",
-      customEvent: "ϟ",
-      call: "ƒ",
-      macro: "⧉",
-    })[nodeKind(d)] || "ƒ",
+  icon = nodeIcon,
   title = (n) =>
     n.title
       ? (nodeKind(n.definition) === "event" && !n.title.startsWith("事件")
@@ -1936,19 +1919,6 @@ $("nodes").addEventListener("click", (e) => {
   const n = graph().nodes.find((n) => n.id === button.dataset.advancedNode);
   if (n) mutate(() => { n.showAdvanced = !n.showAdvanced; });
 });
-// Visual size class: simple data nodes (Get Self, Get Card ID, literals) stay small, while
-// busy nodes (Change Attack and friends) get larger ports and rows that are easier to wire.
-function nodeTier(d) {
-  const ins = d.pins.filter((p) => p.direction === "in").length,
-    outs = d.pins.filter((p) => p.direction === "out").length,
-    data = d.pins.filter((p) => p.type !== "exec" && p.id !== "target").length,
-    hasExec = d.pins.some((p) => p.type === "exec"),
-    rows = Math.max(ins, outs);
-  if (rows >= 6 || d.pins.length >= 9) return "lg";
-  if (!hasExec && data <= 2) return "xs";
-  if ((!hasExec && data <= 4) || (hasExec && rows <= 2)) return "sm";
-  return "md";
-}
 $("nodes").addEventListener("change", (e) => {
   const sw = e.target.closest("[data-switch-enum]");
   if (sw) {
@@ -3343,10 +3313,6 @@ function exportProject() {
 // SVG exports use English for everything the editor provides (node, pin and category names),
 // and exactly what the user typed for everything they can customise (card title, graph name,
 // node titles, comments, default values).
-const pinEnglish = (p) =>
-  p.name === "执行" ? "Exec" : p.name === "然后" ? "Then" : p.name;
-const kindEnglish = (n) =>
-  `${(kindLabels[nodeKind(n.definition)] || "FUNCTION").split(" · ")[0]} · ${(n.definition.class || "UE").replace(/^[UA](?=[A-Z][a-z])/, "")}`;
 // Draws the active graph as a standalone SVG; also the source for the PNG export.
 function buildGraphSVG() {
   if (!graph().nodes.length) return null;
@@ -3691,6 +3657,7 @@ const SITE_FILES = [
   "./workspace.js",
   "./zip.js",
   "./update.js",
+  "./node-look.js",
   "./sw.js",
   "./catalog.json",
   "./engine-events.json",
@@ -3989,7 +3956,7 @@ function showUpdateDialog(latest, entries) {
     ? entries
         .map(
           (e) =>
-            `<section class="update-entry"><h3>v${esc(e.version)} · <span class="zh">${esc(e.title?.zh || "")}</span><span class="en">${esc(e.title?.en || e.title?.zh || "")}</span> <small>${esc(e.date || "")}</small></h3><ul>${(e.items || []).map(line).join("")}</ul></section>`,
+            `<section class="update-entry"><h3>v${esc(e.version)} · <span class="zh">${esc(e.title?.zh || "")}</span><span class="en">${esc(e.title?.en || e.title?.zh || "")}</span> <small>${esc(e.date || "")}${e.author ? ` · ${esc(e.author)}` : ""}</small></h3><ul>${(e.items || []).map(line).join("")}</ul></section>`,
         )
         .join("")
     : "<p>这个版本包含功能改进和问题修复。</p>";

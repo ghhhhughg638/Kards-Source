@@ -111,3 +111,27 @@ test("invalid imported enum declarations are rejected instead of silently changi
   const p = makeProject(); p.enums = { Bad: ["One", "One"] };
   assert.throws(() => validateProject(p), /枚举/);
 });
+
+const blockade = () => {
+  const meta = library.cards.find((c) => c.name === "card_event_blockade");
+  setEnumTable(library.enums);
+  return buildReferenceProject({ ...read(`../docs/reference-data/cards/${meta.id}.json`), translation: {} }, library, { expanded: true });
+};
+
+test("library calls such as Array_Get show no Target pin for Default__KismetArrayLibrary", () => {
+  const nodes = blockade().graphs.flatMap((g) => g.nodes).filter((n) => /^Array_/.test(n.definition.name));
+  assert.ok(nodes.length > 0);
+  for (const n of nodes) assert.ok(!n.definition.pins.some((p) => p.id === "target"), n.definition.name);
+});
+
+test("a call-output variable is wired from the pin that produces it, not through a detached getter", () => {
+  const g = blockade().graphs.find((x) => x.kind === "event");
+  const arrayGet = g.nodes.find((n) => n.definition.name === "Array_Get");
+  const item = arrayGet.definition.pins.find((p) => p.name === "Item");
+  assert.ok(g.edges.some((e) => e.from.node === arrayGet.id && e.from.pin === item.id), "Array_Get Item feeds a consumer");
+  assert.ok(!g.nodes.some((n) => n.definition.name === "Get CallFunc_Array_Get_Item"));
+  // the array element getter reads its array straight from GetDeckBySide's output
+  const read = g.nodes.find((n) => n.definition.name === "Get Array Item");
+  const source = g.edges.find((e) => e.to.node === read.id && e.to.pin === "array");
+  assert.equal(g.nodes.find((n) => n.id === source.from.node).definition.name, "GetDeckByside");
+});

@@ -1,5 +1,40 @@
 [
   {
+    "version": "2.17.0",
+    "date": "2026-10-23",
+    "author": "Claude",
+    "title": {
+      "zh": "原版蓝图库界面与编辑器统一、缩放与连线修复",
+      "en": "Original-card viewer matches the editor; zoom and wiring fixes"
+    },
+    "items": [
+      {
+        "zh": "原版蓝图库的节点改用编辑器同一套节点样式(标题、引脚、颜色、AND/比较等紧凑运算节点),画布网格、工具栏、缩放条和右侧面板也与编辑器一致;卡牌信息和源指令移到右侧面板,画布更大",
+        "en": "Viewer nodes now use the editor's node styling (titles, pins, colours, compact AND/compare operators); canvas grid, toolbar, zoom pill and right panel match the editor too. Card info and source instructions moved to the right panel so the canvas is larger"
+      },
+      {
+        "zh": "修复在查看器里手指碰到节点上的输入框、下拉框或按钮时无法双指缩放;滚轮在节点输入框上也能缩放(输入框获得焦点时除外)",
+        "en": "Fixed pinch-zoom being swallowed when a finger lands on a node's input, dropdown or button; the wheel also zooms over unfocused inputs"
+      },
+      {
+        "zh": "库函数调用(Array_Get、Array_Add 等)不再显示无意义的 Target: Default__KismetArrayLibrary 引脚",
+        "en": "Library calls (Array_Get, Array_Add, ...) no longer show the meaningless Target: Default__KismetArrayLibrary pin"
+      },
+      {
+        "zh": "调用输出变量(CallFunc_*)现在直接从产生它的引脚连线,不再留下没有来源的游离「获取」节点(例如 数组获取 的 Item 现在直接连到使用它的节点)",
+        "en": "Call-output variables (CallFunc_*) are wired straight from the pin that produces them instead of leaving a getter node connected to nothing (e.g. Array Get's Item now feeds its consumers directly)"
+      },
+      {
+        "zh": "按真实节点宽度排列列间距,宽节点不再压到相邻的列;连线按引脚实际位置绘制",
+        "en": "Columns are spaced by real node widths so wide nodes no longer overlap their neighbours; wires are drawn to the pins' real positions"
+      },
+      {
+        "zh": "署名:编辑器与修复为 Claude,原版蓝图库为 Codex;更新日志、README、状态栏和查看器页头都有署名",
+        "en": "Credits: editor and fixes by Claude, original-card library by Codex; shown in the changelog, README, status bar and viewer header"
+      }
+    ]
+  },
+  {
     "version": "2.16.0",
     "date": "2026-10-23",
     "author": "Codex",
@@ -145,7 +180,8 @@
         "zh": "所有节点都能用拆开单词的名字搜索,例如「Which Choose One」",
         "en": "Every node can be searched by its split-up name, e.g. \"Which Choose One\""
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.12.3",
@@ -159,7 +195,8 @@
         "zh": "枚举下拉框占了节点的一个格子,把执行/选择输入挤到了右边、枚举值输出跑到了左边,看起来像没有可以接的输入引脚;现在下拉框独占一行,输入在左、各枚举值输出在右",
         "en": "The enum picker used up a grid cell and pushed the Exec/Selection inputs to the right and the case outputs to the left, so there seemed to be no input pin; the picker now has its own row, inputs on the left and one output per value on the right"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.12.2",
@@ -173,7 +210,8 @@
         "zh": "节点库里只有一个「按枚举切换 / Switch on Enum」;放下后在节点上选枚举(或把枚举连到 Selection 自动识别),执行输出随枚举值变化。去掉了上一版按枚举各生成一个的 37 个节点",
         "en": "The palette has a single Switch on Enum. Pick the enum on the node (or wire an enum into Selection) and its execution outputs follow the values. The 37 per-enum nodes of the previous version are gone"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.12.1",
@@ -187,7 +225,8 @@
         "zh": "为每个枚举生成一个「Switch on <枚举名>」节点,每个枚举值一个执行输出,搜索 Switch on Enum 可找到全部 37 个(如 Switch on EFactionEnum)",
         "en": "A Switch on <enum> node for every enum, with one execution output per value; search \"Switch on Enum\" to list all 37 (e.g. Switch on EFactionEnum)"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.12.0",
@@ -205,7 +244,8 @@
         "zh": "设置里随时可以点「安装为应用…」;新增网页应用清单、图标和一个不缓存任何内容的最小 service worker",
         "en": "Settings has an \"Install as app…\" button any time; adds a web app manifest, icons and a minimal service worker that caches nothing"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.11.8",
@@ -223,7 +263,8 @@
         "zh": "右键按下时尽量阻止浏览器自己的手势",
         "en": "Right-button press now asks the browser not to start its own gestures"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.11.7",
@@ -237,7 +278,8 @@
         "zh": "节点库新增 Cast To:BP_CardFunctions、BP_PlayerController、BP_Logic、BP_GameState_Battle、BP_KardsGameInstance(游戏自带的蓝图类,父类分别是 ACardFunctionsStub、AKardsPlayerController、AkardsGameMode、AkardsGameState、UKardsGameInstance2),搜索 BP_ 即可找到",
         "en": "Added Cast To BP_CardFunctions, BP_PlayerController, BP_Logic, BP_GameState_Battle and BP_KardsGameInstance (the game's own Blueprint classes; parents ACardFunctionsStub, AKardsPlayerController, AkardsGameMode, AkardsGameState, UKardsGameInstance2); search for BP_"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.11.6",
@@ -255,7 +297,8 @@
         "zh": "左键在空白处拖动是框选;画布上禁止浏览器自带的文字选中和拖拽,不再抢手势",
         "en": "Left-drag on empty canvas is box select; the browser's own text selection and dragging no longer steal the gesture"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.11.5",
@@ -269,7 +312,8 @@
         "zh": "节点的文字和输入框改为缩放低于 20% 时才隐藏,这样 20%–50% 之间仍能看清引脚",
         "en": "Labels and inputs are now hidden only below 20% zoom, so pins stay readable between 20% and 50%"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.11.4",
@@ -287,7 +331,8 @@
         "zh": "缩放低于 50% 时只画节点标题、端口和连线,隐藏文字与输入框",
         "en": "Below 50% zoom only titles, pins and wires are painted; labels and inputs are hidden"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.11.3",
@@ -305,7 +350,8 @@
         "zh": "手势期间把画布提升为独立图层",
         "en": "The canvas gets its own layer while a gesture is in progress"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.11.2",
@@ -327,7 +373,8 @@
         "zh": "节点尺寸、端口位置一次性测量并共享;松手后不再整页重绘",
         "en": "Node sizes and pin positions are measured once per pass; dropping a node no longer re-renders everything"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.11.1",
@@ -345,7 +392,8 @@
         "zh": "输入框确认、失焦、窗口或键盘尺寸变化后自动重画连线",
         "en": "Wires are redrawn after confirming/leaving an input and when the window or keyboard resizes"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.11.0",
@@ -379,7 +427,8 @@
         "zh": "流程:3 路/4 路序列、多路门、按字符串/名称分支;所有节点的英文名改成 UE 的叫法,例如 Add (Integer)、To String (Integer)",
         "en": "Flow: Sequence (3)/(4), MultiGate, Switch on String/Name; every built-in now shows Unreal's English name, e.g. Add (Integer), To String (Integer)"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.10",
@@ -397,7 +446,8 @@
         "zh": "新增:插入、按下标移除、设置数组元素、追加数组、反转、打乱、交换两个元素、调整数组长度;和之前的长度、获取、添加、包含、查找、移除、清空一起,覆盖 UE 的常用数组操作,全部支持任意元素类型",
         "en": "New: Insert, Remove Index, Set Array Elem, Append Array, Reverse, Shuffle, Swap, Resize; together with Length, Get, Add, Contains, Find, Remove and Clear they cover Unreal's usual array operations, all for any element type"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.9",
@@ -415,7 +465,8 @@
         "zh": "导入文件时也接受这种汇合;整理布局能正常处理",
         "en": "Files with such joins import fine, and Arrange handles them"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.8",
@@ -429,7 +480,8 @@
         "zh": "选择操作条恢复成一排小按钮(「取消选择」缩短为「取消」);没选中节点时,「粘贴」只在复制后或切换图表/卡牌后的几秒内以一个小按钮出现在左下角,然后自动消失",
         "en": "The selection bar is back to one row of small buttons; with nothing selected, Paste shows as a small chip in the corner for a few seconds after copying or switching graph/card, then goes away"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.7",
@@ -447,7 +499,8 @@
         "zh": "手机底部的选择操作条之前比屏幕还宽,两头的按钮(详情、删除)会被挤出屏幕;现在按屏幕宽度排布,放不下就换行,「复制」「粘贴」一直看得到",
         "en": "The phone selection bar used to be wider than the screen so the end buttons were cut off; it now fits the width and wraps, so Copy and Paste are always visible"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.6",
@@ -469,7 +522,8 @@
         "zh": "原来的「复制」改名为「副本」(Ctrl+D 原地复制一份)",
         "en": "The old Copy is now called Duplicate (Ctrl+D makes a copy next to the original)"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.5",
@@ -491,7 +545,8 @@
         "zh": "从数组引脚拖线到空白处,会列出这些数组节点;英文名改成 UE 的叫法(Contains Item、For Each Loop 等)",
         "en": "Dragging a wire from an array pin to empty space lists these array nodes; English names follow Unreal (Contains Item, For Each Loop, …)"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.4",
@@ -521,7 +576,8 @@
         "zh": "手机上在详情面板里从一个输入框点到下一个时,不再丢失焦点、键盘不再收起",
         "en": "On phones, tapping from one field of the Details panel to the next no longer drops focus or closes the keyboard"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.3",
@@ -535,7 +591,8 @@
         "zh": "详情面板右上角新增「✕」关闭按钮,滚动时也固定在顶部;左侧工作区抽屉顶部新增「✕ 关闭」;按 Esc 也能关",
         "en": "The Details panel has a ✕ close button that stays at the top while scrolling; the workspace drawer has a ✕ Close bar; Esc closes both"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.2",
@@ -557,7 +614,8 @@
         "zh": "卡牌类型补全并加中文:步兵、坦克、炮兵、战斗机、轰炸机、防空炮、反坦克炮、坦克歼击车、指令、反制、地点、万能牌",
         "en": "Card types are complete and labelled: infantry, tank, artillery, fighter, bomber, anti-air, anti-tank, tank destroyer, order, countermeasure, location, wildcard"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.1",
@@ -575,7 +633,8 @@
         "zh": "左侧抽屉的「我的蓝图」顶部新增「卡牌信息」入口,点一下直接打开并滚到卡牌信息",
         "en": "The left drawer now has a Card Data entry at the top of My Blueprint that opens the details panel right at the card data"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.10.0",
@@ -593,7 +652,8 @@
         "zh": "Reason 列表的 125 个键全部加了中文,搜索中文或英文都行",
         "en": "All 125 Reason keys now have Chinese texts; search works in both languages"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.9.1",
@@ -619,7 +679,8 @@
         "zh": "新增节点按自身大小找空位,不再压在其他节点上",
         "en": "New nodes find a free spot using their own size, so they no longer land on other nodes"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.9.0",
@@ -637,7 +698,8 @@
         "zh": "重载父类函数窗口新增搜索(英文名、中文名、参数),已重载的会标出,再选直接跳转",
         "en": "The Override window now has search (English name, Chinese name, parameters); overridden ones are marked and jump to the existing graph"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.8.3",
@@ -655,7 +717,8 @@
         "zh": "只有没有输出参数的通知(如 OnStartOfTurn)才是事件,放在事件图里",
         "en": "Only notifications without outputs (e.g. OnStartOfTurn) stay Events in the Event Graph"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.8.2",
@@ -677,7 +740,8 @@
         "zh": "互不相连的逻辑各占一条横带;没有连线的节点整齐排成网格放在最下方",
         "en": "Unconnected graphs get their own band; nodes without wires are parked in a tidy grid below"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.8.1",
@@ -695,7 +759,8 @@
         "zh": "画布工具栏新增「整理」:按连线方向分列排布节点,叠在一起的节点会被拆开(可撤销)",
         "en": "New Arrange button: lays nodes out in columns by flow direction and separates stacked nodes (undoable)"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.8.0",
@@ -717,7 +782,8 @@
         "zh": "新增设置(⚙):可阻止长按选中文字和复制菜单,也可把鼠标拖动改回平移",
         "en": "New Settings (⚙): block long-press text selection and the copy menu, or switch mouse drag back to panning"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.7.2",
@@ -739,7 +805,8 @@
         "zh": "分类标签改为单行横向滚动,「更多」按钮更紧凑",
         "en": "Category chips scroll in a single row and the Show more bar is compact"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.7.1",
@@ -753,7 +820,8 @@
         "zh": "手机上画布左上方的按钮现在显示当前卡牌名，点它打开左侧的工作区、我的蓝图和节点库",
         "en": "On phones the button at the top left of the canvas now shows the current card name; tap it to open the workspace, blueprint and palette"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.7.0",
@@ -771,7 +839,8 @@
         "zh": "修复「刷新」按钮漏刷新部分文件，可能导致刷新后仍是旧版本的问题",
         "en": "Fixed the Refresh button skipping some files, which could leave parts of the old version in place"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.6.0",
@@ -793,7 +862,8 @@
         "zh": "PNG 倍率可选 1×–4× 或手填 0.5–8；支持一次导入多个文件和 ZIP",
         "en": "PNG scale 1×–4× or custom 0.5–8; import several files or a ZIP at once"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.5.0",
@@ -807,7 +877,8 @@
         "zh": "顶栏和菜单栏不再超出手机屏幕，窄屏下菜单按钮只显示一种语言",
         "en": "The top bar and menu bar no longer run off phone screens; menu buttons show one language on narrow screens"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.4.0",
@@ -829,7 +900,8 @@
         "zh": "节点上的数值、枚举、布尔值可以直接编辑；选择器与节点库支持「显示更多」",
         "en": "Edit numbers, enums and booleans right on the node; Show more in the picker and palette"
       }
-    ]
+    ],
+    "author": "Claude"
   },
   {
     "version": "2.3.0",
@@ -847,6 +919,7 @@
         "zh": "导出文件升级为版本 2，包含资源信息、依赖和统计；旧版本文件不再兼容",
         "en": "Export format version 2 with asset info, dependencies and stats; version 1 files are no longer supported"
       }
-    ]
+    ],
+    "author": "Claude"
   }
 ]
