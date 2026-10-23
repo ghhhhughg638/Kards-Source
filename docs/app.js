@@ -249,7 +249,7 @@ const graph = () => project.graphs.find((g) => g.id === project.activeGraph),
   // limited to what the active graph may contain.
   fullCatalog = () =>
     [...catalog, ...dynamicDefinitions(project, graph())].filter((d) =>
-      allowedInGraph(d, graph()),
+      allowedInGraph(d, graph()) && (!d.event || canImplementEvent(d)) && !(d.callVariant && d.callable === false),
     ),
   color = (d) => nodeAppearance(d, enums).color,
   icon = (d) =>
@@ -979,6 +979,7 @@ function overrideDialog() {
   const paramText = (d) => {
     const s = overrideSignature(d),
       list = (a) => a.map((p) => `${p.type} ${p.name}`).join(", ");
+    if (d.event) return `Event (${list(s.outputs)})`;
     return `${s.pure ? "pure " : ""}(${list(s.inputs)})${s.outputs.length ? ` → (${list(s.outputs)})` : ""}`;
   };
   const text = new Map(
@@ -1588,6 +1589,12 @@ function centerPoint() {
     x: (r.width / 2 - v.x) / v.zoom - 140,
     y: (r.height / 2 - v.y) / v.zoom - 70,
   };
+}
+function canImplementEvent(def) {
+  if (!def.event) return true;
+  const seen = new Set(), hierarchy = { ...classes, ...project.types };
+  for (let owner = project.asset.parentClass; owner && !seen.has(owner); owner = hierarchy[owner]?.parent) { if (def.class === owner) return true; seen.add(owner); }
+  return false;
 }
 function addNode(id, point, sourceEndpoint = null) {
   const def = fullCatalog().find((d) => d.id === id);
@@ -2787,7 +2794,7 @@ function pasteNodes(text) {
     if (n.definition.bp?.type === "result" && graph().kind === "function" && !graph().pure)
       n.definition = resultDefinition(graph(), true);
   const existingEvents = new Set(graph().nodes.filter((n) => n.definition.event).map((n) => n.definition.name));
-  const fits = data.nodes.filter((n) => allowedInGraph(n.definition, graph()) && !(n.definition.event && existingEvents.has(n.definition.name))),
+  const fits = data.nodes.filter((n) => allowedInGraph(n.definition, graph()) && canImplementEvent(n.definition) && !(n.definition.event && existingEvents.has(n.definition.name))),
     skipped = data.nodes.length - fits.length;
   if (!fits.length) return toast("这些节点不能放进当前图表（例如事件只能放在 EventGraph）", true);
   const left = Math.min(...fits.map((n) => n.x)),
@@ -4041,7 +4048,7 @@ async function boot() {
     }
     $("catalog-count").textContent = catalog.length;
     $("source-status").textContent =
-      `${data.nodes.length} 项目函数 + ${engineEvents.length} UE 事件/覆写 · ${Object.keys(data.classes || {}).length} 类 · ${builtins.length} UE 节点`;
+      `${data.nodes.length} 项目节点定义 + ${engineEvents.length} UE 事件/覆写 · ${Object.keys(data.classes || {}).length} 类 · ${builtins.length} UE 节点`;
     let restored = false;
     workspace.load();
     if (workspace.adopted)
