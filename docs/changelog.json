@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.18.4",
+    "date": "2026-10-24",
+    "author": "Claude",
+    "title": {
+      "zh": "查看器:同一个函数不再重复出现,输出直接连线",
+      "en": "Viewer: a function no longer appears several times; its outputs are wired directly"
+    },
+    "items": [
+      {
+        "zh": "编译后的蓝图会在每个用到结果的地方把纯函数重新算一遍,所以图里同一个函数(比如“军指挥部”里的获取最左侧/最右侧手牌)出现三次,结果还要经过一个游离的变量读取节点。现在输入完全相同的纯函数合并成一个节点,直接连线到用到它的地方;全库节点数又减少约 1300 个",
+        "en": "Compiled blueprints re-evaluate a pure function at every place that uses its result, so one function (e.g. Corps Command's left-most / right-most card in hand) showed up three times with its result read through a detached variable node. Pure nodes with identical inputs are now merged into one and wired straight to their users; the library has about 1,300 fewer nodes"
+      },
+      {
+        "zh": "Format 文本的参数(带 turn 的那类)还原成一个 Make FormatArgumentData 节点,不再是七个“设置 Value”;从来没有被写入的文本临时变量不再显示成游离节点",
+        "en": "Text-format arguments are one Make FormatArgumentData node instead of seven 'Set Value' nodes, and text temporaries that are never written no longer show up as loose nodes"
+      }
+    ]
+  },
+  {
     "version": "2.18.3",
     "date": "2026-10-23",
     "author": "Claude",

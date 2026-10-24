@@ -8,13 +8,14 @@
 // Showing that verbatim turns a three-node loop into a dozen nodes. This pass recognises the
 // expansion in the expanded reference graph and puts the original "For Each Loop" (or "... with
 // Break") node back; a loop that does not match the pattern exactly is left untouched.
-import { builtins } from "./model.js";
+import { builtins, compatible } from "./model.js";
 
 const COUNTER = /^Temp_int_Loop_Counter_Variable(_\d+)?$/, INDEX = /^Temp_int_Array_Index_Variable(_\d+)?$/, BREAK = /^Temp_bool_True_if_break_was_hit_Variable(_\d+)?$/;
 
 export function collapseForEachLoops(graph) {
   const templates = { plain: builtins.find((d) => d.id === "ue.ForEachLoop"), withBreak: builtins.find((d) => d.id === "ue.ForEachLoopWithBreak") };
   if (!templates.plain || !templates.withBreak) return 0;
+  foldMakeStructs(graph);
   foldMakeArrays(graph);
   let collapsed = 0, guard = 0;
   while (guard++ < 60 && collapseOne(graph, templates)) collapsed++;
@@ -23,8 +24,10 @@ export function collapseForEachLoops(graph) {
   const switchInt = builtins.find((d) => d.id === "ue.SwitchOnInt");
   while (switchInt && guard++ < 180 && collapseSwitchInt(graph, switchInt)) collapsed++;
   while (guard++ < 240 && collapseCast(graph)) collapsed++;
+  mergePureDuplicates(graph);
   foldConstantTemps(graph);
   forwardPureTemps(graph);
+  dropUnwrittenTemps(graph);
   return collapsed;
 }
 
@@ -461,4 +464,108 @@ function collapseCast(graph) {
     return true;
   }
   return false;
+}
+
+// The compiler evaluates a pure function again at every place that uses its result, so one blueprint node
+// shows up as several identical ones (and its outputs are read through a detached variable getter). Identical
+// pure nodes - same function, same constants, same inputs - become one node wired to every user.
+function mergePureDuplicates(graph) {
+  const skip = /Random|Shuffle|Spawn|Now$|Time/i;
+  const mergeable = (n) => {
+    const d = n.definition, accessor = d.kind === "getter" && d.pins.some((p) => p.id === "target" && p.direction === "in"); // a member read off an object is also pure
+    if (!accessor && (["getter", "setter", "variable", "event", "entry", "return"].includes(d.kind) || /^(Get|Set) /.test(d.name))) return false;
+    return !n.comment && !skip.test(d.name) && !d.pins.some((p) => p.type === "exec") && d.pins.some((p) => p.direction === "out");
+  };
+  const merged = new Map();
+  for (let pass = 0; pass < 10; pass++) {
+    const wires = new Map();
+    for (const e of graph.edges) (wires.get(e.to.node) || wires.set(e.to.node, []).get(e.to.node)).push(`${e.to.pin}<${e.from.node}.${e.from.pin}`);
+    const seen = new Map(), drop = new Map();
+    for (const n of graph.nodes) {
+      if (!mergeable(n)) continue;
+      const values = Object.fromEntries(Object.entries(n.values || {}).filter(([, v]) => v !== "" && v !== undefined).sort(([a], [b]) => a.localeCompare(b)));
+      const key = `${n.definition.id}|${n.definition.name}|${JSON.stringify(values)}|${(wires.get(n.id) || []).sort().join(",")}`;
+      const first = seen.get(key);
+      if (first) drop.set(n.id, first); else seen.set(key, n);
+    }
+    if (!drop.size) break;
+    for (const [id, survivor] of drop) merged.set(id, survivor);
+    graph.edges = graph.edges.filter((e) => !drop.has(e.to.node)).map((e) => (drop.has(e.from.node) ? { ...e, from: { node: drop.get(e.from.node).id, pin: e.from.pin } } : e));
+    graph.nodes = graph.nodes.filter((n) => !drop.has(n.id));
+  }
+  // call outputs read through a getter: when every writer was (a copy of) one node, wire from that node
+  const resolve = (n) => { let cur = n; while (merged.has(cur.id)) cur = merged.get(cur.id); return cur; };
+  const alive = new Set(graph.nodes.map((n) => n.id));
+  const byId = new Map(graph.nodes.map((n) => [n.id, n]));
+  const gone = new Set(), added = [];
+  for (const g of graph.nodes) {
+    if (g.definition.kind !== "getter" || !/^Get (CallFunc_|K2Node_Event_)/.test(g.definition.name)) continue;
+    const writers = graph.referenceProducers?.get(`local:${g.definition.name.slice(4).toLowerCase()}`) || [];
+    const sources = new Map(writers.map((w) => { const node = resolve(w.node); return [`${node.id}.${w.port}`, { node, port: w.port }]; }));
+    if (sources.size !== 1) continue;
+    const { node, port } = [...sources.values()][0], output = node.definition.pins.find((p) => p.id === port);
+    if (!alive.has(node.id) || !output) continue;
+    const uses = graph.edges.filter((e) => e.from.node === g.id);
+    if (uses.some((e) => !compatible(output.type, byId.get(e.to.node)?.definition.pins.find((p) => p.id === e.to.pin)?.type || output.type))) continue;
+    for (const e of uses) added.push({ id: `${e.id}-direct`, from: { node: node.id, pin: port }, to: e.to });
+    gone.add(g.id);
+  }
+  if (!gone.size) return;
+  graph.edges = graph.edges.filter((e) => !gone.has(e.from.node) && !gone.has(e.to.node)).concat(added);
+  graph.nodes = graph.nodes.filter((n) => !gone.has(n.id));
+}
+
+// A text-format argument is built field by field into a compiler temporary:
+//   S.ArgumentName = ... ; S.ArgumentValueType = ... ; S.ArgumentValue = ... ; S.ArgumentValueInt = ... ; ...
+// (the bytecode drops the field names, but the order is the declaration order of FFormatArgumentData.)
+// In the blueprint that is one Make FormatArgumentData node.
+const FORMAT_ARGUMENT = [["ArgumentName", "Argument Name", "FString"], ["ArgumentValueType", "Argument Value Type", "uint8"], ["ArgumentValue", "Argument Value", "FText"],
+  ["ArgumentValueInt", "Argument Value Int", "int64"], ["ArgumentValueFloat", "Argument Value Float", "float"],
+  ["ArgumentValueDouble", "Argument Value Double", "double"], ["ArgumentValueGender", "Argument Value Gender", "uint8"]];
+function foldMakeStructs(graph) {
+  const node = (id) => graph.nodes.find((n) => n.id === id);
+  const into = (n, pin) => graph.edges.filter((e) => e.to.node === n.id && (pin === undefined || e.to.pin === pin));
+  const from = (n, pin) => graph.edges.filter((e) => e.from.node === n.id && (pin === undefined || e.from.pin === pin));
+  const names = new Set(graph.nodes.filter((n) => /^Get K2Node_MakeStruct_FormatArgumentData(_\d+)?$/.test(n.definition.name)).map((n) => n.definition.name));
+  let serial = 0;
+  for (const name of names) {
+    const getters = graph.nodes.filter((n) => n.definition.name === name);
+    const setters = graph.nodes.filter((n) => n.definition.name === "Set Value" && getters.some((g) => into(n, "target").some((e) => e.from.node === g.id)));
+    if (setters.length !== FORMAT_ARGUMENT.length) continue;
+    const typeOf = (n) => n.definition.pins.find((p) => p.id === "value")?.type;
+    if (setters.some((n, i) => !compatible(typeOf(n) || "", FORMAT_ARGUMENT[i][2]) && typeOf(n) !== FORMAT_ARGUMENT[i][2])) continue;
+    const shape = structuredClone(setters[0].definition);
+    const definition = {
+      id: "ue.MakeFormatArgumentData", name: "Make FormatArgumentData", class: "UE", category: "structs", kind: "pure", pure: true, english: "Make FFormatArgumentData",
+      pins: [...FORMAT_ARGUMENT.map(([id, label, type]) => ({ id, name: label, type, direction: "in" })), { id: "result", name: "Format Argument Data", type: "FFormatArgumentData", direction: "out" }],
+      reference: shape.reference,
+    };
+    const make = { id: `makestruct-${setters[0].id}`, x: setters[0].x, y: setters[0].y, title: "", comment: "", values: {}, folded: {}, definition };
+    const added = [];
+    setters.forEach((n, i) => {
+      const wire = into(n, "value")[0], id = FORMAT_ARGUMENT[i][0];
+      if (wire) added.push({ id: `${make.id}-edge-${serial++}`, from: wire.from, to: { node: make.id, pin: id } });
+      else if (n.values?.value !== undefined) make.values[id] = n.values.value;
+    });
+    for (const g of getters) for (const e of from(g)) if (!setters.includes(node(e.to.node))) added.push({ id: `${make.id}-edge-${serial++}`, from: { node: make.id, pin: "result" }, to: e.to });
+    // splice the setters out of the execution chain
+    const execOut = (n) => from(n).filter((e) => n.definition.pins.find((p) => p.id === e.from.pin)?.type === "exec");
+    for (const n of setters) for (const inn of into(n, "exec-in")) for (const out of execOut(n))
+      if (!setters.includes(node(inn.from.node)) && !setters.includes(node(out.to.node))) added.push({ id: `${make.id}-edge-${serial++}`, from: inn.from, to: out.to });
+    const doomed = new Set([...setters, ...getters]);
+    graph.edges = graph.edges.filter((e) => !doomed.has(node(e.from.node)) && !doomed.has(node(e.to.node)));
+    graph.nodes = graph.nodes.filter((n) => !doomed.has(n));
+    graph.nodes.push(make);
+    graph.edges.push(...added);
+  }
+}
+
+// A local that nothing ever writes keeps its default value: reading it is the same as leaving the pin empty.
+function dropUnwrittenTemps(graph) {
+  const written = new Set(graph.nodes.filter((n) => /^Set /.test(n.definition.name)).map((n) => n.definition.name.slice(4)));
+  const gone = new Set(graph.nodes.filter((g) => g.definition.kind === "getter" && /^Get Temp_/.test(g.definition.name) && !written.has(g.definition.name.slice(4)) &&
+    !graph.referenceProducers?.get(`local:${g.definition.name.slice(4).toLowerCase()}`)?.length).map((g) => g.id));
+  if (!gone.size) return;
+  graph.edges = graph.edges.filter((e) => !gone.has(e.from.node) && !gone.has(e.to.node));
+  graph.nodes = graph.nodes.filter((n) => !gone.has(n.id));
 }
