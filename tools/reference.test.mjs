@@ -232,6 +232,29 @@ test("every node of every card has the texts the viewer renders", async () => {
   }
 });
 
+test("a pure function the compiler re-evaluates at each use is one node wired to its users", () => {
+  const g = build("card_event_corps_command").graphs.find((x) => (x.sourceName || x.name) === "EventGraph");
+  for (const name of ["GetLeftMostCardInHand", "GetRightMostCardInHand"]) assert.equal(g.nodes.filter((n) => n.definition.name === name).length, 1, name);
+  assert.ok(!g.nodes.some((n) => /^Get CallFunc_/.test(n.definition.name)), "no detached call-output getters");
+  const left = g.nodes.find((n) => n.definition.name === "GetLeftMostCardInHand");
+  const users = g.edges.filter((e) => e.from.node === left.id).map((e) => `${e.from.pin}>${g.nodes.find((n) => n.id === e.to.node).definition.name}`);
+  assert.ok(users.some((u) => u.endsWith(">Branch")), "WasFound feeds the Branch directly");
+  assert.ok(users.filter((u) => u.endsWith(">Get cardID")).length === 1, "one cardID read of the found card");
+  validateProject(structuredClone(build("card_event_corps_command")));
+});
+
+test("a text-format argument is one Make FormatArgumentData node, and never-written text temporaries disappear", () => {
+  const g = build("card_location_british_scen1").graphs.find((x) => (x.sourceName || x.name) === "EventGraph");
+  const make = g.nodes.find((n) => n.definition.id === "ue.MakeFormatArgumentData");
+  assert.ok(make, "Make FormatArgumentData");
+  assert.equal(make.values.ArgumentName, "turn");
+  assert.ok(g.edges.some((e) => e.to.node === make.id && e.to.pin === "ArgumentValueInt"), "the int value is wired");
+  assert.ok(!g.nodes.some((n) => n.definition.name === "Set Value" || /K2Node_MakeStruct/.test(n.definition.name)));
+  const espionage = build("card_event_espionage_skirm").graphs.find((x) => x.kind === "event");
+  assert.ok(!espionage.nodes.some((n) => /^Get Temp_text_Variable/.test(n.definition.name)), "an unwritten temporary is just an empty pin");
+  validateProject(structuredClone(build("card_location_british_scen1")));
+});
+
 test("call outputs and event parameters are wired from their producing pin, not through a detached getter", () => {
   const g = build("card_event_forward_base_anzac").graphs.find((x) => x.kind === "event");
   assert.ok(!g.nodes.some((n) => /^Get K2Node_Event_/.test(n.definition.name)), "no detached event-parameter getters");
